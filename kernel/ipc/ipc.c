@@ -110,7 +110,7 @@ ssize_t pipe_write(pipe_t* pipe, const void* buf, size_t count) {
 }
 
 void pipe_close(pipe_t* pipe) {
-    if (!pipe) return;
+    VALIDATE_PTR_VOID(pipe);
     
     spinlock_lock(&pipe->lock);
     if (pipe->readers > 0) pipe->readers--;

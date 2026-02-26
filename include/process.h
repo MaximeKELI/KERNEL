@@ -34,6 +34,10 @@ typedef struct process {
     u64 time_slice;
     u64 runtime;
     
+    /* User/Group IDs */
+    u32 uid;
+    u32 gid;
+    
     /* File descriptors */
     void* files;
     

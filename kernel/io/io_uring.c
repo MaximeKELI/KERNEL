@@ -14,6 +14,7 @@ void io_uring_init(void) {
 
 io_uring_t* io_uring_setup(u32 entries, u32 flags) {
     (void)flags;
+    VALIDATE_RANGE(entries, 1, 4096);
     
     io_uring_t* ring = (io_uring_t*)kzalloc(sizeof(io_uring_t));
     if (!ring) {
@@ -54,7 +55,7 @@ io_uring_t* io_uring_setup(u32 entries, u32 flags) {
 }
 
 int io_uring_submit(io_uring_t* ring) {
-    if (!ring) return -1;
+    VALIDATE_PTR_RET(ring, -1);
     
     /* Would submit entries to kernel */
     u32 submitted = ring->sq_tail - ring->sq_head;

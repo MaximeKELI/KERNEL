@@ -32,8 +32,9 @@ int vfs_unmount(const char* target) {
 }
 
 vfs_file_t* vfs_open(const char* path, u64 flags) {
-    (void)path;
-    (void)flags;
+    /* Validate parameters */
+    VALIDATE_STRING(path, 4096);
+    VALIDATE_FLAGS(flags, 0xFFFFFFFF);
     
     vfs_file_t* file = (vfs_file_t*)kmalloc(sizeof(vfs_file_t));
     if (!file) return NULL;

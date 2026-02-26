@@ -70,7 +70,7 @@ int container_start(container_t* container) {
 }
 
 int container_stop(container_t* container) {
-    if (!container) return -1;
+    VALIDATE_PTR_RET(container, -1);
     
     if (!container->running) {
         DEBUG_WARN("Container not running");

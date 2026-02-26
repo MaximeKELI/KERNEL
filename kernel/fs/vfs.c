@@ -24,6 +24,9 @@ int vfs_mount(const char* source, const char* target, vfs_fs_ops_t* fs_ops) {
 }
 
 int vfs_unmount(const char* target) {
+    /* Validate parameters */
+    VALIDATE_STRING(target, 4096);
+    
     (void)target;
     return 0;
 }

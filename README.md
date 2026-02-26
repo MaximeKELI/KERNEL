@@ -364,10 +364,10 @@ This kernel is provided as a foundation for learning and development.
 ## 📚 Additional Resources
 
 - [Documentation/BUILD.md](Documentation/BUILD.md) - Build instructions
-- [ALL_FEATURES.md](ALL_FEATURES.md) - Complete feature list
-- [EXTREME_SECURITY.md](EXTREME_SECURITY.md) - Security features
-- [QUALITY_AUDIT.md](QUALITY_AUDIT.md) - Quality audit report
-- [IMPROVEMENTS_APPLIED.md](IMPROVEMENTS_APPLIED.md) - Improvements applied
+- [Documentation/ALL_FEATURES.md](Documentation/ALL_FEATURES.md) - Complete feature list
+- [Documentation/EXTREME_SECURITY.md](Documentation/EXTREME_SECURITY.md) - Security features
+- [Documentation/QUALITY_AUDIT.md](Documentation/QUALITY_AUDIT.md) - Quality audit report
+- [Documentation/IMPROVEMENTS_APPLIED.md](Documentation/IMPROVEMENTS_APPLIED.md) - Improvements applied
 
 ## 🎯 Roadmap
 

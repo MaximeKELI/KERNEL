@@ -45,6 +45,10 @@ context_switch_asm:
     mov [rdi + 48], r9
     mov [rdi + 56], r8
     mov [rdi + 64], rdi
+    push rdi
+    mov rdi, [rsp + 8]  ; Restore original rdi
+    mov [rdi + 64], rdi
+    pop rdi
     mov [rdi + 72], rsi
     mov [rdi + 80], rbp
     mov [rdi + 88], rbx

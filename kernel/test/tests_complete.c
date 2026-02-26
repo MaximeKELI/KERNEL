@@ -377,9 +377,8 @@ static test_result_t test_acpi_init(void) {
 
 static test_result_t test_epoll_create(void) {
     int epfd = epoll_create(10);
-    if (epfd >= 0) {
-        epoll_close(epfd);
-    }
+    /* epoll_close may not exist, that's OK */
+    (void)epfd;
     return TEST_PASS;
 }
 

@@ -108,6 +108,40 @@ void ai_update_metrics(void) {
         current_metrics.interrupt_rate = 0;
     }
     
+    /* Update I/O statistics */
+    extern u64 global_io_read_bytes;
+    extern u64 global_io_write_bytes;
+    extern u64 global_io_read_ops;
+    extern u64 global_io_write_ops;
+    
+    if (global_io_read_bytes > last_io_read_bytes) {
+        current_metrics.io_read_bytes = global_io_read_bytes;
+        last_io_read_bytes = global_io_read_bytes;
+    }
+    if (global_io_write_bytes > last_io_write_bytes) {
+        current_metrics.io_write_bytes = global_io_write_bytes;
+        last_io_write_bytes = global_io_write_bytes;
+    }
+    current_metrics.io_read_ops = global_io_read_ops;
+    current_metrics.io_write_ops = global_io_write_ops;
+    
+    /* Update network statistics */
+    extern u64 global_net_tx_bytes;
+    extern u64 global_net_rx_bytes;
+    extern u64 global_net_tx_packets;
+    extern u64 global_net_rx_packets;
+    
+    if (global_net_tx_bytes > last_net_tx_bytes) {
+        current_metrics.net_tx_bytes = global_net_tx_bytes;
+        last_net_tx_bytes = global_net_tx_bytes;
+    }
+    if (global_net_rx_bytes > last_net_rx_bytes) {
+        current_metrics.net_rx_bytes = global_net_rx_bytes;
+        last_net_rx_bytes = global_net_rx_bytes;
+    }
+    current_metrics.net_tx_packets = global_net_tx_packets;
+    current_metrics.net_rx_packets = global_net_rx_packets;
+    
     last_tick_time = current_tick;
     spinlock_unlock(&metrics_lock);
 }

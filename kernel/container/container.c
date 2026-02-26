@@ -57,7 +57,7 @@ container_t* container_create(const char* name, const char* rootfs) {
 }
 
 int container_start(container_t* container) {
-    if (!container) return -1;
+    VALIDATE_PTR_RET(container, -1);
     
     if (container->running) {
         DEBUG_WARN("Container already running");

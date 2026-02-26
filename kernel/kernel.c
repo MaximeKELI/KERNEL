@@ -151,6 +151,31 @@ void kernel_main(u64 magic, u64 mb_info) {
     ext2_init();
     printk("EXT2 filesystem initialized.\n\n");
     
+    /* Initialize proc filesystem */
+    printk("Initializing proc filesystem...\n");
+    procfs_init();
+    printk("Proc filesystem initialized.\n\n");
+    
+    /* Initialize kernel threads */
+    printk("Initializing kernel threads...\n");
+    kthread_init();
+    printk("Kernel threads initialized.\n\n");
+    
+    /* Initialize workqueues */
+    printk("Initializing workqueues...\n");
+    workqueue_init();
+    printk("Workqueues initialized.\n\n");
+    
+    /* Initialize high-resolution timers */
+    printk("Initializing high-resolution timers...\n");
+    hrtimer_init();
+    printk("High-resolution timers initialized.\n\n");
+    
+    /* Initialize serial port */
+    printk("Initializing serial port...\n");
+    serial_init(COM1);
+    printk("Serial port initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     
@@ -164,6 +189,15 @@ void kernel_main(u64 magic, u64 mb_info) {
     
     /* Main loop */
     while (true) {
+        /* Process high-resolution timers */
+        hrtimer_process();
+        
+        /* Process workqueues */
+        extern workqueue_t* system_wq;
+        if (system_wq) {
+            workqueue_process(system_wq);
+        }
+        
         asm volatile("hlt");
         schedule();
     }

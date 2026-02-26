@@ -35,13 +35,20 @@ void heap_init(void) {
 static void* heap_alloc_block(size_t size) {
     heap_block_t* current = heap_head;
     
-    /* Align size to 8 bytes */
-    size = ALIGN_UP(size, 8);
+    /* Validate size */
+    VALIDATE_SIZE(size);
     
-    if (size == 0) {
-        DEBUG_WARN("Attempted to allocate 0 bytes");
+    /* Check for overflow in size calculation */
+    size_t aligned_size;
+    CHECK_ADD_OVERFLOW(size, 7, &aligned_size);
+    aligned_size = ALIGN_UP(size, 8);
+    
+    if (aligned_size == 0 || aligned_size < size) {
+        DEBUG_WARN("Size alignment resulted in invalid size");
         return NULL;
     }
+    
+    size = aligned_size;
     
     while (current) {
         if (current->free && current->size >= size) {

@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "namespace.h"
 #include "cgroup.h"
+#include "validate.h"
 
 static container_t* container_list_head = NULL;
 static u64 next_container_id = 1;

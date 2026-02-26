@@ -56,6 +56,13 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/block/*.c) \
                  $(wildcard $(KERNEL_DIR)/watchdog/*.c) \
                  $(wildcard $(KERNEL_DIR)/ai/*.c) \
+                 $(wildcard $(KERNEL_DIR)/bpf/*.c) \
+                 $(wildcard $(KERNEL_DIR)/livepatch/*.c) \
+                 $(wildcard $(KERNEL_DIR)/numa/*.c) \
+                 $(wildcard $(KERNEL_DIR)/hotplug/*.c) \
+                 $(wildcard $(KERNEL_DIR)/perf/*.c) \
+                 $(wildcard $(KERNEL_DIR)/kexec/*.c) \
+                 $(wildcard $(KERNEL_DIR)/efi/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
@@ -108,6 +115,13 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/block
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/watchdog
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/ai
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/bpf
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/livepatch
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/numa
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/hotplug
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/perf
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/kexec
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/efi
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

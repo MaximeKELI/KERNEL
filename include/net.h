@@ -68,6 +68,7 @@ void net_init(void);
 
 /* Create socket */
 socket_t* socket_create(int domain, int type, int protocol);
+void socket_destroy(socket_t* sock);
 
 /* Register network interface */
 int netif_register(netif_t* iface);

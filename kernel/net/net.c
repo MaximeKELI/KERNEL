@@ -75,3 +75,27 @@ int net_recv_packet(netif_t* iface, void* data, size_t* len) {
     /* Would receive via network driver */
     return 0;
 }
+
+void socket_destroy(socket_t* sock) {
+    VALIDATE_PTR_VOID(sock);
+    
+    spinlock_lock(&net_lock);
+    
+    /* Remove from socket list */
+    if (socket_list == sock) {
+        socket_list = (socket_t*)sock->private_data;
+    } else {
+        socket_t* current = socket_list;
+        while (current && current->private_data != (void*)sock) {
+            current = (socket_t*)current->private_data;
+        }
+        if (current) {
+            current->private_data = sock->private_data;
+        }
+    }
+    
+    spinlock_unlock(&net_lock);
+    
+    kfree(sock);
+    DEBUG_INFO("Socket destroyed");
+}

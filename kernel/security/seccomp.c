@@ -70,6 +70,39 @@ int seccomp_get_mode(void) {
     return filter ? filter->mode : SECCOMP_MODE_DISABLED;
 }
 
+void seccomp_cleanup(process_t* proc) {
+    if (!proc) return;
+    
+    seccomp_filter_t* filter = (seccomp_filter_t*)proc->files;
+    if (!filter) return;
+    
+    spinlock_lock(&seccomp_lock);
+    
+    /* Remove from filter list */
+    if (seccomp_filters == filter) {
+        seccomp_filters = filter->next;
+    } else {
+        seccomp_filter_t* current = seccomp_filters;
+        while (current && current->next != filter) {
+            current = current->next;
+        }
+        if (current) {
+            current->next = filter->next;
+        }
+    }
+    
+    spinlock_unlock(&seccomp_lock);
+    
+    /* Free filter */
+    if (filter->filter) {
+        kfree(filter->filter);
+    }
+    kfree(filter);
+    
+    proc->files = NULL;
+    DEBUG_INFO("Seccomp filter cleaned up");
+}
+
 bool seccomp_check_syscall(u64 syscall_num) {
     process_t* proc = process_current();
     if (!proc) return true;

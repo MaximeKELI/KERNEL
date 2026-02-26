@@ -21,10 +21,13 @@ ISO_GRUB_DIR = $(ISO_DIR)/boot/grub
 
 # Flags
 CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
-         -Wall -Wextra -Wpedantic -std=c11 -O3 -flto -g \
-         -fno-omit-frame-pointer -fstack-usage
+         -Wall -Wextra -Wpedantic -Werror -std=c11 -O3 -flto -g \
+         -fno-omit-frame-pointer -fstack-usage -fstrict-aliasing \
+         -Wstrict-prototypes -Wmissing-prototypes -Wuninitialized \
+         -Wmaybe-uninitialized -Wshadow -Wcast-qual -Wcast-align
 ASFLAGS = -f elf64
-LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000 -flto
+LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000 -flto \
+          -Wl,--gc-sections -Wl,--as-needed
 
 # Source files
 KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \

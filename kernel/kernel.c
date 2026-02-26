@@ -555,8 +555,10 @@ void kernel_main(u64 magic, u64 mb_info) {
     /* Register test suites */
     extern void register_memory_tests(void);
     extern void register_scheduler_tests(void);
+    extern void register_all_tests(void);
     register_memory_tests();
     register_scheduler_tests();
+    register_all_tests();
     
     /* Run tests (optional, can be disabled) */
     #ifdef RUN_TESTS

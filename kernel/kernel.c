@@ -81,6 +81,8 @@
 #include "nvme.h"
 #include "container.h"
 #include "checkpoint.h"
+#include "test.h"
+#include "validate.h"
 #include "io.h"
 #include "debug.h"
 #include "spinlock.h"

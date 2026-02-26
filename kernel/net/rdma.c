@@ -54,7 +54,9 @@ int rdma_post_send(rdma_qp_t* qp, void* buffer, size_t length, u64 wr_id) {
 }
 
 int rdma_post_recv(rdma_qp_t* qp, void* buffer, size_t length, u64 wr_id) {
-    if (!qp || !buffer || length == 0) return -1;
+    VALIDATE_PTR_RET(qp, -1);
+    VALIDATE_PTR_RET(buffer, -1);
+    VALIDATE_SIZE(length);
     
     /* Would post to recv queue */
     DEBUG_INFO("RDMA recv posted: qp=%u, len=%u", qp->qp_num, (u32)length);

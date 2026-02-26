@@ -275,6 +275,7 @@ void kernel_main(u64 magic, u64 mb_info) {
     printk("========================================\n\n");
     
     log_info("Kernel fully initialized with all subsystems");
+    audit_log(AUDIT_CONFIG, "Kernel initialization complete");
     DEBUG_INFO("Debug system initialized (level: %u)", debug_level);
     
     /* Main loop */

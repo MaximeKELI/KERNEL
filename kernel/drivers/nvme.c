@@ -18,7 +18,7 @@ void nvme_init(void) {
 }
 
 int nvme_identify_controller(void* buffer) {
-    if (!buffer) return -1;
+    VALIDATE_PTR_RET(buffer, -1);
     
     /* Would send identify command */
     memset(buffer, 0, 4096);

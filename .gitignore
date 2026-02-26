@@ -1,6 +1,44 @@
+# Build artifacts
 build/
 iso/
 *.o
 *.elf
 *.iso
 *.bin
+
+# Documentation
+docs/
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Release
+release/
+
+# Logs
+*.log
+profile.log
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage/
+
+# Profiling
+gmon.out
+perf.data*

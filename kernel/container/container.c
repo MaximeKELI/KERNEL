@@ -117,7 +117,8 @@ int container_delete(container_t* container) {
 }
 
 int container_list(container_t** containers, u32* count) {
-    if (!containers || !count) return -1;
+    VALIDATE_PTR_RET(containers, -1);
+    VALIDATE_PTR_RET(count, -1);
     
     spinlock_lock(&container_lock);
     

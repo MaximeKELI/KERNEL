@@ -5,6 +5,12 @@
 #include "debug.h"
 #include "spinlock.h"
 
+/* Global I/O statistics for AI monitoring */
+u64 global_io_read_bytes = 0;
+u64 global_io_write_bytes = 0;
+u64 global_io_read_ops = 0;
+u64 global_io_write_ops = 0;
+
 static block_device_t* block_devices = NULL;
 static spinlock_t block_lock = SPINLOCK_INIT;
 

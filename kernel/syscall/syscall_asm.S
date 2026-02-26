@@ -26,22 +26,19 @@ syscall_entry:
     push rax
     
     ; Call syscall handler
-    ; Arguments are already in correct registers from syscall
-    ; rax = syscall number, rdi = arg1, rsi = arg2, rdx = arg3, r10 = arg4, r8 = arg5
-    mov rdi, rax  ; syscall number
-    mov rsi, rdi  ; arg1 (save original)
-    mov rdx, rsi  ; arg2 (save original)
-    mov rcx, rdx  ; arg3 (save original)
-    mov r8, r10   ; arg4 (save original)
-    mov r9, r8    ; arg5 (save original)
-    
-    ; Now restore original arg positions
-    mov rdi, rsi  ; arg1
-    mov rsi, rdx  ; arg2
-    mov rdx, rcx  ; arg3
-    mov r10, r8   ; arg4
-    mov r8, r9    ; arg5
-    mov rax, rdi  ; syscall number
+    ; syscall puts: rax = syscall number, rdi = arg1, rsi = arg2, rdx = arg3, r10 = arg4, r8 = arg5, r9 = arg6
+    ; We need to rearrange for C calling convention
+    mov r11, rax  ; Save syscall number
+    mov rax, rdi  ; arg1 -> rax (temp)
+    mov rdi, r11  ; syscall number -> rdi (first param)
+    mov r11, rsi  ; Save arg2
+    mov rsi, rax  ; arg1 -> rsi (second param)
+    mov rax, rdx  ; Save arg3
+    mov rdx, r11  ; arg2 -> rdx (third param)
+    mov r11, r10  ; Save arg4
+    mov rcx, rax  ; arg3 -> rcx (fourth param, but we use r10)
+    mov r10, r11  ; arg4 -> r10 (fifth param)
+    ; r8 already has arg5 (sixth param)
     
     extern syscall_handler
     call syscall_handler

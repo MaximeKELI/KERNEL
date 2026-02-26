@@ -51,6 +51,10 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/security/*.c) \
                  $(wildcard $(KERNEL_DIR)/namespace/*.c) \
                  $(wildcard $(KERNEL_DIR)/cgroup/*.c) \
+                 $(wildcard $(KERNEL_DIR)/virt/*.c) \
+                 $(wildcard $(KERNEL_DIR)/trace/*.c) \
+                 $(wildcard $(KERNEL_DIR)/block/*.c) \
+                 $(wildcard $(KERNEL_DIR)/watchdog/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \

@@ -239,9 +239,14 @@ static test_result_t test_vfs_open_close(void) {
 /* ========== IPC Tests ========== */
 
 static test_result_t test_pipe_create(void) {
-    pipe_t* pipe = pipe_create(4096);
-    if (pipe) {
-        pipe_destroy(pipe);
+    pipe_t* read_end = NULL;
+    pipe_t* write_end = NULL;
+    int result = pipe_create(&read_end, &write_end);
+    if (result == 0 && read_end) {
+        pipe_close(read_end);
+    }
+    if (result == 0 && write_end) {
+        pipe_close(write_end);
     }
     return TEST_PASS;
 }

@@ -15,11 +15,23 @@ void process_init(void) {
 }
 
 process_t* process_create(void* entry_point, u64 stack_size) {
+    VALIDATE_PTR_RET(entry_point, NULL);
+    VALIDATE_RANGE(stack_size, PAGE_SIZE, 64 * 1024 * 1024); /* 4KB to 64MB */
+    
     process_t* proc = (process_t*)kmalloc(sizeof(process_t));
     if (!proc) return NULL;
     
+    /* Initialize refcount */
+    proc->refcount = REFCOUNT_INIT;
+    refcount_get(&proc->refcount); /* Initial reference */
+    
+    /* Check for overflow in page calculation */
+    size_t pages_needed;
+    size_t total_pages = (stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    CHECK_ADD_OVERFLOW(total_pages, 0, &pages_needed);
+    
     /* Allocate stack */
-    void* stack = vmm_alloc_pages((stack_size + PAGE_SIZE - 1) / PAGE_SIZE);
+    void* stack = vmm_alloc_pages(pages_needed);
     if (!stack) {
         kfree(proc);
         return NULL;
@@ -31,7 +43,11 @@ process_t* process_create(void* entry_point, u64 stack_size) {
     proc->state = PROCESS_READY;
     proc->stack_base = stack;
     proc->stack_size = stack_size;
-    proc->rsp = (u64)stack + stack_size - 16;
+    
+    /* Check for overflow in stack pointer calculation */
+    size_t stack_offset;
+    CHECK_SUB_OVERFLOW(stack_size, 16, &stack_offset);
+    proc->rsp = (u64)stack + stack_offset;
     proc->rbp = proc->rsp;
     proc->rip = (u64)entry_point;
     proc->rflags = 0x202;  /* Interrupts enabled */
@@ -54,11 +70,12 @@ process_t* process_create(void* entry_point, u64 stack_size) {
 }
 
 void process_destroy(process_t* proc) {
-    if (!proc) return;
+    VALIDATE_PTR_VOID(proc);
     
     /* Free stack */
     if (proc->stack_base) {
-        vmm_free_pages(proc->stack_base, (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE);
+        size_t pages = (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
+        vmm_free_pages(proc->stack_base, pages);
     }
     
     /* Remove from list */

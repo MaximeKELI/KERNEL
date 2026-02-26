@@ -90,6 +90,14 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/workqueue
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/elf
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/timer
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/net
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/smp
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/acpi
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/io
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/rcu
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/security
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/namespace
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/cgroup
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

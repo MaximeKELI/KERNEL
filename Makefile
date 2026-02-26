@@ -43,6 +43,14 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/workqueue/*.c) \
                  $(wildcard $(KERNEL_DIR)/elf/*.c) \
                  $(wildcard $(KERNEL_DIR)/timer/*.c) \
+                 $(wildcard $(KERNEL_DIR)/net/*.c) \
+                 $(wildcard $(KERNEL_DIR)/smp/*.c) \
+                 $(wildcard $(KERNEL_DIR)/acpi/*.c) \
+                 $(wildcard $(KERNEL_DIR)/io/*.c) \
+                 $(wildcard $(KERNEL_DIR)/rcu/*.c) \
+                 $(wildcard $(KERNEL_DIR)/security/*.c) \
+                 $(wildcard $(KERNEL_DIR)/namespace/*.c) \
+                 $(wildcard $(KERNEL_DIR)/cgroup/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \

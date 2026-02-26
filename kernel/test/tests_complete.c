@@ -329,9 +329,9 @@ static test_result_t test_cache_get(void) {
 /* ========== KThread Tests ========== */
 
 static test_result_t test_kthread_create(void) {
-    kthread_t* thread = kthread_create(NULL, NULL);
+    kthread_t* thread = kthread_create(NULL, NULL, "test");
     if (thread) {
-        kthread_destroy(thread);
+        kthread_stop(thread);
     }
     return TEST_PASS;
 }
@@ -349,9 +349,9 @@ static test_result_t test_workqueue_create(void) {
 /* ========== Timer Tests ========== */
 
 static test_result_t test_hrtimer_create(void) {
-    hrtimer_t* timer = hrtimer_create(NULL, NULL);
+    hrtimer_t* timer = hrtimer_add(1000000, NULL, NULL);
     if (timer) {
-        hrtimer_destroy(timer);
+        hrtimer_remove(timer);
     }
     return TEST_PASS;
 }

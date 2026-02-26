@@ -102,10 +102,13 @@ test_run_all();
 
 ### Getting Started
 
-1. **Building**: See [BUILD.md](BUILD.md) for detailed build instructions
-2. **Features**: See [ALL_FEATURES.md](ALL_FEATURES.md) for complete feature list
-3. **Security**: See [EXTREME_SECURITY.md](EXTREME_SECURITY.md) for security features
+1. **Building**: See [Documentation/BUILD.md](Documentation/BUILD.md) for detailed build instructions
+2. **Features**: See [Documentation/ALL_FEATURES.md](Documentation/ALL_FEATURES.md) for complete feature list
+3. **Security**: See [Documentation/EXTREME_SECURITY.md](Documentation/EXTREME_SECURITY.md) for security features
 4. **API**: Run `make docs` to generate API documentation
+5. **Quick Start**: See [Documentation/QUICK_START.md](Documentation/QUICK_START.md) for quick start guide
+6. **Development**: See [Documentation/DEVELOPMENT.md](Documentation/DEVELOPMENT.md) for development guide
+7. **Contributing**: See [Documentation/CONTRIBUTING.md](Documentation/CONTRIBUTING.md) for contribution guidelines
 
 ### API Documentation
 

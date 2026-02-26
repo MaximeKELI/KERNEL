@@ -17,7 +17,7 @@ typedef struct refcount {
 /* Get reference (increment) */
 static inline void refcount_get(refcount_t* ref) {
     if (!ref) {
-        DEBUG_ERROR("refcount_get: NULL pointer");
+        DEBUG_ERROR("%s", "refcount_get: NULL pointer");
         return;
     }
     spinlock_lock(&ref->lock);
@@ -28,7 +28,7 @@ static inline void refcount_get(refcount_t* ref) {
 /* Put reference (decrement) */
 static inline u32 refcount_put(refcount_t* ref) {
     if (!ref) {
-        DEBUG_ERROR("refcount_put: NULL pointer");
+        DEBUG_ERROR("%s", "refcount_put: NULL pointer");
         return 0;
     }
     spinlock_lock(&ref->lock);

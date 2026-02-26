@@ -25,8 +25,8 @@ void* vmm_get_phys(void* virt);
 #define PAGE_USER     (1 << 2)
 #define PAGE_PWT      (1 << 3)
 #define PAGE_PCD      (1 << 4)
-#define PAGE_SIZE_2MB (1 << 7)
-#define PAGE_SIZE_1GB (1 << 7)
+#define PAGE_SIZE_2MB_FLAG (1 << 7)  /* Flag for 2MB pages */
+#define PAGE_SIZE_1GB_FLAG (1 << 7)  /* Flag for 1GB pages */
 #define PAGE_GLOBAL   (1 << 8)
 #define PAGE_NX       (1ULL << 63)
 

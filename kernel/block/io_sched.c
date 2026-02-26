@@ -32,7 +32,8 @@ static void noop_init(io_scheduler_t* iosched) {
 void io_sched_init(void) {
     /* Initialize NOOP scheduler */
     schedulers[0].type = IOSCHED_NOOP;
-    strcpy(schedulers[0].name, "noop");
+    strncpy(schedulers[0].name, "noop", sizeof(schedulers[0].name) - 1);
+    schedulers[0].name[sizeof(schedulers[0].name) - 1] = '\0';
     schedulers[0].add_request = noop_add_request;
     schedulers[0].dispatch_request = noop_dispatch_request;
     schedulers[0].init = noop_init;

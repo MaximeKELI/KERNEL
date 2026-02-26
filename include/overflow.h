@@ -4,6 +4,10 @@
 #include "types.h"
 #include "debug.h"
 
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
+
 /* Check for addition overflow */
 #define CHECK_ADD_OVERFLOW(a, b, result) \
     do { \

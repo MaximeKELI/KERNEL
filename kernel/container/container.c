@@ -30,16 +30,16 @@ container_t* container_create(const char* name, const char* rootfs) {
     container->running = false;
     
     /* Create namespaces */
-    container->namespaces = namespace_create();
+    container->namespaces = namespace_create(CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWNET);
     if (!container->namespaces) {
         kfree(container);
         return NULL;
     }
     
     /* Create cgroup */
-    container->cgroup = cgroup_create(container->name);
+    container->cgroup = cgroup_create(container->name, NULL);
     if (!container->cgroup) {
-        namespace_destroy(container->namespaces);
+        kfree(container->namespaces);
         kfree(container);
         return NULL;
     }

@@ -29,4 +29,7 @@ int seccomp_get_mode(void);
 /* Check if syscall allowed */
 bool seccomp_check_syscall(u64 syscall_num);
 
+/* Cleanup seccomp filter for process */
+void seccomp_cleanup(process_t* proc);
+
 #endif /* SECCOMP_H */

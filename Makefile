@@ -35,6 +35,9 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/syscall/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
+KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
+                     $(wildcard $(KERNEL_DIR)/syscall/*.S)
+
 BOOT_SOURCES = $(BOOT_DIR)/boot.asm
 
 # Object files

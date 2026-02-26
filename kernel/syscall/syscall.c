@@ -133,6 +133,11 @@ u64 sys_wait(u64 pid) {
 }
 
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
+    /* Validate parameters */
+    VALIDATE_RANGE(length, 1, 1024 * 1024 * 1024); /* Max 1GB */
+    VALIDATE_FLAGS(prot, 0x7); /* PROT_READ, PROT_WRITE, PROT_EXEC */
+    VALIDATE_FLAGS(flags, 0xFFFFFFFF); /* Validate flags */
+    
     (void)addr;
     (void)length;
     (void)prot;
@@ -141,6 +146,10 @@ u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
 }
 
 u64 sys_munmap(void* addr, u64 length) {
+    /* Validate parameters */
+    VALIDATE_PTR_RET(addr, 0);
+    VALIDATE_RANGE(length, 1, 1024 * 1024 * 1024); /* Max 1GB */
+    
     (void)addr;
     (void)length;
     return 0;

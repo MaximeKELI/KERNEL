@@ -63,7 +63,8 @@ nvme_queue_t* nvme_create_io_queue(u16 qid, u32 qsize) {
 }
 
 int nvme_submit_command(nvme_queue_t* queue, nvme_command_t* cmd) {
-    if (!queue || !cmd) return -1;
+    VALIDATE_PTR_RET(queue, -1);
+    VALIDATE_PTR_RET(cmd, -1);
     
     /* Would submit to submission queue */
     DEBUG_INFO("NVMe command submitted: qid=%u, opcode=0x%x", queue->qid, cmd->opcode);
@@ -71,7 +72,9 @@ int nvme_submit_command(nvme_queue_t* queue, nvme_command_t* cmd) {
 }
 
 int nvme_read(nvme_queue_t* queue, u32 nsid, u64 lba, u32 count, void* buffer) {
-    if (!queue || !buffer) return -1;
+    VALIDATE_PTR_RET(queue, -1);
+    VALIDATE_PTR_RET(buffer, -1);
+    VALIDATE_SIZE(count);
     
     nvme_command_t cmd = {0};
     cmd.opcode = 0x02; /* Read */

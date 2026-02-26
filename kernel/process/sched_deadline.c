@@ -9,7 +9,7 @@ static process_t* deadline_queue = NULL;
 static spinlock_t deadline_lock = SPINLOCK_INIT;
 
 void sched_deadline_init(void) {
-    DEBUG_INFO("Deadline scheduler initialized");
+    DEBUG_INFO("%s", "Deadline scheduler initialized");
 }
 
 int sched_setattr_deadline(u64 pid, sched_dl_param_t* params) {
@@ -20,8 +20,8 @@ int sched_setattr_deadline(u64 pid, sched_dl_param_t* params) {
     
     while (proc) {
         if (proc->pid == pid) {
-            /* Store deadline parameters */
-            proc->private_data = params;
+            /* Store deadline parameters (use files field as temporary storage) */
+            proc->files = params;
             proc->priority = SCHED_DEADLINE;
             
             /* Add to deadline queue */
@@ -48,7 +48,7 @@ int sched_getattr_deadline(u64 pid, sched_dl_param_t* params) {
     
     while (proc) {
         if (proc->pid == pid && proc->priority == SCHED_DEADLINE) {
-            sched_dl_param_t* dl_params = (sched_dl_param_t*)proc->private_data;
+            sched_dl_param_t* dl_params = (sched_dl_param_t*)proc->files;
             if (dl_params) {
                 *params = *dl_params;
                 return 0;

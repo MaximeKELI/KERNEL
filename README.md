@@ -363,7 +363,7 @@ This kernel is provided as a foundation for learning and development.
 
 ## 📚 Additional Resources
 
-- [BUILD.md](BUILD.md) - Build instructions
+- [Documentation/BUILD.md](Documentation/BUILD.md) - Build instructions
 - [ALL_FEATURES.md](ALL_FEATURES.md) - Complete feature list
 - [EXTREME_SECURITY.md](EXTREME_SECURITY.md) - Security features
 - [QUALITY_AUDIT.md](QUALITY_AUDIT.md) - Quality audit report

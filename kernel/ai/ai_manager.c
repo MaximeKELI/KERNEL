@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "interrupt.h"
 #include "spinlock.h"
+#include "validate.h"
 
 bool ai_initialized = false;
 static spinlock_t ai_init_lock = SPINLOCK_INIT;
@@ -47,6 +48,6 @@ void ai_tick(void) {
 }
 
 void ai_get_metrics(ai_metrics_t* metrics) {
-    if (!metrics) return;
+    VALIDATE_PTR_VOID(metrics);
     ai_monitor_get_metrics(metrics);
 }

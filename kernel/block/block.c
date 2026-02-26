@@ -45,6 +45,15 @@ int submit_bio(block_device_t* bdev, bio_t* bio) {
     request_queue_t* queue = (request_queue_t*)bdev->private_data;
     if (!queue) return -1;
     
+    /* Update I/O statistics */
+    if (bio->rw == BIO_READ) {
+        global_io_read_bytes += bio->size;
+        global_io_read_ops++;
+    } else if (bio->rw == BIO_WRITE) {
+        global_io_write_bytes += bio->size;
+        global_io_write_ops++;
+    }
+    
     spinlock_lock(&queue->lock);
     bio->next = queue->requests;
     queue->requests = bio;

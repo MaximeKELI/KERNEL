@@ -56,8 +56,8 @@ int xdp_detach_prog(u32 ifindex) {
 }
 
 u32 xdp_process_packet(u32 ifindex, void* packet, size_t length) {
-    (void)packet;
-    (void)length;
+    VALIDATE_PTR_RET(packet, XDP_DROP);
+    VALIDATE_SIZE(length);
     
     spinlock_lock(&xdp_lock);
     

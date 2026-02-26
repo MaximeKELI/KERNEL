@@ -2,6 +2,9 @@
 #include "memory.h"
 #include "stdio.h"
 #include "interrupt.h"
+#include "refcount.h"
+#include "validate.h"
+#include "overflow.h"
 
 process_t* process_list = NULL;
 static process_t* current_process = NULL;

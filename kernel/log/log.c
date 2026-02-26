@@ -50,8 +50,8 @@ void klog(u8 level, u8 facility, const char* format, ...) {
                        "[%s] ", level_names[level]);
     
     /* Format user message */
-    written += vsnprintf(msg + written, sizeof(entry->message) - written,
-                        format, args);
+    written += log_vsnprintf(msg + written, sizeof(entry->message) - written,
+                             format, args);
     
     entry->message[sizeof(entry->message) - 1] = '\0';
     

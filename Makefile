@@ -37,6 +37,8 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/ipc/*.c) \
                  $(wildcard $(KERNEL_DIR)/device/*.c) \
                  $(wildcard $(KERNEL_DIR)/module/*.c) \
+                 $(wildcard $(KERNEL_DIR)/cache/*.c) \
+                 $(wildcard $(KERNEL_DIR)/log/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
@@ -66,6 +68,12 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/drivers
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/fs
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/syscall
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/signal
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/ipc
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/device
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/module
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/cache
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/log
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

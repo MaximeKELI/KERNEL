@@ -3,12 +3,8 @@ section .text
 
 global syscall_entry
 syscall_entry:
-    ; Save user context
-    swapgs
-    mov [gs:0x10], rsp  ; Save user stack
-    mov rsp, [gs:0x08]  ; Load kernel stack
-    
-    ; Save registers
+    ; Save user context (simplified - no swapgs for now)
+    ; Save all registers
     push r15
     push r14
     push r13
@@ -25,52 +21,29 @@ syscall_entry:
     push rbx
     push rax
     
-    ; Call syscall handler
     ; syscall instruction puts:
     ;   rax = syscall number
     ;   rdi = arg1, rsi = arg2, rdx = arg3, r10 = arg4, r8 = arg5
-    ; Our handler expects: syscall_num, arg1, arg2, arg3, arg4, arg5
-    mov r11, rax  ; Save syscall number (will be first param in rdi)
-    mov rax, rdi  ; Save arg1
-    mov rdi, r11  ; syscall number -> rdi (first param)
-    ; rsi already has arg2 (second param)
-    ; rdx already has arg3 (third param)
-    ; r10 already has arg4 (fourth param)
-    ; r8 already has arg5 (fifth param)
-    ; But we need arg1 in rsi, so swap
-    xchg rsi, rax ; arg1 -> rsi, arg2 -> rax (temp)
-    mov rdx, rsi  ; arg1 -> rdx (wrong, need to fix)
-    mov rsi, rax  ; arg2 -> rsi (restore)
-    mov rax, rdi  ; syscall number -> rax (temp)
-    mov rdi, rax  ; syscall number -> rdi
-    mov rax, rdx  ; arg1 -> rax (temp)
-    mov rdx, rcx  ; Need to save rcx
-    mov rcx, rax  ; arg1 -> rcx (wrong register)
+    ; Our C function expects: syscall_handler(syscall_num, arg1, arg2, arg3, arg4, arg5)
+    ; x86_64 calling convention: rdi, rsi, rdx, rcx, r8, r9
     
-    ; Actually, let's use a simpler approach - save all and rearrange
-    push r8       ; Save arg5
-    push r10      ; Save arg4
-    push rdx      ; Save arg3
-    push rsi      ; Save arg2
-    push rax      ; Save arg1 (from earlier)
+    ; Get values from stack (they were pushed in reverse order)
+    ; Stack: rax, rbx, rcx, rdx, rsi, rdi, rbp, r8, r9, r10, r11, r12, r13, r14, r15
+    ; But we need original values before push
+    ; rax on stack = syscall number
+    ; rdi on stack = arg1 (original)
+    ; rsi on stack = arg2 (original)
+    ; rdx on stack = arg3 (original)
+    ; r10 on stack = arg4 (original)
+    ; r8 on stack = arg5 (original)
     
-    mov rdi, r11  ; syscall number -> rdi
-    pop rsi       ; arg1 -> rsi
-    pop rdx       ; arg2 -> rdx (wrong, need to fix)
-    pop rcx       ; arg3 -> rcx (wrong)
-    pop r8        ; arg4 -> r8 (wrong)
-    pop r9        ; arg5 -> r9 (wrong)
-    
-    ; Fix the order
-    mov r10, r8   ; arg4 -> r10
-    mov r8, r9    ; arg5 -> r8
-    mov r9, rdx   ; Save rdx
-    mov rdx, rcx  ; arg3 -> rdx
-    mov rcx, r9   ; Restore
-    
-    ; Actually simplest: just pass them as-is and let C handle it
-    mov rdi, r11  ; syscall number
-    ; rsi, rdx, r10, r8 already correct
+    ; Rearrange for C calling convention
+    mov rdi, [rsp + 14*8]  ; syscall number (rax was last pushed)
+    mov rsi, [rsp + 9*8]   ; arg1 (rdi)
+    mov rdx, [rsp + 8*8]   ; arg2 (rsi)
+    mov rcx, [rsp + 7*8]   ; arg3 (rdx)
+    mov r8, [rsp + 5*8]    ; arg4 (r10)
+    mov r9, [rsp + 6*8]    ; arg5 (r8)
     
     extern syscall_handler
     call syscall_handler
@@ -91,9 +64,5 @@ syscall_entry:
     pop r13
     pop r14
     pop r15
-    
-    ; Restore user context
-    mov rsp, [gs:0x10]  ; Restore user stack
-    swapgs
     
     sysretq

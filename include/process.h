@@ -2,6 +2,7 @@
 #define PROCESS_H
 
 #include "types.h"
+#include "refcount.h"
 
 /* Process states */
 typedef enum {
@@ -14,6 +15,7 @@ typedef enum {
 
 /* Process structure */
 typedef struct process {
+    refcount_t refcount;  /* Reference counting */
     u64 pid;
     u64 parent_pid;
     process_state_t state;

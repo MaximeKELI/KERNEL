@@ -17,7 +17,9 @@ void container_init(void) {
 }
 
 container_t* container_create(const char* name, const char* rootfs) {
-    if (!name || !rootfs) return NULL;
+    VALIDATE_PTR_RET(name, NULL);
+    VALIDATE_PTR_RET(rootfs, NULL);
+    VALIDATE_STRING(name, 63);
     
     container_t* container = (container_t*)kzalloc(sizeof(container_t));
     if (!container) {

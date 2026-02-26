@@ -6,6 +6,11 @@
 #include "drivers/timer.h"
 #include <stdarg.h>
 
+/* Simple vsnprintf for log messages */
+static int log_vsnprintf(char* str, size_t size, const char* format, va_list args) {
+    return vsnprintf(str, size, format, args);
+}
+
 #define MAX_LOG_ENTRIES (LOG_BUFFER_SIZE / sizeof(log_entry_t))
 
 static log_entry_t log_buffer[MAX_LOG_ENTRIES];

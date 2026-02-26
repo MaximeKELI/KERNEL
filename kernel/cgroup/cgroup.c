@@ -14,7 +14,8 @@ void cgroup_init(void) {
     /* Create root cgroup */
     cgroup_root = (cgroup_t*)kzalloc(sizeof(cgroup_t));
     if (cgroup_root) {
-        strcpy(cgroup_root->name, "/");
+        strncpy(cgroup_root->name, "/", sizeof(cgroup_root->name) - 1);
+        cgroup_root->name[sizeof(cgroup_root->name) - 1] = '\0';
         cgroup_root->id = next_cg_id++;
     }
     

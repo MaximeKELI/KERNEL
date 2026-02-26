@@ -17,7 +17,8 @@ void devicetree_init(void* dtb) {
     /* Would parse device tree blob */
     dt_root = (dt_node_t*)kzalloc(sizeof(dt_node_t));
     if (dt_root) {
-        strcpy(dt_root->name, "/");
+        strncpy(dt_root->name, "/", sizeof(dt_root->name) - 1);
+        dt_root->name[sizeof(dt_root->name) - 1] = '\0';
         dt_root->phandle = 0;
     }
     

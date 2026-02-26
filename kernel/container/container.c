@@ -87,11 +87,11 @@ int container_delete(container_t* container) {
     }
     
     if (container->namespaces) {
-        namespace_destroy(container->namespaces);
+        kfree(container->namespaces);
     }
     
     if (container->cgroup) {
-        cgroup_destroy(container->cgroup);
+        kfree(container->cgroup);
     }
     
     spinlock_lock(&container_lock);

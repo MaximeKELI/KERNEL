@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
+#include "overflow.h"
 
 #define MAX_PIPES 256
 #define MAX_SHM 64
@@ -23,6 +25,9 @@ void ipc_init(void) {
 }
 
 int pipe_create(pipe_t** read_end, pipe_t** write_end) {
+    VALIDATE_PTR(read_end);
+    VALIDATE_PTR(write_end);
+    
     if (next_pipe_id >= MAX_PIPES) {
         DEBUG_ERROR("Maximum pipes reached");
         return -1;

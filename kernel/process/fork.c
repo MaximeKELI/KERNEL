@@ -90,8 +90,11 @@ int exec_process(const char* path, char* const argv[]) {
 /* Wait for child process */
 int wait_process(u64 pid, int* status) {
     process_t* parent = process_current();
-    if (!parent) {
-        return -1;
+    VALIDATE_PTR(parent);
+    
+    /* Validate status pointer if provided */
+    if (status) {
+        VALIDATE_PTR(status);
     }
     
     /* Find child process */

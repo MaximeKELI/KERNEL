@@ -29,13 +29,13 @@ void ai_optimizer_init(void) {
 }
 
 void ai_optimize_scheduler(void) {
-    if (!optimizer_initialized) return;
+    if (!optimizer_initialized || !ai_enabled) return;
     
     ai_metrics_t metrics;
     ai_monitor_get_metrics(&metrics);
     
-    /* If CPU usage > 80% → reduce scheduler timeslice */
-    if (metrics.cpu_usage > CPU_HIGH_THRESHOLD) {
+    /* If CPU usage > threshold → reduce scheduler timeslice */
+    if (metrics.cpu_usage > cpu_high_threshold) {
         DEBUG_INFO("[AI] CPU load high (%u%%) → adjusting scheduler", (u32)metrics.cpu_usage);
         
         /* Reduce timeslice for all processes to improve responsiveness */

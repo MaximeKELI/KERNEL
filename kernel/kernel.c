@@ -336,6 +336,56 @@ void kernel_main(u64 magic, u64 mb_info) {
     watchdog_init();
     printk("Watchdog initialized.\n\n");
     
+    /* Initialize BPF */
+    printk("Initializing BPF...\n");
+    bpf_init();
+    printk("BPF initialized.\n\n");
+    
+    /* Initialize live patching */
+    printk("Initializing live patching...\n");
+    livepatch_init();
+    printk("Live patching initialized.\n\n");
+    
+    /* Initialize LSM framework */
+    printk("Initializing LSM framework...\n");
+    lsm_init();
+    printk("LSM framework initialized.\n\n");
+    
+    /* Initialize NUMA */
+    printk("Initializing NUMA...\n");
+    numa_init();
+    printk("NUMA initialized.\n\n");
+    
+    /* Initialize hotplug */
+    printk("Initializing hotplug...\n");
+    hotplug_init();
+    printk("Hotplug initialized.\n\n");
+    
+    /* Initialize deadline scheduler */
+    printk("Initializing deadline scheduler...\n");
+    sched_deadline_init();
+    printk("Deadline scheduler initialized.\n\n");
+    
+    /* Initialize kexec */
+    printk("Initializing kexec...\n");
+    kexec_init();
+    printk("Kexec initialized.\n\n");
+    
+    /* Initialize perf */
+    printk("Initializing perf...\n");
+    perf_init();
+    printk("Perf initialized.\n\n");
+    
+    /* Initialize KSPP */
+    printk("Initializing KSPP...\n");
+    kspp_init();
+    printk("KSPP initialized.\n\n");
+    
+    /* Initialize EFI (if available) */
+    printk("Initializing EFI...\n");
+    efi_init(NULL); /* Would pass EFI system table from boot */
+    printk("EFI initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

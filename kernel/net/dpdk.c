@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
 
 static dpdk_port_t* dpdk_ports = NULL;
 static spinlock_t dpdk_lock = SPINLOCK_INIT;

@@ -18,10 +18,13 @@ static u64 last_priority_adjust = 0;
 /* External references */
 extern process_t* process_list;
 
-/* Thresholds */
-#define CPU_HIGH_THRESHOLD 80
-#define MEMORY_PRESSURE_THRESHOLD 85
-#define ANOMALY_DETECTION_TICKS 100
+/* Configurable thresholds (can be adjusted via sysfs) */
+static u64 cpu_high_threshold = 80;
+static u64 memory_pressure_threshold = 85;
+static u64 anomaly_detection_ticks = 100;
+static u64 io_high_threshold = 1000;  /* I/O ops per second */
+static u64 net_high_threshold = 1000; /* Network packets per second */
+static bool ai_enabled = true;
 
 void ai_optimizer_init(void) {
     optimizer_initialized = true;

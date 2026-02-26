@@ -13,7 +13,7 @@ void xdp_init(void) {
 }
 
 int xdp_attach_prog(u32 ifindex, bpf_prog_t* prog) {
-    if (!prog) return -1;
+    VALIDATE_PTR_RET(prog, -1);
     
     xdp_prog_t* xdp_prog = (xdp_prog_t*)kzalloc(sizeof(xdp_prog_t));
     if (!xdp_prog) {

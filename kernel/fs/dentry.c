@@ -151,24 +151,27 @@ int dentry_remove_child(dentry_t* parent, const char* name) {
 }
 
 dentry_t* dentry_get(dentry_t* dentry) {
-    if (!dentry) return NULL;
+    VALIDATE_PTR_RET(dentry, NULL);
     
     spinlock_lock(&dentry_lock);
-    dentry->refcount++;
+    refcount_get(&dentry->refcount); /* Increment reference */
     spinlock_unlock(&dentry_lock);
     
     return dentry;
 }
 
 void dentry_put(dentry_t* dentry) {
-    if (!dentry) return;
+    VALIDATE_PTR_VOID(dentry);
     
     spinlock_lock(&dentry_lock);
-    if (dentry->refcount > 0) {
-        dentry->refcount--;
-        if (dentry->refcount == 0) {
-            dentry_free(dentry);
-        }
+    u32 refcount = refcount_put(&dentry->refcount);
+    
+    /* If no more references, free the dentry */
+    if (refcount == 0) {
+        spinlock_unlock(&dentry_lock);
+        dentry_free(dentry);
+        return;
     }
+    
     spinlock_unlock(&dentry_lock);
 }

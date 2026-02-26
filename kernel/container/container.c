@@ -83,7 +83,7 @@ int container_stop(container_t* container) {
 }
 
 int container_delete(container_t* container) {
-    if (!container) return -1;
+    VALIDATE_PTR_RET(container, -1);
     
     if (container->running) {
         container_stop(container);

@@ -172,4 +172,63 @@ void ai_detect_anomalies(void) {
         DEBUG_INFO("[AI] High context switch rate detected (%u)", 
                   (u32)metrics.context_switches);
     }
+    
+    /* Detect high I/O activity */
+    static u64 last_io_read_ops = 0;
+    static u64 last_io_write_ops = 0;
+    u64 io_read_ops_rate = (metrics.io_read_ops > last_io_read_ops) ? 
+                          (metrics.io_read_ops - last_io_read_ops) * 100 : 0;
+    u64 io_write_ops_rate = (metrics.io_write_ops > last_io_write_ops) ? 
+                           (metrics.io_write_ops - last_io_write_ops) * 100 : 0;
+    
+    if (io_read_ops_rate > io_high_threshold || io_write_ops_rate > io_high_threshold) {
+        DEBUG_INFO("[AI] High I/O activity detected (read: %u, write: %u ops/sec)", 
+                  (u32)io_read_ops_rate, (u32)io_write_ops_rate);
+    }
+    last_io_read_ops = metrics.io_read_ops;
+    last_io_write_ops = metrics.io_write_ops;
+    
+    /* Detect high network activity */
+    static u64 last_net_tx_packets = 0;
+    static u64 last_net_rx_packets = 0;
+    u64 net_tx_rate = (metrics.net_tx_packets > last_net_tx_packets) ? 
+                      (metrics.net_tx_packets - last_net_tx_packets) * 100 : 0;
+    u64 net_rx_rate = (metrics.net_rx_packets > last_net_rx_packets) ? 
+                      (metrics.net_rx_packets - last_net_rx_packets) * 100 : 0;
+    
+    if (net_tx_rate > net_high_threshold || net_rx_rate > net_high_threshold) {
+        DEBUG_INFO("[AI] High network activity detected (TX: %u, RX: %u pkt/sec)", 
+                  (u32)net_tx_rate, (u32)net_rx_rate);
+    }
+    last_net_tx_packets = metrics.net_tx_packets;
+    last_net_rx_packets = metrics.net_rx_packets;
+}
+
+/* Configuration functions for sysfs */
+u64 ai_get_cpu_threshold(void) {
+    return cpu_high_threshold;
+}
+
+void ai_set_cpu_threshold(u64 threshold) {
+    if (threshold > 0 && threshold <= 100) {
+        cpu_high_threshold = threshold;
+    }
+}
+
+u64 ai_get_memory_threshold(void) {
+    return memory_pressure_threshold;
+}
+
+void ai_set_memory_threshold(u64 threshold) {
+    if (threshold > 0 && threshold <= 100) {
+        memory_pressure_threshold = threshold;
+    }
+}
+
+bool ai_is_enabled(void) {
+    return ai_enabled;
+}
+
+void ai_set_enabled(bool enabled) {
+    ai_enabled = enabled;
 }

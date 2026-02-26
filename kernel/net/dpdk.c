@@ -81,7 +81,7 @@ dpdk_mbuf_t* dpdk_alloc_mbuf(void) {
 }
 
 void dpdk_free_mbuf(dpdk_mbuf_t* mbuf) {
-    if (!mbuf) return;
+    VALIDATE_PTR_VOID(mbuf);
     
     if (mbuf->buf_addr) {
         vmm_free_pages(mbuf->buf_addr, 1);

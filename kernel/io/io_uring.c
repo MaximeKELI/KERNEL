@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
 
 static io_uring_t* io_uring_instances = NULL;
 static spinlock_t io_uring_lock = SPINLOCK_INIT;

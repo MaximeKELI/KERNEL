@@ -504,6 +504,36 @@ void kernel_main(u64 magic, u64 mb_info) {
     printk("  - ROP Protection: %s\n", rop_protection_is_enabled() ? "ENABLED" : "DISABLED");
     printk("========================================\n\n");
     
+    /* Initialize RDMA */
+    printk("Initializing RDMA...\n");
+    rdma_init();
+    printk("RDMA initialized.\n\n");
+    
+    /* Initialize DPDK */
+    printk("Initializing DPDK...\n");
+    dpdk_init();
+    printk("DPDK initialized.\n\n");
+    
+    /* Initialize XDP */
+    printk("Initializing XDP...\n");
+    xdp_init();
+    printk("XDP initialized.\n\n");
+    
+    /* Initialize NVMe */
+    printk("Initializing NVMe...\n");
+    nvme_init();
+    printk("NVMe initialized.\n\n");
+    
+    /* Initialize container runtime */
+    printk("Initializing container runtime...\n");
+    container_init();
+    printk("Container runtime initialized.\n\n");
+    
+    /* Initialize checkpoint/restore */
+    printk("Initializing checkpoint/restore...\n");
+    checkpoint_init();
+    printk("Checkpoint/restore initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

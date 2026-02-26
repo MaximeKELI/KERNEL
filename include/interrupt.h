@@ -23,6 +23,18 @@ bool interrupts_enabled(void);
 /* Global interrupt counter for AI monitoring */
 extern u64 global_interrupt_count;
 
+/* Global I/O statistics for AI monitoring */
+extern u64 global_io_read_bytes;
+extern u64 global_io_write_bytes;
+extern u64 global_io_read_ops;
+extern u64 global_io_write_ops;
+
+/* Global network statistics for AI monitoring */
+extern u64 global_net_tx_bytes;
+extern u64 global_net_rx_bytes;
+extern u64 global_net_tx_packets;
+extern u64 global_net_rx_packets;
+
 /* PIC */
 void pic_init(void);
 void pic_enable_irq(u32 irq);

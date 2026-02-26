@@ -126,6 +126,6 @@ int sigwait(const sigset_t* set, int* sig) {
             }
         }
         /* Sleep until signal */
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
     }
 }

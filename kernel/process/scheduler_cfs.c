@@ -211,8 +211,8 @@ void schedule(void) {
             context_switch(current, next);
         } else {
             /* First switch */
-            asm volatile("mov %0, %%rsp" : : "r"(next->rsp));
-            asm volatile("jmp *%0" : : "r"(next->rip));
+            __asm__ __volatile__("mov %0, %%rsp" : : "r"(next->rsp));
+            __asm__ __volatile__("jmp *%0" : : "r"(next->rip));
         }
     }
     

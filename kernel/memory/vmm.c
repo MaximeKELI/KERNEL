@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "stdio.h"
+#include "string.h"
 #include "io.h"
 
 /* Page table structures */
@@ -37,7 +38,7 @@ static u64* get_pte(void* virt) {
 void vmm_init(void) {
     /* Get current CR3 */
     u64 cr3;
-    asm volatile("mov %%cr3, %0" : "=r"(cr3));
+    __asm__ __volatile__("mov %%cr3, %0" : "=r"(cr3));
     pml4 = (page_table_t*)(cr3 & ~0xFFF);
     
     printk("VMM: Initialized, PML4 at 0x%p\n", pml4);
@@ -94,7 +95,7 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
     pt->entries[pt_idx] = ((u64)phys & ~0xFFF) | flags | PAGE_PRESENT;
     
     /* Invalidate TLB */
-    asm volatile("invlpg (%0)" : : "r"(virt) : "memory");
+    __asm__ __volatile__("invlpg (%0)" : : "r"(virt) : "memory");
     
     return virt;
 }
@@ -103,7 +104,7 @@ void vmm_unmap_page(void* virt) {
     u64* pte = get_pte(virt);
     if (pte && (*pte & PAGE_PRESENT)) {
         *pte = 0;
-        asm volatile("invlpg (%0)" : : "r"(virt) : "memory");
+        __asm__ __volatile__("invlpg (%0)" : : "r"(virt) : "memory");
     }
 }
 

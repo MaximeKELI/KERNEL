@@ -61,6 +61,6 @@ char keyboard_read_char(void) {
             return event.character;
         }
         /* Wait for interrupt */
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
     }
 }

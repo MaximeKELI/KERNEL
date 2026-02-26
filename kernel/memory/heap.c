@@ -36,11 +36,11 @@ static void* heap_alloc_block(size_t size) {
     heap_block_t* current = heap_head;
     
     /* Validate size */
-    VALIDATE_SIZE(size);
+    VALIDATE_SIZE_RET_NULL(size);
     
     /* Check for overflow in size calculation */
     size_t aligned_size;
-    CHECK_ADD_OVERFLOW(size, 7, &aligned_size);
+    CHECK_ADD_OVERFLOW_RET_NULL(size, 7, &aligned_size);
     aligned_size = ALIGN_UP(size, 8);
     
     if (aligned_size == 0 || aligned_size < size) {

@@ -40,9 +40,9 @@ void security_hardening_init(void) {
 
 void security_enable_smep(void) {
     u64 cr4;
-    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    __asm__ __volatile__("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (1ULL << 20); /* SMEP bit */
-    asm volatile("mov %0, %%cr4" : : "r"(cr4));
+    __asm__ __volatile__("mov %0, %%cr4" : : "r"(cr4));
     
     spinlock_lock(&security_lock);
     security_features |= SECURITY_SMEP_ENABLED;
@@ -53,9 +53,9 @@ void security_enable_smep(void) {
 
 void security_enable_smap(void) {
     u64 cr4;
-    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    __asm__ __volatile__("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (1ULL << 21); /* SMAP bit */
-    asm volatile("mov %0, %%cr4" : : "r"(cr4));
+    __asm__ __volatile__("mov %0, %%cr4" : : "r"(cr4));
     
     spinlock_lock(&security_lock);
     security_features |= SECURITY_SMAP_ENABLED;

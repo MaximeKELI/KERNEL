@@ -1,6 +1,7 @@
 #include "process.h"
 #include "memory.h"
 #include "stdio.h"
+#include "string.h"
 #include "debug.h"
 #include "interrupt.h"
 #include "validate.h"
@@ -14,7 +15,7 @@ process_t* fork_process(void) {
     /* Allocate new process */
     process_t* child = (process_t*)kmalloc(sizeof(process_t));
     if (!child) {
-        DEBUG_ERROR("Failed to allocate child process");
+        DEBUG_ERROR("%s", "Failed to allocate child process");
         return NULL;
     }
     

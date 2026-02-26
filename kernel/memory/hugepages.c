@@ -1,6 +1,7 @@
 #include "hugepages.h"
 #include "memory.h"
 #include "stdio.h"
+#include "string.h"
 #include "debug.h"
 #include "spinlock.h"
 
@@ -18,7 +19,7 @@ static spinlock_t hugepage_lock = SPINLOCK_INIT;
 
 void hugepages_init(void) {
     memset(hugepages, 0, sizeof(hugepages));
-    DEBUG_INFO("Huge pages initialized");
+    DEBUG_INFO("%s", "Huge pages initialized");
 }
 
 void* hugepage_alloc(size_t size) {

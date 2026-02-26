@@ -222,7 +222,7 @@ int sem_wait(u64 key) {
             while (sem->value <= 0) {
                 sem->waiters++;
                 spinlock_unlock(&sem->lock);
-                asm volatile("hlt"); /* Wait */
+                __asm__ __volatile__("hlt"); /* Wait */
                 spinlock_lock(&sem->lock);
                 sem->waiters--;
             }

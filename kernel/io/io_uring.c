@@ -71,7 +71,7 @@ int io_uring_wait_cqe(io_uring_t* ring, io_uring_cqe_t** cqe) {
     /* Wait for completion */
     while (ring->cq_tail == ring->cq_head) {
         /* Would wait here */
-        asm volatile("pause");
+        __asm__ __volatile__("pause");
     }
     
     *cqe = &ring->cq_ring[ring->cq_head & (ring->cq_entries - 1)];

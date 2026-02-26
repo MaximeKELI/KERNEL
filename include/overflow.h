@@ -23,6 +23,21 @@
         *(result) = (a) + (b); \
     } while(0)
 
+/* Check for addition overflow (returns NULL for pointer functions) */
+#define CHECK_ADD_OVERFLOW_RET_NULL(a, b, result) \
+    do { \
+        if ((b) > 0 && (a) > SIZE_MAX - (b)) { \
+            DEBUG_ERROR("Addition overflow at %s:%d: %llu + %llu", \
+                       __FILE__, __LINE__, (unsigned long long)(a), (unsigned long long)(b)); \
+            return NULL; \
+        } \
+        if ((b) < 0 && (a) < (size_t)(-(b))) { \
+            DEBUG_ERROR("Addition underflow at %s:%d", __FILE__, __LINE__); \
+            return NULL; \
+        } \
+        *(result) = (a) + (b); \
+    } while(0)
+
 /* Check for multiplication overflow */
 #define CHECK_MUL_OVERFLOW(a, b, result) \
     do { \

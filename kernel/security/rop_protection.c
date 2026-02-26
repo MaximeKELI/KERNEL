@@ -26,9 +26,9 @@ void rop_protection_init(void) {
 int rop_protection_enable_cet(void) {
     /* Enable Intel CET */
     u64 cr4;
-    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    __asm__ __volatile__("mov %%cr4, %0" : "=r"(cr4));
     cr4 |= (1ULL << 23); /* CET bit */
-    asm volatile("mov %0, %%cr4" : : "r"(cr4));
+    __asm__ __volatile__("mov %0, %%cr4" : : "r"(cr4));
     
     /* Enable CET in MSR */
     u64 msr = rdmsr(0x6A0); /* IA32_U_CET */

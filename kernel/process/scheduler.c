@@ -149,7 +149,7 @@ void context_switch(process_t* from, process_t* to) {
     
     /* Save from context */
     if (from) {
-        asm volatile(
+        __asm__ __volatile__(
             "mov %%rsp, %0\n\t"
             "mov %%rbp, %1"
             : "=m"(from->rsp), "=m"(from->rbp)
@@ -157,7 +157,7 @@ void context_switch(process_t* from, process_t* to) {
     }
     
     /* Load to context */
-    asm volatile(
+    __asm__ __volatile__(
         "mov %0, %%rsp\n\t"
         "mov %1, %%rbp\n\t"
         "mov %2, %%cr3"
@@ -167,7 +167,7 @@ void context_switch(process_t* from, process_t* to) {
     );
     
     /* Jump to process */
-    asm volatile("jmp *%0" : : "r"(to->rip));
+    __asm__ __volatile__("jmp *%0" : : "r"(to->rip));
 }
 
 void yield(void) {
@@ -179,7 +179,7 @@ void yield(void) {
 
 void idle_task(void) {
     while (true) {
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
         schedule();
     }
 }

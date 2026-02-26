@@ -53,7 +53,7 @@ u64 timer_get_ticks(void) {
 void timer_sleep(u64 ms) {
     u64 end = ticks + ms;
     while (ticks < end) {
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
     }
 }
 

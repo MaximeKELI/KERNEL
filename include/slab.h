@@ -2,6 +2,7 @@
 #define SLAB_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* SLAB cache */
 typedef struct slab_cache {

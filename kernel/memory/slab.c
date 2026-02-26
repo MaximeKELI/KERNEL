@@ -20,13 +20,13 @@ typedef struct slab {
 } slab_t;
 
 void slab_init(void) {
-    DEBUG_INFO("SLAB allocator initialized");
+    DEBUG_INFO("%s", "SLAB allocator initialized");
 }
 
 slab_cache_t* kmem_cache_create(const char* name, size_t size) {
     slab_cache_t* cache = (slab_cache_t*)kzalloc(sizeof(slab_cache_t));
     if (!cache) {
-        DEBUG_ERROR("Failed to allocate SLAB cache");
+        DEBUG_ERROR("%s", "Failed to allocate SLAB cache");
         return NULL;
     }
     
@@ -102,7 +102,7 @@ void kmem_cache_free(slab_cache_t* cache, void* obj) {
     /* Find slab containing object */
     slab_t* slab = (slab_t*)cache->slabs;
     while (slab) {
-        if (obj >= slab->objects && obj < (u8*)slab->free_list) {
+        if ((u8*)obj >= (u8*)slab->objects && (u8*)obj < (u8*)slab->free_list) {
             u32 idx = ((u8*)obj - (u8*)slab->objects) / cache->object_size;
             slab->free_list[slab->free_count++] = idx;
             cache->active_objects--;
@@ -113,7 +113,7 @@ void kmem_cache_free(slab_cache_t* cache, void* obj) {
     }
     
     spinlock_unlock(&cache->lock);
-    DEBUG_WARN("Object not found in SLAB cache");
+    DEBUG_WARN("%s", "Object not found in SLAB cache");
 }
 
 void kmem_cache_destroy(slab_cache_t* cache) {

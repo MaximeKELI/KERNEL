@@ -42,6 +42,18 @@
         } \
     } while(0)
 
+#define VALIDATE_SIZE_RET_NULL(size) \
+    do { \
+        if ((size) == 0) { \
+            DEBUG_ERROR("Invalid size (0) at %s:%d", __FILE__, __LINE__); \
+            return NULL; \
+        } \
+        if ((size) > (1024 * 1024 * 1024)) { \
+            DEBUG_ERROR("Size too large at %s:%d: %u", __FILE__, __LINE__, (u32)(size)); \
+            return NULL; \
+        } \
+    } while(0)
+
 #define VALIDATE_RANGE(val, min, max) \
     do { \
         if ((val) < (min) || (val) > (max)) { \

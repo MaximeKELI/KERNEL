@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "process.h"
 #include "drivers/timer.h"
+#include "validate.h"
 
 static checkpoint_image_t* checkpoint_images = NULL;
 static spinlock_t checkpoint_lock = SPINLOCK_INIT;

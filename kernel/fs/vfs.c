@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "string.h"
 #include "stdio.h"
+#include "validate.h"
 
 static vfs_file_t* open_files[256] = {0};
 static u32 next_fd = 0;

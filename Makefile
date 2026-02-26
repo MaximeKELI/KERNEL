@@ -33,6 +33,10 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/*.c) \
                  $(wildcard $(KERNEL_DIR)/fs/*.c) \
                  $(wildcard $(KERNEL_DIR)/syscall/*.c) \
+                 $(wildcard $(KERNEL_DIR)/signal/*.c) \
+                 $(wildcard $(KERNEL_DIR)/ipc/*.c) \
+                 $(wildcard $(KERNEL_DIR)/device/*.c) \
+                 $(wildcard $(KERNEL_DIR)/module/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \

@@ -46,11 +46,15 @@ int submit_bio(block_device_t* bdev, bio_t* bio) {
     if (!queue) return -1;
     
     /* Update I/O statistics */
-    if (bio->rw == BIO_READ) {
-        global_io_read_bytes += bio->size;
+    /* Use flags to determine read/write (bit 0 = read, bit 1 = write) */
+    u32 sector_size = 512; /* Standard sector size */
+    u64 io_size = (u64)bio->count * sector_size;
+    
+    if (bio->flags & 0x1) { /* Read flag */
+        global_io_read_bytes += io_size;
         global_io_read_ops++;
-    } else if (bio->rw == BIO_WRITE) {
-        global_io_write_bytes += bio->size;
+    } else if (bio->flags & 0x2) { /* Write flag */
+        global_io_write_bytes += io_size;
         global_io_write_ops++;
     }
     

@@ -46,9 +46,53 @@ void ai_optimize_memory(void);
  * - High CPU usage processes
  * - Abnormal interrupt rates
  * - Excessive context switches
+ * - High I/O activity
+ * - High network activity
  * 
  * @note This function is interrupt-safe and non-blocking.
  */
 void ai_detect_anomalies(void);
+
+/**
+ * @brief Get CPU threshold
+ * 
+ * @return Current CPU high threshold (0-100)
+ */
+u64 ai_get_cpu_threshold(void);
+
+/**
+ * @brief Set CPU threshold
+ * 
+ * @param threshold CPU threshold (0-100)
+ */
+void ai_set_cpu_threshold(u64 threshold);
+
+/**
+ * @brief Get memory threshold
+ * 
+ * @return Current memory pressure threshold (0-100)
+ */
+u64 ai_get_memory_threshold(void);
+
+/**
+ * @brief Set memory threshold
+ * 
+ * @param threshold Memory threshold (0-100)
+ */
+void ai_set_memory_threshold(u64 threshold);
+
+/**
+ * @brief Check if AI is enabled
+ * 
+ * @return true if enabled, false otherwise
+ */
+bool ai_is_enabled(void);
+
+/**
+ * @brief Enable/disable AI subsystem
+ * 
+ * @param enabled true to enable, false to disable
+ */
+void ai_set_enabled(bool enabled);
 
 #endif /* AI_OPTIMIZER_H */

@@ -3,9 +3,9 @@
 #include "stdio.h"
 #include "interrupt.h"
 
-static process_t* process_list = NULL;
+process_t* process_list = NULL;
 static process_t* current_process = NULL;
-static u64 next_pid = 1;
+u64 next_pid = 1;
 
 void process_init(void) {
     printk("Scheduler: Initialized\n");

@@ -107,6 +107,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/trace
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/block
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/watchdog
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/ai
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

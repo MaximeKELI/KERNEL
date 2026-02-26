@@ -54,8 +54,8 @@ int test_run_all(void) {
     
     total_passed = total_failed = total_skipped = 0;
     
-    test_suite_t* suite = test_suites;
-    while (suite) {
+    for (u32 i = 0; i < next_suite; i++) {
+        test_suite_t* suite = &test_suites_array[i];
         printk("Suite: %s\n", suite->name);
         printk("----------------------------------------\n");
         
@@ -90,8 +90,6 @@ int test_run_all(void) {
         
         printk("\n  Results: %u passed, %u failed, %u skipped\n\n",
                suite->passed, suite->failed, suite->skipped);
-        
-        suite = (test_suite_t*)((u64)suite + sizeof(test_suite_t)); /* Would iterate */
     }
     
     printk("========================================\n");

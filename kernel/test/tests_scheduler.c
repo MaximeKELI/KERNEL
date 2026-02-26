@@ -1,6 +1,7 @@
 #include "test.h"
 #include "process.h"
 #include "scheduler.h"
+#include "memory.h"
 
 /* Test process creation */
 static test_result_t test_process_create(void) {

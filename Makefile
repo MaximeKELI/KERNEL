@@ -73,7 +73,8 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/container/*.c) \
                  $(wildcard $(KERNEL_DIR)/checkpoint/*.c) \
                  $(wildcard $(KERNEL_DIR)/test/*.c) \
-                 $(wildcard $(LIB_DIR)/*.c)
+                 $(wildcard $(LIB_DIR)/*.c) \
+                 $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
                      $(wildcard $(KERNEL_DIR)/syscall/*.S)

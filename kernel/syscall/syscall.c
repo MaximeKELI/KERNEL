@@ -2,6 +2,7 @@
 #include "process.h"
 #include "stdio.h"
 #include "fs/vfs.h"
+#include "io.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 

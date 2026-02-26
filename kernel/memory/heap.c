@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "spinlock.h"
 #include "debug.h"
+#include "overflow.h"
+#include "validate.h"
 
 /* Heap block header */
 typedef struct heap_block {

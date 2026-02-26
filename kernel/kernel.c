@@ -191,6 +191,81 @@ void kernel_main(u64 magic, u64 mb_info) {
     serial_init(COM1);
     printk("Serial port initialized.\n\n");
     
+    /* Initialize networking stack */
+    printk("Initializing networking stack...\n");
+    net_init();
+    printk("Networking stack initialized.\n\n");
+    
+    /* Initialize SMP */
+    printk("Initializing SMP...\n");
+    smp_init();
+    printk("SMP initialized.\n\n");
+    
+    /* Initialize ACPI */
+    printk("Initializing ACPI...\n");
+    acpi_init();
+    printk("ACPI initialized.\n\n");
+    
+    /* Initialize framebuffer */
+    printk("Initializing framebuffer...\n");
+    framebuffer_init(VESA_MODE_1024x768_8);
+    printk("Framebuffer initialized.\n\n");
+    
+    /* Initialize System V IPC */
+    printk("Initializing System V IPC...\n");
+    sysv_ipc_init();
+    printk("System V IPC initialized.\n\n");
+    
+    /* Initialize epoll/select */
+    printk("Initializing epoll/select...\n");
+    epoll_init();
+    printk("Epoll/select initialized.\n\n");
+    
+    /* Initialize SLAB allocator */
+    printk("Initializing SLAB allocator...\n");
+    slab_init();
+    printk("SLAB allocator initialized.\n\n");
+    
+    /* Initialize RCU */
+    printk("Initializing RCU...\n");
+    rcu_init();
+    printk("RCU initialized.\n\n");
+    
+    /* Initialize sysfs */
+    printk("Initializing sysfs...\n");
+    sysfs_init();
+    printk("Sysfs initialized.\n\n");
+    
+    /* Initialize devtmpfs */
+    printk("Initializing devtmpfs...\n");
+    devtmpfs_init();
+    printk("Devtmpfs initialized.\n\n");
+    
+    /* Initialize capabilities */
+    printk("Initializing capabilities...\n");
+    capabilities_init();
+    printk("Capabilities initialized.\n\n");
+    
+    /* Initialize namespaces */
+    printk("Initializing namespaces...\n");
+    namespace_init();
+    printk("Namespaces initialized.\n\n");
+    
+    /* Initialize cgroups */
+    printk("Initializing cgroups...\n");
+    cgroup_init();
+    printk("Cgroups initialized.\n\n");
+    
+    /* Initialize KASLR */
+    printk("Initializing KASLR...\n");
+    kaslr_init();
+    printk("KASLR initialized.\n\n");
+    
+    /* Initialize audit system */
+    printk("Initializing audit system...\n");
+    audit_init();
+    printk("Audit system initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

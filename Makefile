@@ -78,6 +78,10 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/module
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/cache
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/log
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/kthread
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/workqueue
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/elf
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/timer
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

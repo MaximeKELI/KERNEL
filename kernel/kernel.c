@@ -275,6 +275,51 @@ void kernel_main(u64 magic, u64 mb_info) {
     audit_init();
     printk("Audit system initialized.\n\n");
     
+    /* Initialize KVM */
+    printk("Initializing KVM...\n");
+    kvm_init();
+    printk("KVM initialized.\n\n");
+    
+    /* Initialize ftrace */
+    printk("Initializing ftrace...\n");
+    ftrace_init();
+    printk("Ftrace initialized.\n\n");
+    
+    /* Initialize kprobes */
+    printk("Initializing kprobes...\n");
+    kprobes_init();
+    printk("Kprobes initialized.\n\n");
+    
+    /* Initialize seccomp */
+    printk("Initializing seccomp...\n");
+    seccomp_init();
+    printk("Seccomp initialized.\n\n");
+    
+    /* Initialize block layer */
+    printk("Initializing block layer...\n");
+    block_init();
+    printk("Block layer initialized.\n\n");
+    
+    /* Initialize I/O schedulers */
+    printk("Initializing I/O schedulers...\n");
+    io_sched_init();
+    printk("I/O schedulers initialized.\n\n");
+    
+    /* Initialize tmpfs */
+    printk("Initializing tmpfs...\n");
+    tmpfs_init();
+    printk("Tmpfs initialized.\n\n");
+    
+    /* Initialize huge pages */
+    printk("Initializing huge pages...\n");
+    hugepages_init();
+    printk("Huge pages initialized.\n\n");
+    
+    /* Initialize watchdog */
+    printk("Initializing watchdog...\n");
+    watchdog_init();
+    printk("Watchdog initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

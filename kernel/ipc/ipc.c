@@ -124,13 +124,21 @@ void pipe_close(pipe_t* pipe) {
 }
 
 int shm_create(u64 key, size_t size, void** addr) {
+    VALIDATE_PTR(addr);
+    VALIDATE_RANGE(size, 1, 1024 * 1024 * 1024); /* Max 1GB */
+    
     if (next_shm_id >= MAX_SHM) {
         DEBUG_ERROR("Maximum shared memory segments reached");
         return -1;
     }
     
+    /* Check for overflow in page calculation */
+    size_t pages_needed;
+    size_t total_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+    CHECK_ADD_OVERFLOW(total_pages, 0, &pages_needed);
+    
     shm_t* shm = &shm_segments[next_shm_id++];
-    shm->addr = vmm_alloc_pages((size + PAGE_SIZE - 1) / PAGE_SIZE);
+    shm->addr = vmm_alloc_pages(pages_needed);
     if (!shm->addr) {
         DEBUG_ERROR("Failed to allocate shared memory");
         return -1;

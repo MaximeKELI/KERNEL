@@ -2,6 +2,13 @@
 #define VFS_H
 
 #include "types.h"
+#include <stddef.h>
+
+/* ssize_t for signed size */
+#ifndef _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
+typedef long ssize_t;
+#endif
 
 /* File modes */
 #define O_RDONLY 0x0000

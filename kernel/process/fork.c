@@ -25,14 +25,13 @@ process_t* fork_process(void) {
     /* Validate stack size */
     VALIDATE_RANGE(parent->stack_size, PAGE_SIZE, 64 * 1024 * 1024); /* 4KB to 64MB */
     
-    /* Allocate new stack with overflow check */
-    size_t pages_needed;
+    /* Allocate new stack */
     size_t stack_pages = (parent->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
-    CHECK_ADD_OVERFLOW(stack_pages, 0, &pages_needed);
+    size_t pages_needed = stack_pages;
     
     child->stack_base = vmm_alloc_pages(pages_needed);
     if (!child->stack_base) {
-        DEBUG_ERROR("Failed to allocate child stack");
+        DEBUG_ERROR("%s", "Failed to allocate child stack");
         kfree(child);
         return NULL;
     }

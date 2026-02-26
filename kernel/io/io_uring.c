@@ -80,7 +80,7 @@ int io_uring_wait_cqe(io_uring_t* ring, io_uring_cqe_t** cqe) {
 
 void io_uring_cqe_seen(io_uring_t* ring, io_uring_cqe_t* cqe) {
     (void)cqe;
-    if (!ring) return;
+    VALIDATE_PTR_VOID(ring);
     
     ring->cq_head++;
 }

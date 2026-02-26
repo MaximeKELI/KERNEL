@@ -79,6 +79,12 @@ int net_recv_packet(netif_t* iface, void* data, size_t* len) {
     VALIDATE_PTR(data);
     VALIDATE_PTR(len);
     
+    /* Update network statistics */
+    if (len && *len > 0) {
+        global_net_rx_bytes += *len;
+        global_net_rx_packets++;
+    }
+    
     (void)iface;
     (void)data;
     (void)len;

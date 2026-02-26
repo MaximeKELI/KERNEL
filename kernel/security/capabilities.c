@@ -9,11 +9,14 @@ void capabilities_init(void) {
 }
 
 /* Minimal capabilities for root (principle of least privilege) */
+/* Root gets only essential capabilities, others must be explicitly granted */
 static const u64 root_minimal_caps = 
-    (1ULL << CAP_SYS_ADMIN) |      /* System administration */
-    (1ULL << CAP_SYS_TIME) |        /* System time */
-    (1ULL << CAP_NET_ADMIN) |      /* Network administration */
-    (1ULL << CAP_SYS_MODULE);      /* Load modules */
+    (1ULL << 0) |   /* CAP_CHOWN - Change ownership */
+    (1ULL << 3) |   /* CAP_FOWNER - Bypass permission checks */
+    (1ULL << 4) |   /* CAP_FSETID - Set file setuid */
+    (1ULL << 6) |   /* CAP_SETGID - Set group ID */
+    (1ULL << 7) |   /* CAP_SETUID - Set user ID */
+    (1ULL << 21);   /* CAP_SYS_ADMIN - System administration */
 
 bool capable(int cap) {
     if (cap < 0 || cap > CAP_LAST_CAP) return false;

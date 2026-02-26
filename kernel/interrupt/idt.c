@@ -155,7 +155,7 @@ void interrupt_init(void) {
     /* Load IDT */
     idt_ptr.limit = sizeof(idt) - 1;
     idt_ptr.base = (u64)idt;
-    asm volatile("lidt %0" : : "m"(idt_ptr));
+    __asm__ __volatile__("lidt %0" : : "m"(idt_ptr));
     
     /* Initialize PIC */
     pic_init();
@@ -164,15 +164,15 @@ void interrupt_init(void) {
 }
 
 void enable_interrupts(void) {
-    asm volatile("sti");
+    __asm__ __volatile__("sti");
 }
 
 void disable_interrupts(void) {
-    asm volatile("cli");
+    __asm__ __volatile__("cli");
 }
 
 bool interrupts_enabled(void) {
     u64 rflags;
-    asm volatile("pushfq; pop %0" : "=r"(rflags));
+    __asm__ __volatile__("pushfq; pop %0" : "=r"(rflags));
     return (rflags & (1 << 9)) != 0;
 }

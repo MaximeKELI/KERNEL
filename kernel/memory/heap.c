@@ -44,7 +44,7 @@ static void* heap_alloc_block(size_t size) {
     aligned_size = ALIGN_UP(size, 8);
     
     if (aligned_size == 0 || aligned_size < size) {
-        DEBUG_WARN("Size alignment resulted in invalid size");
+        DEBUG_WARN("%s", "Size alignment resulted in invalid size");
         return NULL;
     }
     
@@ -100,7 +100,7 @@ static void heap_coalesce(heap_block_t* block) {
 
 static void heap_free_block(void* ptr) {
     if (!ptr) {
-        DEBUG_WARN("Attempted to free NULL pointer");
+        DEBUG_WARN("%s", "Attempted to free NULL pointer");
         return;
     }
     

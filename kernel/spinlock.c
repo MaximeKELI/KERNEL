@@ -10,7 +10,7 @@ void spinlock_lock(spinlock_t* lock) {
     while (__sync_lock_test_and_set(&lock->locked, 1)) {
         /* Wait for lock to be released */
         while (lock->locked) {
-            asm volatile("pause");  /* CPU hint for spin-wait loop */
+            __asm__ __volatile__("pause");  /* CPU hint for spin-wait loop */
         }
     }
 }

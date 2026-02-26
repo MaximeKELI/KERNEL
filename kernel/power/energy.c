@@ -110,7 +110,7 @@ int power_domain_disable(const char* name) {
 
 void cpu_idle_enter(void) {
     /* Enter CPU idle state */
-    asm volatile("hlt");
+    __asm__ __volatile__("hlt");
 }
 
 void cpu_idle_exit(void) {

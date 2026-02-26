@@ -64,7 +64,8 @@ int rdma_post_recv(rdma_qp_t* qp, void* buffer, size_t length, u64 wr_id) {
 }
 
 int rdma_poll_cq(rdma_qp_t* qp, rdma_completion_t* comp) {
-    if (!qp || !comp) return -1;
+    VALIDATE_PTR_RET(qp, -1);
+    VALIDATE_PTR_RET(comp, -1);
     
     /* Would poll completion queue */
     comp->status = 0;

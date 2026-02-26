@@ -435,6 +435,69 @@ void kernel_main(u64 magic, u64 mb_info) {
     overlayfs_init();
     printk("OverlayFS initialized.\n\n");
     
+    /* ========================================
+     * SECURITY HARDENING - EXTREME MODE
+     * ======================================== */
+    
+    /* Initialize secure random first (needed by others) */
+    printk("Initializing secure random...\n");
+    secure_random_init();
+    printk("Secure random initialized.\n\n");
+    
+    /* Initialize security hardening */
+    printk("Initializing security hardening...\n");
+    security_hardening_init();
+    printk("Security hardening initialized.\n\n");
+    
+    /* Enable kernel lockdown */
+    printk("Enabling kernel lockdown...\n");
+    security_enable_lockdown();
+    printk("Kernel lockdown enabled.\n\n");
+    
+    /* Initialize TPM */
+    printk("Initializing TPM...\n");
+    tpm_init();
+    printk("TPM initialized.\n\n");
+    
+    /* Initialize memory encryption */
+    printk("Initializing memory encryption...\n");
+    memory_encryption_init();
+    if (memory_encryption_is_enabled()) {
+        printk("Memory encryption enabled.\n\n");
+    } else {
+        printk("Memory encryption not available.\n\n");
+    }
+    
+    /* Initialize MAC framework */
+    printk("Initializing MAC framework...\n");
+    mac_init();
+    mac_enable(MAC_TYPE_SELINUX); /* Enable SELinux-like */
+    printk("MAC framework initialized.\n\n");
+    
+    /* Initialize secure boot */
+    printk("Initializing secure boot...\n");
+    secure_boot_init();
+    printk("Secure boot initialized.\n\n");
+    
+    /* Initialize ROP protection */
+    printk("Initializing ROP protection...\n");
+    rop_protection_init();
+    printk("ROP protection initialized.\n\n");
+    
+    /* Final security summary */
+    printk("========================================\n");
+    printk("  SECURITY STATUS:\n");
+    printk("  - SMEP: %s\n", security_is_enabled(SECURITY_SMEP_ENABLED) ? "ENABLED" : "DISABLED");
+    printk("  - SMAP: %s\n", security_is_enabled(SECURITY_SMAP_ENABLED) ? "ENABLED" : "DISABLED");
+    printk("  - KPTI: %s\n", security_is_enabled(SECURITY_KPTI_ENABLED) ? "ENABLED" : "DISABLED");
+    printk("  - Retpoline: %s\n", security_is_enabled(SECURITY_RETPOLINE) ? "ENABLED" : "DISABLED");
+    printk("  - CFI: %s\n", security_is_enabled(SECURITY_CFI_ENABLED) ? "ENABLED" : "DISABLED");
+    printk("  - Stack Protector: %s\n", security_is_enabled(SECURITY_STACK_PROT) ? "ENABLED" : "DISABLED");
+    printk("  - Kernel Lockdown: %s\n", security_is_enabled(SECURITY_LOCKDOWN) ? "ENABLED" : "DISABLED");
+    printk("  - Memory Encryption: %s\n", memory_encryption_is_enabled() ? "ENABLED" : "DISABLED");
+    printk("  - ROP Protection: %s\n", rop_protection_is_enabled() ? "ENABLED" : "DISABLED");
+    printk("========================================\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

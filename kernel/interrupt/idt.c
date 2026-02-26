@@ -1,6 +1,7 @@
 #include "interrupt.h"
 #include "stdio.h"
 #include "io.h"
+#include "debug.h"
 
 /* IDT entry */
 typedef struct __packed {
@@ -78,20 +79,9 @@ void interrupt_handler(u64 vector, u64 error_code) {
             irq_handlers[irq](irq, irq_data[irq]);
         }
     } else if (vector == 0x80) {
-        /* System call */
-        extern void syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
-        /* Get syscall number and arguments from registers */
-        u64 syscall_num, arg1, arg2, arg3, arg4, arg5;
-        asm volatile(
-            "mov %%rax, %0\n\t"
-            "mov %%rdi, %1\n\t"
-            "mov %%rsi, %2\n\t"
-            "mov %%rdx, %3\n\t"
-            "mov %%r10, %4\n\t"
-            "mov %%r8, %5"
-            : "=r"(syscall_num), "=r"(arg1), "=r"(arg2), "=r"(arg3), "=r"(arg4), "=r"(arg5)
-        );
-        syscall_handler(syscall_num, arg1, arg2, arg3, arg4, arg5);
+        /* System call - handled directly by syscall_entry in syscall_asm.S */
+        /* This should not be reached if syscall_entry is properly configured */
+        DEBUG_ERROR("System call reached interrupt handler (should use syscall_entry)");
     }
 }
 

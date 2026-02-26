@@ -12,6 +12,11 @@ void vfs_init(void) {
 }
 
 int vfs_mount(const char* source, const char* target, vfs_fs_ops_t* fs_ops) {
+    /* Validate parameters */
+    VALIDATE_STRING(source, 4096);
+    VALIDATE_STRING(target, 4096);
+    VALIDATE_PTR(fs_ops);
+    
     (void)source;
     (void)target;
     (void)fs_ops;

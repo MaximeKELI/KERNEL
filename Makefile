@@ -66,7 +66,6 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/iommu/*.c) \
                  $(wildcard $(KERNEL_DIR)/power/*.c) \
                  $(wildcard $(KERNEL_DIR)/devicetree/*.c) \
-                 $(wildcard $(KERNEL_DIR)/security/*.c) \
                  $(wildcard $(KERNEL_DIR)/container/*.c) \
                  $(wildcard $(KERNEL_DIR)/checkpoint/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)

@@ -107,7 +107,8 @@ dentry_t* dentry_lookup(dentry_t* parent, const char* name) {
 }
 
 int dentry_add_child(dentry_t* parent, dentry_t* child) {
-    if (!parent || !child) return -1;
+    VALIDATE_PTR(parent);
+    VALIDATE_PTR(child);
     
     spinlock_lock(&dentry_lock);
     
@@ -120,7 +121,8 @@ int dentry_add_child(dentry_t* parent, dentry_t* child) {
 }
 
 int dentry_remove_child(dentry_t* parent, const char* name) {
-    if (!parent || !name) return -1;
+    VALIDATE_PTR(parent);
+    VALIDATE_STRING(name, 256);
     
     spinlock_lock(&dentry_lock);
     

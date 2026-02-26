@@ -21,4 +21,7 @@ void ai_tick(void);
 /* Get current metrics */
 void ai_get_metrics(ai_metrics_t* metrics);
 
+/* Check if AI subsystem is initialized */
+extern bool ai_initialized;
+
 #endif /* AI_MANAGER_H */

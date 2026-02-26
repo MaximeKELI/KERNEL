@@ -3,6 +3,9 @@
 #include "io.h"
 #include "debug.h"
 
+/* Global interrupt counter for AI monitoring */
+u64 global_interrupt_count = 0;
+
 /* IDT entry */
 typedef struct __packed {
     u16 offset_low;
@@ -62,8 +65,14 @@ extern void irq14(void);
 extern void irq15(void);
 extern void syscall_handler_asm(void);
 
+/* Global interrupt counter for AI monitoring */
+u64 global_interrupt_count = 0;
+
 /* Common interrupt handler */
 void interrupt_handler(u64 vector, u64 error_code) {
+    /* Increment interrupt counter for AI monitoring */
+    global_interrupt_count++;
+    
     if (vector < 32) {
         /* Exception */
         exception_handler(vector, error_code);

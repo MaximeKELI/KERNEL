@@ -20,6 +20,9 @@ void enable_interrupts(void);
 void disable_interrupts(void);
 bool interrupts_enabled(void);
 
+/* Global interrupt counter for AI monitoring */
+extern u64 global_interrupt_count;
+
 /* PIC */
 void pic_init(void);
 void pic_enable_irq(u32 irq);

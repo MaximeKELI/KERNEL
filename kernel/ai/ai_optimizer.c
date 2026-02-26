@@ -35,15 +35,20 @@ void ai_optimize_scheduler(void) {
     
     /* If CPU usage > 80% → reduce scheduler timeslice */
     if (metrics.cpu_usage > CPU_HIGH_THRESHOLD) {
-        printk("[AI] CPU load high (%u%%) → adjusting scheduler\n", (u32)metrics.cpu_usage);
+        DEBUG_INFO("[AI] CPU load high (%u%%) → adjusting scheduler", (u32)metrics.cpu_usage);
         
-        /* Reduce timeslice for all processes */
+        /* Reduce timeslice for all processes to improve responsiveness */
         process_t* proc = process_list;
+        u32 adjusted = 0;
         while (proc) {
             if (proc->time_slice > 10) {
                 proc->time_slice = proc->time_slice * 3 / 4; /* Reduce by 25% */
+                adjusted++;
             }
             proc = proc->next;
+        }
+        if (adjusted > 0) {
+            DEBUG_INFO("[AI] Reduced timeslice for %u processes", adjusted);
         }
     }
     
@@ -51,25 +56,35 @@ void ai_optimize_scheduler(void) {
     if (metrics.context_switches > 50) {
         /* Boost processes that are blocked (likely I/O bound) */
         process_t* proc = process_list;
+        u32 boosted = 0;
         while (proc) {
             if (proc->state == PROCESS_BLOCKED) {
-                /* Increase priority slightly */
-                if (proc->priority < PRIO_MAX) {
-                    proc->priority++;
+                /* Increase priority slightly for I/O-bound processes */
+                if (proc->priority > PRIO_MIN) {
+                    proc->priority--;
+                    boosted++;
                 }
             }
             proc = proc->next;
+        }
+        if (boosted > 0) {
+            DEBUG_INFO("[AI] Boosted %u I/O-bound processes", boosted);
         }
     }
     
     /* If system idle → increase timeslice for efficiency */
     if (metrics.cpu_usage < 20 && metrics.process_count > 0) {
         process_t* proc = process_list;
+        u32 increased = 0;
         while (proc) {
             if (proc->time_slice < 200) {
                 proc->time_slice = proc->time_slice * 5 / 4; /* Increase by 25% */
+                increased++;
             }
             proc = proc->next;
+        }
+        if (increased > 0) {
+            DEBUG_INFO("[AI] Increased timeslice for %u processes (system idle)", increased);
         }
     }
 }
@@ -83,16 +98,24 @@ void ai_optimize_memory(void) {
     /* If memory pressure detected → trigger memory cleanup */
     if (metrics.memory_usage > MEMORY_PRESSURE_THRESHOLD) {
         u64 current_tick = timer_get_ticks();
-        if (current_tick - last_memory_cleanup > 1000) { /* Throttle cleanup */
-            printk("[AI] Memory pressure detected (%u%%) → optimizing allocation\n", 
-                   (u32)metrics.memory_usage);
+        if (current_tick - last_memory_cleanup > 1000) { /* Throttle cleanup (10 seconds at 100Hz) */
+            DEBUG_INFO("[AI] Memory pressure detected (%u%%) → optimizing allocation", 
+                      (u32)metrics.memory_usage);
             
-            /* Trigger cache sync */
+            /* Trigger cache sync to free dirty pages */
             cache_sync_all();
             
-            /* Would trigger memory compaction here */
+            /* Note: Memory compaction would be triggered here if implemented */
+            /* For now, cache sync helps free memory */
+            
             last_memory_cleanup = current_tick;
         }
+    }
+    
+    /* If memory usage is low, we can be more aggressive with caching */
+    if (metrics.memory_usage < 50 && metrics.process_count > 0) {
+        /* System has plenty of memory - no action needed */
+        /* Could increase cache sizes here if needed */
     }
 }
 
@@ -109,7 +132,7 @@ void ai_detect_anomalies(void) {
         high_cpu_process_ticks++;
         
         if (high_cpu_process_ticks > ANOMALY_DETECTION_TICKS) {
-            printk("[AI] Anomaly detected → lowering process priority\n");
+            DEBUG_INFO("[AI] Anomaly detected → lowering process priority");
             
             /* Find process with highest runtime and reduce priority */
             process_t* proc = process_list;
@@ -126,8 +149,8 @@ void ai_detect_anomalies(void) {
             
             if (max_proc && max_proc->priority < PRIO_MAX) {
                 max_proc->priority++;
-                printk("[AI] Process %u priority reduced (runtime: %u)\n", 
-                       (u32)max_proc->pid, (u32)max_proc->runtime);
+                DEBUG_INFO("[AI] Process %u priority reduced (runtime: %u)", 
+                          (u32)max_proc->pid, (u32)max_proc->runtime);
             }
             
             high_cpu_process_ticks = 0;
@@ -138,7 +161,14 @@ void ai_detect_anomalies(void) {
     
     /* Detect abnormal interrupt rate */
     if (metrics.interrupt_rate > 1000) {
-        printk("[AI] High interrupt rate detected (%u) → investigating\n", 
-               (u32)metrics.interrupt_rate);
+        DEBUG_INFO("[AI] High interrupt rate detected (%u) → investigating", 
+                  (u32)metrics.interrupt_rate);
+        /* Could trigger interrupt handler profiling here */
+    }
+    
+    /* Detect abnormal context switch rate */
+    if (metrics.context_switches > 500) {
+        DEBUG_INFO("[AI] High context switch rate detected (%u)", 
+                  (u32)metrics.context_switches);
     }
 }

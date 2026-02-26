@@ -99,7 +99,7 @@ void panic(const char* message) {
 
 void halt(void) {
     while (true) {
-        asm volatile("cli; hlt");
+        __asm__ __volatile__("cli; hlt");
     }
 }
 
@@ -544,7 +544,7 @@ void kernel_main(u64 magic, u64 mb_info) {
     printk("System ready.\n");
     printk("========================================\n\n");
     
-    log_info("Kernel fully initialized with all subsystems");
+    log_info("%s", "Kernel fully initialized with all subsystems");
     audit_log(AUDIT_CONFIG, "Kernel initialization complete");
     DEBUG_INFO("Debug system initialized (level: %u)", debug_level);
     
@@ -584,7 +584,7 @@ void kernel_main(u64 magic, u64 mb_info) {
             workqueue_process(system_wq);
         }
         
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
         schedule();
     }
 }

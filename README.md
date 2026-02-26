@@ -2,10 +2,10 @@
 
 A production-grade, high-performance 64-bit operating system kernel written in C and x86_64 Assembly, designed for maximum performance, modularity, scalability, and hardware control.
 
-[![Quality Score](https://img.shields.io/badge/Quality-100%2F100-brightgreen)](QUALITY_AUDIT.md)
+[![Quality Score](https://img.shields.io/badge/Quality-100%2F100-brightgreen)](Documentation/QUALITY_AUDIT.md)
 [![Tests](https://img.shields.io/badge/Tests-100%25-success)](kernel/test/)
 [![Documentation](https://img.shields.io/badge/Docs-100%25-blue)](docs/)
-[![Security](https://img.shields.io/badge/Security-100%2F100-green)](EXTREME_SECURITY.md)
+[![Security](https://img.shields.io/badge/Security-100%2F100-green)](Documentation/EXTREME_SECURITY.md)
 
 ## 🎯 Features
 
@@ -27,7 +27,7 @@ A production-grade, high-performance 64-bit operating system kernel written in C
 
 ### Complete Feature List
 
-See [ALL_FEATURES.md](ALL_FEATURES.md) for the complete list of 180+ features.
+See [Documentation/ALL_FEATURES.md](Documentation/ALL_FEATURES.md) for the complete list of 180+ features.
 
 ## 📁 Project Structure
 
@@ -320,7 +320,7 @@ device_driver_t my_driver = {
 
 ## 🔒 Security
 
-See [EXTREME_SECURITY.md](EXTREME_SECURITY.md) for complete security documentation.
+See [Documentation/EXTREME_SECURITY.md](Documentation/EXTREME_SECURITY.md) for complete security documentation.
 
 ### Security Features
 

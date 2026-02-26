@@ -77,7 +77,8 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
-                     $(wildcard $(KERNEL_DIR)/syscall/*.S)
+                     $(wildcard $(KERNEL_DIR)/syscall/*.S) \
+                     $(wildcard $(KERNEL_DIR)/asm/*.S)
 
 BOOT_SOURCES = $(BOOT_DIR)/boot.asm
 

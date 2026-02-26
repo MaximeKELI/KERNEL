@@ -131,6 +131,8 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/iommu
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/power
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/devicetree
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/container
+	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/checkpoint
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)

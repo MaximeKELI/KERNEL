@@ -393,6 +393,41 @@ void kernel_main(u64 magic, u64 mb_info) {
     efi_init(NULL); /* Would pass EFI system table from boot */
     printk("EFI initialized.\n\n");
     
+    /* Initialize IO_URING */
+    printk("Initializing IO_URING...\n");
+    io_uring_init();
+    printk("IO_URING initialized.\n\n");
+    
+    /* Initialize FUSE */
+    printk("Initializing FUSE...\n");
+    fuse_init();
+    printk("FUSE initialized.\n\n");
+    
+    /* Initialize IOMMU */
+    printk("Initializing IOMMU...\n");
+    iommu_init();
+    printk("IOMMU initialized.\n\n");
+    
+    /* Initialize energy management */
+    printk("Initializing energy management...\n");
+    energy_init();
+    printk("Energy management initialized.\n\n");
+    
+    /* Initialize device tree */
+    printk("Initializing device tree...\n");
+    devicetree_init(NULL); /* Would pass DTB from boot */
+    printk("Device tree initialized.\n\n");
+    
+    /* Initialize KASAN */
+    printk("Initializing KASAN...\n");
+    kasan_init();
+    printk("KASAN initialized.\n\n");
+    
+    /* Initialize OverlayFS */
+    printk("Initializing OverlayFS...\n");
+    overlayfs_init();
+    printk("OverlayFS initialized.\n\n");
+    
     /* Enable interrupts */
     enable_interrupts();
     

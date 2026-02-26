@@ -63,6 +63,10 @@ int net_send_packet(netif_t* iface, const void* data, size_t len) {
     VALIDATE_PTR(data);
     VALIDATE_RANGE(len, 0, 65535); /* Max Ethernet frame size */
     
+    /* Update network statistics */
+    global_net_tx_bytes += len;
+    global_net_tx_packets++;
+    
     (void)iface;
     (void)data;
     (void)len;

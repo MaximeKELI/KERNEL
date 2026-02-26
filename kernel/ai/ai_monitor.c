@@ -17,7 +17,6 @@ static spinlock_t metrics_lock = SPINLOCK_INIT;
 
 /* External references */
 extern process_t* process_list;
-extern scheduler_stats_t scheduler_stats;
 
 void ai_monitor_init(void) {
     memset(&current_metrics, 0, sizeof(ai_metrics_t));

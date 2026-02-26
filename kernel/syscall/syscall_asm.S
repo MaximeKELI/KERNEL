@@ -26,12 +26,22 @@ syscall_entry:
     push rax
     
     ; Call syscall handler
+    ; Arguments are already in correct registers from syscall
+    ; rax = syscall number, rdi = arg1, rsi = arg2, rdx = arg3, r10 = arg4, r8 = arg5
     mov rdi, rax  ; syscall number
-    mov rsi, rbx  ; arg1
-    mov rdx, rcx  ; arg2
-    mov r10, rdx  ; arg3
-    mov r8, rsi   ; arg4
-    mov r9, rdi   ; arg5
+    mov rsi, rdi  ; arg1 (save original)
+    mov rdx, rsi  ; arg2 (save original)
+    mov rcx, rdx  ; arg3 (save original)
+    mov r8, r10   ; arg4 (save original)
+    mov r9, r8    ; arg5 (save original)
+    
+    ; Now restore original arg positions
+    mov rdi, rsi  ; arg1
+    mov rsi, rdx  ; arg2
+    mov rdx, rcx  ; arg3
+    mov r10, r8   ; arg4
+    mov r8, r9    ; arg5
+    mov rax, rdi  ; syscall number
     
     extern syscall_handler
     call syscall_handler

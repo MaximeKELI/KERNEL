@@ -191,3 +191,32 @@ docs:
 # Clean build artifacts
 clean:
 	rm -rf $(BUILD_DIR) $(ISO_DIR) docs
+
+# Run tests
+test:
+	@bash scripts/test.sh
+
+# Run benchmarks
+benchmark:
+	@bash scripts/benchmark.sh
+
+# Deploy kernel
+deploy:
+	@bash scripts/deploy.sh
+
+# Check code quality
+check:
+	@bash scripts/check_code.sh
+
+# Generate release
+release:
+	@bash scripts/gen_release.sh
+
+# Profile kernel
+profile:
+	@bash scripts/profiler.sh
+
+# Install scripts
+install-scripts:
+	chmod +x scripts/*.sh
+	chmod +x tools/*.py

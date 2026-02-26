@@ -55,12 +55,13 @@ void ai_monitor_update(void) {
         current_metrics.context_switches = 0;
     }
     
-    /* Update CPU usage (simplified: based on idle time) */
+    /* Update CPU usage (simplified: based on scheduler stats) */
     if (stats.total_runtime > 0) {
         u64 cpu_used = stats.total_runtime - stats.idle_time;
         current_metrics.cpu_usage = (cpu_used * 100) / stats.total_runtime;
     } else {
-        current_metrics.cpu_usage = 0;
+        /* Fallback: estimate from process count and activity */
+        current_metrics.cpu_usage = (current_metrics.process_count > 0) ? 50 : 0;
     }
     
     /* Update interrupt rate (simplified) */

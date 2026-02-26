@@ -72,6 +72,10 @@ process_t* process_create(void* entry_point, u64 stack_size) {
 void process_destroy(process_t* proc) {
     VALIDATE_PTR_VOID(proc);
     
+    /* Cleanup seccomp filter if present */
+    extern void seccomp_cleanup(process_t*);
+    seccomp_cleanup(proc);
+    
     /* Free stack */
     if (proc->stack_base) {
         size_t pages = (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;

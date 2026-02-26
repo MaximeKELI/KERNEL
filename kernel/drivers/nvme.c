@@ -28,6 +28,8 @@ int nvme_identify_controller(void* buffer) {
 }
 
 nvme_queue_t* nvme_create_io_queue(u16 qid, u32 qsize) {
+    VALIDATE_SIZE(qsize);
+    
     nvme_queue_t* queue = (nvme_queue_t*)kzalloc(sizeof(nvme_queue_t));
     if (!queue) {
         DEBUG_ERROR("Failed to allocate NVMe queue");

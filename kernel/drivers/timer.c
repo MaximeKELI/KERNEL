@@ -21,6 +21,12 @@ static void timer_irq_handler(u32 irq, void* data) {
     
     ticks++;
     
+    /* Call AI optimization tick */
+    extern bool ai_initialized;
+    if (ai_initialized) {
+        ai_tick();
+    }
+    
     if (callback) {
         callback(callback_data);
     }

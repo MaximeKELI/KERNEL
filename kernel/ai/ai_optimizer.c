@@ -121,7 +121,7 @@ void ai_optimize_memory(void) {
 }
 
 void ai_detect_anomalies(void) {
-    if (!optimizer_initialized) return;
+    if (!optimizer_initialized || !ai_enabled) return;
     
     ai_metrics_t metrics;
     ai_monitor_get_metrics(&metrics);
@@ -129,10 +129,10 @@ void ai_detect_anomalies(void) {
     /* If a process consumes abnormal CPU for too long → reduce its priority */
     static u64 high_cpu_process_ticks = 0;
     
-    if (metrics.cpu_usage > CPU_HIGH_THRESHOLD) {
+    if (metrics.cpu_usage > cpu_high_threshold) {
         high_cpu_process_ticks++;
         
-        if (high_cpu_process_ticks > ANOMALY_DETECTION_TICKS) {
+        if (high_cpu_process_ticks > anomaly_detection_ticks) {
             DEBUG_INFO("[AI] Anomaly detected → lowering process priority");
             
             /* Find process with highest runtime and reduce priority */

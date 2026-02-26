@@ -92,7 +92,7 @@ ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS) $(KERNEL_ASM_OBJECTS)
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 ISO_IMAGE = $(BUILD_DIR)/kernel.iso
 
-.PHONY: all clean run run-qemu iso
+.PHONY: all clean run run-qemu iso test docs benchmark deploy check release profile install-scripts
 
 all: $(KERNEL_ELF) iso
 

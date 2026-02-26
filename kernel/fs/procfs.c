@@ -74,19 +74,23 @@ int procfs_init(void) {
     
     /* Create root */
     proc_root = &proc_entries[next_entry++];
-    strcpy(proc_root->name, "proc");
+    strncpy(proc_root->name, "proc", sizeof(proc_root->name) - 1);
+    proc_root->name[sizeof(proc_root->name) - 1] = '\0';
     
     /* Create standard entries */
     proc_entry_t* cpuinfo = &proc_entries[next_entry++];
-    strcpy(cpuinfo->name, "cpuinfo");
+    strncpy(cpuinfo->name, "cpuinfo", sizeof(cpuinfo->name) - 1);
+    cpuinfo->name[sizeof(cpuinfo->name) - 1] = '\0';
     cpuinfo->parent = proc_root;
     
     proc_entry_t* meminfo = &proc_entries[next_entry++];
-    strcpy(meminfo->name, "meminfo");
+    strncpy(meminfo->name, "meminfo", sizeof(meminfo->name) - 1);
+    meminfo->name[sizeof(meminfo->name) - 1] = '\0';
     meminfo->parent = proc_root;
     
     proc_entry_t* version = &proc_entries[next_entry++];
-    strcpy(version->name, "version");
+    strncpy(version->name, "version", sizeof(version->name) - 1);
+    version->name[sizeof(version->name) - 1] = '\0';
     version->parent = proc_root;
     
     DEBUG_INFO("Proc filesystem initialized");

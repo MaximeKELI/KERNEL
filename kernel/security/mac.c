@@ -36,9 +36,11 @@ int mac_set_context(u64 pid, security_context_t* context) {
     if (ctx) {
         ctx->type = context->type;
         if (context->label) {
-            ctx->label = (char*)kmalloc(strlen(context->label) + 1);
+            size_t label_len = strlen(context->label);
+            ctx->label = (char*)kmalloc(label_len + 1);
             if (ctx->label) {
-                strcpy(ctx->label, context->label);
+                strncpy(ctx->label, context->label, label_len);
+                ctx->label[label_len] = '\0';
             }
         }
     }

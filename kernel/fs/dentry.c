@@ -29,7 +29,8 @@ dentry_t* dentry_alloc(const char* name, inode_t* inode) {
         return NULL;
     }
     
-    strcpy(dentry->name, name);
+    strncpy(dentry->name, name, sizeof(dentry->name) - 1);
+    dentry->name[sizeof(dentry->name) - 1] = '\0';
     dentry->inode = inode;
     dentry->refcount = 1;
     dentry->parent = NULL;

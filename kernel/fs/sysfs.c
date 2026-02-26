@@ -15,7 +15,8 @@ int sysfs_init(void) {
     memset(sysfs_entries, 0, sizeof(sysfs_entries));
     
     sysfs_root = &sysfs_entries[next_entry++];
-    strcpy(sysfs_root->name, "sys");
+    strncpy(sysfs_root->name, "sys", sizeof(sysfs_root->name) - 1);
+    sysfs_root->name[sizeof(sysfs_root->name) - 1] = '\0';
     
     DEBUG_INFO("Sysfs initialized");
     return 0;

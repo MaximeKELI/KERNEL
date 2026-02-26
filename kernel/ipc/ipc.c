@@ -82,7 +82,9 @@ ssize_t pipe_read(pipe_t* pipe, void* buf, size_t count) {
 }
 
 ssize_t pipe_write(pipe_t* pipe, const void* buf, size_t count) {
-    if (!pipe || !buf) return -1;
+    VALIDATE_PTR_RET(pipe, -1);
+    VALIDATE_PTR_RET(buf, -1);
+    VALIDATE_RANGE(count, 0, 1024 * 1024);
     
     spinlock_lock(&pipe->lock);
     

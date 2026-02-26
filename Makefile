@@ -21,9 +21,10 @@ ISO_GRUB_DIR = $(ISO_DIR)/boot/grub
 
 # Flags
 CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
-         -Wall -Wextra -std=c11 -O2 -g
+         -Wall -Wextra -Wpedantic -std=c11 -O3 -flto -g \
+         -fno-omit-frame-pointer -fstack-usage
 ASFLAGS = -f elf64
-LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000
+LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000 -flto
 
 # Source files
 KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
@@ -68,6 +69,7 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/devicetree/*.c) \
                  $(wildcard $(KERNEL_DIR)/container/*.c) \
                  $(wildcard $(KERNEL_DIR)/checkpoint/*.c) \
+                 $(wildcard $(KERNEL_DIR)/test/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \

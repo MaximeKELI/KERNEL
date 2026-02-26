@@ -1,0 +1,62 @@
+# Doxyfile configuration for Kernel Documentation
+
+PROJECT_NAME           = "64-bit OS Kernel"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "Production-grade, high-performance 64-bit operating system kernel"
+
+OUTPUT_DIRECTORY       = docs
+INPUT                  = include kernel lib
+FILE_PATTERNS          = *.h *.c
+RECURSIVE              = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+
+ALPHABETICAL_INDEX     = YES
+COLS_IN_ALPHA_INDEX    = 5
+
+GENERATE_TAGFILE       = kernel.tag
+
+HAVE_DOT               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+OPTIMIZE_OUTPUT_FOR_C  = YES
+MARKDOWN_SUPPORT       = YES
+
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+PREDEFINED             = __x86_64__ \
+                         __GNUC__ \
+                         PAGE_SIZE=4096
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+
+EXCLUDE_PATTERNS       = */build/* \
+                         */iso/*
+
+VERBATIM_HEADERS       = YES
+SHOW_HEADERFILE        = YES
+SHOW_INCLUDE_FILES     = YES
+
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+
+QUIET                  = NO

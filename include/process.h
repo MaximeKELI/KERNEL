@@ -74,4 +74,9 @@ void yield(void);
 /* Idle task */
 void idle_task(void);
 
+/* Advanced process operations */
+process_t* fork_process(void);
+int exec_process(const char* path, char* const argv[]);
+int wait_process(u64 pid, int* status);
+
 #endif /* PROCESS_H */

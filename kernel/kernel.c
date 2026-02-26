@@ -50,6 +50,7 @@
 #include "tmpfs.h"
 #include "hugepages.h"
 #include "watchdog.h"
+#include "ai_manager.h"
 #include "io.h"
 #include "debug.h"
 #include "spinlock.h"

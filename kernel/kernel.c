@@ -11,14 +11,7 @@
 #include "fs/vfs.h"
 #include "io.h"
 
-/* Kernel stack */
-u8 kernel_stack[8192] __aligned(16);
-
-/* Export stack top for boot code */
-extern u8 kernel_stack_top[];
-void* get_kernel_stack_top(void) {
-    return kernel_stack + sizeof(kernel_stack);
-}
+/* Kernel stack is defined in boot.asm */
 
 void panic(const char* message) {
     disable_interrupts();

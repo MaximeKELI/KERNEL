@@ -64,8 +64,8 @@ make test
 ## 📚 Documentation
 
 - **README.md** - Vue d'ensemble
-- **BUILD.md** - Instructions de build détaillées
-- **DEVELOPMENT.md** - Guide développement complet
+- **[BUILD.md](BUILD.md)** - Instructions de build détaillées
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guide développement complet
 - **CONTRIBUTING.md** - Guide contributeurs
 - **ALL_FEATURES.md** - Liste complète des fonctionnalités
 

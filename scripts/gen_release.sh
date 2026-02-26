@@ -67,7 +67,7 @@ cat > "$RELEASE_DIR/RELEASE_NOTES.md" << EOF
 
 ## Changes
 
-- See CHANGELOG.md for detailed changes
+- See Documentation/CHANGELOG.md for detailed changes
 
 ## Installation
 

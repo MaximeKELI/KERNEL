@@ -38,7 +38,7 @@ typedef void (*sighandler_t)(int);
 
 /* Signal set */
 typedef struct {
-    u64 sig[NSIG / 64];
+    u64 sig[(NSIG + 63) / 64];  /* Ensure at least 1 element */
 } sigset_t;
 
 /* Signal action */

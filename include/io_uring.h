@@ -21,7 +21,7 @@ typedef struct io_uring_sqe {
     u8 opcode;
     u8 flags;
     u16 ioprio;
-    s32 fd;
+    i32 fd;
     u64 off;
     u64 addr;
     u32 len;

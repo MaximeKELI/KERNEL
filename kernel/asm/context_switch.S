@@ -35,6 +35,10 @@ context_switch_asm:
     test rdi, rdi
     jz .skip_save
     
+    ; Save rdi first (we'll need it)
+    mov rax, rdi
+    mov rdi, rax
+    
     ; Save general registers
     mov [rdi + 0], r15
     mov [rdi + 8], r14
@@ -44,11 +48,8 @@ context_switch_asm:
     mov [rdi + 40], r10
     mov [rdi + 48], r9
     mov [rdi + 56], r8
-    mov [rdi + 64], rdi
-    push rdi
-    mov rdi, [rsp + 8]  ; Restore original rdi
-    mov [rdi + 64], rdi
-    pop rdi
+    ; Save original rdi value
+    mov [rdi + 64], rax
     mov [rdi + 72], rsi
     mov [rdi + 80], rbp
     mov [rdi + 88], rbx

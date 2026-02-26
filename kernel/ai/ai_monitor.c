@@ -13,6 +13,10 @@
 static ai_metrics_t current_metrics = {0};
 static u64 last_context_switches = 0;
 static u64 last_interrupt_count = 0;
+static u64 last_io_read_bytes = 0;
+static u64 last_io_write_bytes = 0;
+static u64 last_net_tx_bytes = 0;
+static u64 last_net_rx_bytes = 0;
 static u64 tick_count = 0;
 static u64 last_tick_time = 0;
 static spinlock_t metrics_lock = SPINLOCK_INIT;

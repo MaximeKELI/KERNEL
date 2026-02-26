@@ -32,7 +32,7 @@ typedef struct io_uring_sqe {
 /* Completion queue entry */
 typedef struct io_uring_cqe {
     u64 user_data;
-    s32 res;
+    i32 res;
     u32 flags;
 } io_uring_cqe_t;
 

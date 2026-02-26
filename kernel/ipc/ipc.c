@@ -166,6 +166,8 @@ int shm_attach(u64 key, void** addr) {
 }
 
 int shm_detach(void* addr) {
+    VALIDATE_PTR(addr);
+    
     for (u32 i = 0; i < MAX_SHM; i++) {
         if (shm_segments[i].addr == addr) {
             shm_segments[i].refcount--;

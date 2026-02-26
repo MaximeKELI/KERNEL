@@ -1,0 +1,81 @@
+#include "capabilities.h"
+#include "process.h"
+#include "memory.h"
+#include "stdio.h"
+#include "debug.h"
+
+void capabilities_init(void) {
+    DEBUG_INFO("Capabilities system initialized");
+}
+
+bool capable(int cap) {
+    if (cap < 0 || cap > CAP_LAST_CAP) return false;
+    
+    process_t* proc = process_current();
+    if (!proc) return false;
+    
+    /* Root has all capabilities */
+    if (proc->uid == 0) return true;
+    
+    /* Would check capability set */
+    cap_t* caps = (cap_t*)proc->files;
+    if (!caps) return false;
+    
+    return (caps->effective & (1ULL << cap)) != 0;
+}
+
+int cap_set(int cap, bool value) {
+    if (cap < 0 || cap > CAP_LAST_CAP) return -1;
+    
+    process_t* proc = process_current();
+    if (!proc) return -1;
+    
+    cap_t* caps = (cap_t*)proc->files;
+    if (!caps) {
+        caps = (cap_t*)kzalloc(sizeof(cap_t));
+        if (!caps) return -1;
+        proc->files = caps;
+    }
+    
+    if (value) {
+        caps->effective |= (1ULL << cap);
+        caps->permitted |= (1ULL << cap);
+    } else {
+        caps->effective &= ~(1ULL << cap);
+    }
+    
+    return 0;
+}
+
+int cap_get(cap_t* caps) {
+    if (!caps) return -1;
+    
+    process_t* proc = process_current();
+    if (!proc) return -1;
+    
+    cap_t* proc_caps = (cap_t*)proc->files;
+    if (!proc_caps) {
+        memset(caps, 0, sizeof(cap_t));
+        return 0;
+    }
+    
+    *caps = *proc_caps;
+    return 0;
+}
+
+int cap_set_all(cap_t* caps) {
+    if (!caps) return -1;
+    
+    process_t* proc = process_current();
+    if (!proc) return -1;
+    
+    cap_t* proc_caps = (cap_t*)proc->files;
+    if (!proc_caps) {
+        proc_caps = (cap_t*)kzalloc(sizeof(cap_t));
+        if (!proc_caps) return -1;
+        proc->files = proc_caps;
+    }
+    
+    *proc_caps = *caps;
+    return 0;
+}

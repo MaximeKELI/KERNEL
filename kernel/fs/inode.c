@@ -52,7 +52,7 @@ inode_t* inode_alloc(void) {
 }
 
 void inode_free(inode_t* inode) {
-    if (!inode) return;
+    VALIDATE_PTR_VOID(inode);
     
     spinlock_lock(&inode_lock);
     
@@ -81,6 +81,7 @@ inode_t* inode_get(u64 ino) {
     while (inode) {
         if (inode->ino == ino) {
             inode->nlink++;
+            refcount_get(&inode->refcount); /* Increment reference */
             spinlock_unlock(&inode_lock);
             return inode;
         }
@@ -92,11 +93,22 @@ inode_t* inode_get(u64 ino) {
 }
 
 void inode_put(inode_t* inode) {
-    if (!inode) return;
+    VALIDATE_PTR_VOID(inode);
     
     spinlock_lock(&inode_lock);
     if (inode->nlink > 0) {
         inode->nlink--;
     }
+    
+    /* Decrement reference count */
+    u32 refcount = refcount_put(&inode->refcount);
+    
+    /* If no more references, free the inode */
+    if (refcount == 0 && inode->nlink == 0) {
+        spinlock_unlock(&inode_lock);
+        inode_free(inode);
+        return;
+    }
+    
     spinlock_unlock(&inode_lock);
 }

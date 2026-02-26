@@ -4,6 +4,8 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "refcount.h"
+#include "validate.h"
 
 #define MAX_DENTRIES 2048
 
@@ -17,25 +19,35 @@ void dentry_init(void) {
 }
 
 dentry_t* dentry_alloc(const char* name, inode_t* inode) {
+    VALIDATE_STRING(name, 256);
+    VALIDATE_PTR_RET(inode, NULL);
+    
     if (next_dentry >= MAX_DENTRIES) {
         DEBUG_ERROR("Out of dentries");
         return NULL;
     }
     
     dentry_t* dentry = &dentry_cache[next_dentry++];
-    dentry->name = (char*)kmalloc(strlen(name) + 1);
+    size_t name_len = strlen(name) + 1;
+    dentry->name = (char*)kmalloc(name_len);
     if (!dentry->name) {
         DEBUG_ERROR("Failed to allocate dentry name");
         return NULL;
     }
     
-    strncpy(dentry->name, name, sizeof(dentry->name) - 1);
-    dentry->name[sizeof(dentry->name) - 1] = '\0';
+    strncpy(dentry->name, name, name_len - 1);
+    dentry->name[name_len - 1] = '\0';
     dentry->inode = inode;
-    dentry->refcount = 1;
+    dentry->refcount = REFCOUNT_INIT;
+    refcount_get(&dentry->refcount); /* Initial reference */
     dentry->parent = NULL;
     dentry->child = NULL;
     dentry->sibling = NULL;
+    
+    /* Increment inode reference */
+    if (inode) {
+        refcount_get(&inode->refcount);
+    }
     
     return dentry;
 }

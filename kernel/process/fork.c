@@ -23,7 +23,11 @@ process_t* fork_process(void) {
     memcpy(child, parent, sizeof(process_t));
     
     /* Validate stack size */
-    VALIDATE_RANGE(parent->stack_size, PAGE_SIZE, 64 * 1024 * 1024); /* 4KB to 64MB */
+    if (parent->stack_size < PAGE_SIZE || parent->stack_size > 64 * 1024 * 1024) {
+        DEBUG_ERROR("Invalid stack size: %u", (u32)parent->stack_size);
+        kfree(child);
+        return NULL;
+    }
     
     /* Allocate new stack */
     size_t stack_pages = (parent->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;

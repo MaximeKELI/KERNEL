@@ -88,7 +88,9 @@ int nvme_read(nvme_queue_t* queue, u32 nsid, u64 lba, u32 count, void* buffer) {
 }
 
 int nvme_write(nvme_queue_t* queue, u32 nsid, u64 lba, u32 count, const void* buffer) {
-    if (!queue || !buffer) return -1;
+    VALIDATE_PTR_RET(queue, -1);
+    VALIDATE_PTR_RET(buffer, -1);
+    VALIDATE_SIZE(count);
     
     nvme_command_t cmd = {0};
     cmd.opcode = 0x01; /* Write */

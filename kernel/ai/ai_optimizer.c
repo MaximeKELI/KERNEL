@@ -91,13 +91,13 @@ void ai_optimize_scheduler(void) {
 }
 
 void ai_optimize_memory(void) {
-    if (!optimizer_initialized) return;
+    if (!optimizer_initialized || !ai_enabled) return;
     
     ai_metrics_t metrics;
     ai_monitor_get_metrics(&metrics);
     
     /* If memory pressure detected → trigger memory cleanup */
-    if (metrics.memory_usage > MEMORY_PRESSURE_THRESHOLD) {
+    if (metrics.memory_usage > memory_pressure_threshold) {
         u64 current_tick = timer_get_ticks();
         if (current_tick - last_memory_cleanup > 1000) { /* Throttle cleanup (10 seconds at 100Hz) */
             DEBUG_INFO("[AI] Memory pressure detected (%u%%) → optimizing allocation", 

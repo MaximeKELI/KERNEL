@@ -56,12 +56,16 @@ vfs_file_t* vfs_open(const char* path, u64 flags) {
 }
 
 int vfs_close(vfs_file_t* file) {
-    if (!file) return -1;
+    VALIDATE_PTR(file);
     kfree(file);
     return 0;
 }
 
 ssize_t vfs_read(vfs_file_t* file, void* buf, size_t count) {
+    VALIDATE_PTR_RET(file, -1);
+    VALIDATE_PTR_RET(buf, -1);
+    VALIDATE_RANGE(count, 0, 1024 * 1024 * 1024);
+    
     (void)file;
     (void)buf;
     (void)count;
@@ -69,6 +73,10 @@ ssize_t vfs_read(vfs_file_t* file, void* buf, size_t count) {
 }
 
 ssize_t vfs_write(vfs_file_t* file, const void* buf, size_t count) {
+    VALIDATE_PTR_RET(file, -1);
+    VALIDATE_PTR_RET(buf, -1);
+    VALIDATE_RANGE(count, 0, 1024 * 1024 * 1024);
+    
     (void)file;
     (void)buf;
     (void)count;
@@ -76,6 +84,9 @@ ssize_t vfs_write(vfs_file_t* file, const void* buf, size_t count) {
 }
 
 void vfs_register_filesystem(const char* name, vfs_fs_ops_t* fs_ops) {
+    VALIDATE_STRING(name, 256);
+    VALIDATE_PTR_VOID(fs_ops);
+    
     (void)name;
     (void)fs_ops;
 }

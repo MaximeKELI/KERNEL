@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "debug.h"
 #include "interrupt.h"
+#include "validate.h"
+#include "overflow.h"
 
 /* Fork process - create child copy */
 process_t* fork_process(void) {

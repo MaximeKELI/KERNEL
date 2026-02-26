@@ -105,14 +105,13 @@ int test_run_all(void) {
 int test_run_suite(const char* suite_name) {
     if (!suite_name) return -1;
     
-    test_suite_t* suite = test_suites;
-    while (suite) {
+    for (u32 i = 0; i < next_suite; i++) {
+        test_suite_t* suite = &test_suites_array[i];
         if (strcmp(suite->name, suite_name) == 0) {
             printk("Running suite: %s\n", suite_name);
             /* Would run only this suite */
             return 0;
         }
-        suite = (test_suite_t*)((u64)suite + sizeof(test_suite_t));
     }
     
     return -1;

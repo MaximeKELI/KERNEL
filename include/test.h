@@ -53,6 +53,9 @@ int test_run_suite(const char* suite_name);
         } \
     } while(0)
 
+#define TEST_ASSERT_TRUE(condition) TEST_ASSERT(condition)
+#define TEST_ASSERT_FALSE(condition) TEST_ASSERT(!(condition))
+
 #define TEST_ASSERT_EQ(a, b) \
     do { \
         if ((a) != (b)) { \

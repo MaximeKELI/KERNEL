@@ -560,6 +560,10 @@ void kernel_main(u64 magic, u64 mb_info) {
     register_scheduler_tests();
     register_all_tests();
     
+    /* Register AI tests */
+    extern void register_ai_tests(void);
+    register_ai_tests();
+    
     /* Run tests (optional, can be disabled) */
     #ifdef RUN_TESTS
     printk("Running kernel tests...\n");

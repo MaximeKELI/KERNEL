@@ -388,7 +388,11 @@ static test_result_t test_epoll_create(void) {
 }
 
 /* Register all tests */
+/* Register AI tests */
+extern void register_ai_tests(void);
+
 void register_all_tests(void) {
+    register_ai_tests();
     /* Memory tests */
     test_register("memory", "pmm_alloc_free", test_pmm_alloc_free);
     test_register("memory", "pmm_get_free", test_pmm_get_free);

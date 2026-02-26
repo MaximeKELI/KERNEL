@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "spinlock.h"
 #include "string.h"
+#include "validate.h"
 
 static bool optimizer_initialized = false;
 static u64 last_memory_cleanup = 0;

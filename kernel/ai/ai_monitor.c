@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "spinlock.h"
 #include "string.h"
+#include "validate.h"
 
 static ai_metrics_t current_metrics = {0};
 static u64 last_context_switches = 0;
@@ -117,7 +118,7 @@ void ai_monitor_update(void) {
 }
 
 void ai_monitor_get_metrics(ai_metrics_t* metrics) {
-    if (!metrics) return;
+    VALIDATE_PTR_VOID(metrics);
     
     spinlock_lock(&metrics_lock);
     *metrics = current_metrics;

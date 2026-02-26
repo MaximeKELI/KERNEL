@@ -55,6 +55,7 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/trace/*.c) \
                  $(wildcard $(KERNEL_DIR)/block/*.c) \
                  $(wildcard $(KERNEL_DIR)/watchdog/*.c) \
+                 $(wildcard $(KERNEL_DIR)/ai/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \

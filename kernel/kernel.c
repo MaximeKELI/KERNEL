@@ -13,7 +13,12 @@
 
 /* Kernel stack */
 u8 kernel_stack[8192] __aligned(16);
-void* kernel_stack_top = kernel_stack + sizeof(kernel_stack);
+
+/* Export stack top for boot code */
+extern u8 kernel_stack_top[];
+void* get_kernel_stack_top(void) {
+    return kernel_stack + sizeof(kernel_stack);
+}
 
 void panic(const char* message) {
     disable_interrupts();

@@ -23,7 +23,13 @@ section .text
 global _start
 
 extern kernel_main
-extern kernel_stack_top
+
+; Kernel stack (defined in kernel.c)
+section .bss
+align 16
+kernel_stack_bottom:
+    resb 8192
+kernel_stack_top:
 
 _start:
     ; Clear direction flag

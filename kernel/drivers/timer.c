@@ -2,6 +2,7 @@
 #include "interrupt.h"
 #include "io.h"
 #include "stdio.h"
+#include "ai_manager.h"
 
 #define PIT_CHANNEL0_DATA 0x40
 #define PIT_CHANNEL1_DATA 0x41

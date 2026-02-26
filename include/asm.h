@@ -67,4 +67,78 @@ u64 bit_reverse_asm(u64 value);
 /* Context switch */
 void context_switch_asm(void* from, void* to);
 
+/* Page table operations */
+u64 get_cr3(void);
+void set_cr3(u64 cr3);
+void invlpg_asm(void* addr);
+void invlpg_all(void);
+u64* get_pte_asm(void* virt, u64 cr3);
+void set_pte_asm(u64* pte, u64 value);
+u64 virt_to_phys_asm(void* virt, u64 cr3);
+
+/* SMP operations */
+void send_ipi(u32 cpu_id, u32 vector);
+void send_ipi_all(u32 vector);
+void send_ipi_others(u32 vector);
+u32 get_cpu_id(void);
+u64 get_apic_base(void);
+void apic_enable(void);
+void apic_eoi(void);
+
+/* Retpoline (Spectre mitigation) */
+void __x86_indirect_thunk_r11(void);
+void __x86_indirect_thunk_rax(void);
+void __x86_indirect_thunk_rdi(void);
+void __x86_indirect_thunk_rsi(void);
+void indirect_call_retpoline(void* target);
+void indirect_jump_retpoline(void* target);
+
+/* Lock-free data structures */
+int lf_stack_push(volatile u64** head, u64* node);
+u64* lf_stack_pop(volatile u64** head);
+int lf_queue_enqueue(volatile u64** tail, u64* node);
+u64* lf_queue_dequeue(volatile u64** head);
+u64 lf_counter_inc(volatile u64* counter);
+u64 lf_counter_dec(volatile u64* counter);
+
+/* SIMD operations */
+void simd_add_16(void* dst, const void* src1, const void* src2);
+void simd_mul_16(void* dst, const void* src1, const void* src2);
+u32 simd_cmp_16(const void* src1, const void* src2);
+void simd_zero_16(void* dst);
+void simd_copy_16(void* dst, const void* src);
+u32 simd_sum_16(const void* src);
+u8 simd_min_16(const void* src);
+u8 simd_max_16(const void* src);
+
+/* Exception fast paths */
+int page_fault_fast(void* addr, u64 error_code);
+int gp_fault_fast(void* addr, u64 error_code);
+int div_zero_fast(void);
+int invalid_opcode_fast(void);
+int breakpoint_fast(void);
+
+/* NUMA operations */
+u32 numa_node_for_addr(void* addr);
+u32 numa_distance(u32 node1, u32 node2);
+void numa_prefetch(void* addr, u32 node);
+void numa_mb(void);
+u32 get_numa_node(void);
+
+/* Power management */
+void cpu_halt(void);
+void cpu_halt_with_interrupts(void);
+void cpu_deep_sleep(void);
+u64 get_cpu_frequency(void);
+void set_cpu_frequency(u32 freq_mhz);
+u64 get_power_limit(void);
+void set_power_limit(u64 limit);
+
+/* Memory encryption */
+void sme_enable(void);
+void tme_enable(void);
+u32 get_memencrypt_status(void);
+void sme_set_key(u64 key);
+u64 sme_get_key(void);
+
 #endif /* ASM_H */

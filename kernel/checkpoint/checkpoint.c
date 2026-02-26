@@ -55,7 +55,8 @@ int checkpoint_create(u64 pid, const char* path) {
 }
 
 int checkpoint_restore(const char* path) {
-    if (!path) return -1;
+    VALIDATE_PTR_RET(path, -1);
+    VALIDATE_STRING(path, 255);
     
     spinlock_lock(&checkpoint_lock);
     
@@ -75,7 +76,8 @@ int checkpoint_restore(const char* path) {
 }
 
 int checkpoint_list(checkpoint_image_t** images, u32* count) {
-    if (!images || !count) return -1;
+    VALIDATE_PTR_RET(images, -1);
+    VALIDATE_PTR_RET(count, -1);
     
     spinlock_lock(&checkpoint_lock);
     

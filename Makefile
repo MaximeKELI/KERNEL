@@ -42,8 +42,9 @@ BOOT_SOURCES = $(BOOT_DIR)/boot.asm
 
 # Object files
 KERNEL_OBJECTS = $(KERNEL_SOURCES:%.c=$(BUILD_DIR)/%.o)
+KERNEL_ASM_OBJECTS = $(KERNEL_ASM_SOURCES:%.S=$(BUILD_DIR)/%.o)
 BOOT_OBJECTS = $(BOOT_SOURCES:%.asm=$(BUILD_DIR)/%.o)
-ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS)
+ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS) $(KERNEL_ASM_OBJECTS)
 
 # Output files
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
@@ -71,6 +72,11 @@ $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 
 # Assemble ASM sources
 $(BUILD_DIR)/%.o: %.asm | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $< -o $@
+
+# Assemble kernel ASM sources
+$(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 

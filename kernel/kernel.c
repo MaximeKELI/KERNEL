@@ -10,6 +10,8 @@
 #include "drivers/ata.h"
 #include "fs/vfs.h"
 #include "io.h"
+#include "debug.h"
+#include "spinlock.h"
 
 /* Kernel stack is defined in boot.asm */
 
@@ -84,6 +86,8 @@ void kernel_main(u64 magic, u64 mb_info) {
     printk("Kernel initialization complete!\n");
     printk("System ready.\n");
     printk("========================================\n\n");
+    
+    DEBUG_INFO("Debug system initialized (level: %u)", debug_level);
     
     /* Main loop */
     while (true) {

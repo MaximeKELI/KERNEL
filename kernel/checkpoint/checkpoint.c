@@ -16,7 +16,8 @@ void checkpoint_init(void) {
 }
 
 int checkpoint_create(u64 pid, const char* path) {
-    if (!path) return -1;
+    VALIDATE_PTR_RET(path, -1);
+    VALIDATE_STRING(path, 255);
     
     extern process_t* process_list;
     process_t* proc = process_list;

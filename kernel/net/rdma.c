@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
 
 static rdma_qp_t* rdma_qps = NULL;
 static u32 next_qp_num = 1;
@@ -43,7 +44,9 @@ rdma_qp_t* rdma_create_qp(u32 port) {
 }
 
 int rdma_post_send(rdma_qp_t* qp, void* buffer, size_t length, u64 wr_id) {
-    if (!qp || !buffer || length == 0) return -1;
+    VALIDATE_PTR_RET(qp, -1);
+    VALIDATE_PTR_RET(buffer, -1);
+    VALIDATE_SIZE(length);
     
     /* Would post to send queue */
     DEBUG_INFO("RDMA send posted: qp=%u, len=%u", qp->qp_num, (u32)length);

@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "spinlock.h"
 #include "pci.h"
+#include "validate.h"
 
 static nvme_queue_t* nvme_queues = NULL;
 static void* nvme_regs = NULL;

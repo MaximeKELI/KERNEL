@@ -1,15 +1,21 @@
-#include "ai_manager.h"
+#include "ai_optimizer.h"
 #include "ai_monitor.h"
 #include "process.h"
 #include "scheduler.h"
 #include "memory.h"
+#include "cache.h"
+#include "drivers/timer.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "string.h"
 
 static bool optimizer_initialized = false;
 static u64 last_memory_cleanup = 0;
 static u64 last_priority_adjust = 0;
+
+/* External references */
+extern process_t* process_list;
 
 /* Thresholds */
 #define CPU_HIGH_THRESHOLD 80

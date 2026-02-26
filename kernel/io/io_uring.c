@@ -65,7 +65,8 @@ int io_uring_submit(io_uring_t* ring) {
 }
 
 int io_uring_wait_cqe(io_uring_t* ring, io_uring_cqe_t** cqe) {
-    if (!ring || !cqe) return -1;
+    VALIDATE_PTR_RET(ring, -1);
+    VALIDATE_PTR_RET(cqe, -1);
     
     /* Wait for completion */
     while (ring->cq_tail == ring->cq_head) {

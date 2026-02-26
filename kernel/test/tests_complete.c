@@ -382,7 +382,7 @@ static test_result_t test_acpi_init(void) {
 
 static test_result_t test_epoll_create(void) {
     int epfd = epoll_create(10);
-    /* epoll_close may not exist, that's OK */
+    /* epoll doesn't have explicit close, that's OK */
     (void)epfd;
     return TEST_PASS;
 }

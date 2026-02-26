@@ -5,7 +5,7 @@
 #include "debug.h"
 #include "interrupt.h"
 
-static bool ai_initialized = false;
+bool ai_initialized = false;
 
 void ai_init(void) {
     if (ai_initialized) return;

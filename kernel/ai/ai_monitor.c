@@ -1,11 +1,13 @@
-#include "ai_manager.h"
+#include "ai_monitor.h"
 #include "process.h"
 #include "memory.h"
 #include "scheduler.h"
 #include "interrupt.h"
+#include "drivers/timer.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "string.h"
 
 static ai_metrics_t current_metrics = {0};
 static u64 last_context_switches = 0;

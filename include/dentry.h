@@ -3,15 +3,16 @@
 
 #include "types.h"
 #include "inode.h"
+#include "refcount.h"
 
 /* Directory entry (dentry) */
 typedef struct dentry {
+    refcount_t refcount;  /* Reference counting */
     char* name;
     inode_t* inode;
     struct dentry* parent;
     struct dentry* child;
     struct dentry* sibling;
-    u32 refcount;
 } dentry_t;
 
 /* Initialize dentry system */

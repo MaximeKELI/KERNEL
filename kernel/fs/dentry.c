@@ -38,8 +38,8 @@ dentry_t* dentry_alloc(const char* name, inode_t* inode) {
     strncpy(dentry->name, name, name_len - 1);
     dentry->name[name_len - 1] = '\0';
     dentry->inode = inode;
-    dentry->refcount = REFCOUNT_INIT;
-    refcount_get(&dentry->refcount); /* Initial reference */
+    dentry->refcount.count = 1;
+    spinlock_init(&dentry->refcount.lock);
     dentry->parent = NULL;
     dentry->child = NULL;
     dentry->sibling = NULL;

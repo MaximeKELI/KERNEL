@@ -16,19 +16,22 @@ void process_init(void) {
 
 process_t* process_create(void* entry_point, u64 stack_size) {
     VALIDATE_PTR_RET(entry_point, NULL);
-    VALIDATE_RANGE(stack_size, PAGE_SIZE, 64 * 1024 * 1024); /* 4KB to 64MB */
+    if (stack_size < PAGE_SIZE || stack_size > 64 * 1024 * 1024) {
+        DEBUG_ERROR("Invalid stack size: %u", (u32)stack_size);
+        return NULL;
+    }
     
     process_t* proc = (process_t*)kmalloc(sizeof(process_t));
     if (!proc) return NULL;
     
     /* Initialize refcount */
-    proc->refcount = REFCOUNT_INIT;
-    refcount_get(&proc->refcount); /* Initial reference */
+    proc->refcount.count = 1;
+    spinlock_init(&proc->refcount.lock);
     
     /* Check for overflow in page calculation */
     size_t pages_needed;
     size_t total_pages = (stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
-    CHECK_ADD_OVERFLOW(total_pages, 0, &pages_needed);
+    pages_needed = total_pages;
     
     /* Allocate stack */
     void* stack = vmm_alloc_pages(pages_needed);
@@ -46,7 +49,12 @@ process_t* process_create(void* entry_point, u64 stack_size) {
     
     /* Check for overflow in stack pointer calculation */
     size_t stack_offset;
-    CHECK_SUB_OVERFLOW(stack_size, 16, &stack_offset);
+    if (stack_size < 16) {
+        DEBUG_ERROR("Stack size too small: %u", (u32)stack_size);
+        kfree(proc);
+        return NULL;
+    }
+    stack_offset = stack_size - 16;
     proc->rsp = (u64)stack + stack_offset;
     proc->rbp = proc->rsp;
     proc->rip = (u64)entry_point;
@@ -106,7 +114,6 @@ void schedule(void) {
     if (!process_list) return;
     
     process_t* next = NULL;
-    process_t* prev = NULL;
     
     /* Round-robin: find next ready process */
     if (current_process) {

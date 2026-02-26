@@ -69,7 +69,7 @@ void sched_deadline_schedule(void) {
     
     process_t* proc = deadline_queue;
     while (proc) {
-        sched_dl_param_t* params = (sched_dl_param_t*)proc->private_data;
+        sched_dl_param_t* params = (sched_dl_param_t*)proc->files;
         if (params && params->deadline < earliest_deadline) {
             earliest_deadline = params->deadline;
             earliest = proc;

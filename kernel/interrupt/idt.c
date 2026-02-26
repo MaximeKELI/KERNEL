@@ -1,10 +1,8 @@
 #include "interrupt.h"
 #include "stdio.h"
+#include "string.h"
 #include "io.h"
 #include "debug.h"
-
-/* Global interrupt counter for AI monitoring */
-u64 global_interrupt_count = 0;
 
 /* IDT entry */
 typedef struct __packed {
@@ -90,7 +88,7 @@ void interrupt_handler(u64 vector, u64 error_code) {
     } else if (vector == 0x80) {
         /* System call - handled directly by syscall_entry in syscall_asm.S */
         /* This should not be reached if syscall_entry is properly configured */
-        DEBUG_ERROR("System call reached interrupt handler (should use syscall_entry)");
+        DEBUG_ERROR("%s", "System call reached interrupt handler (should use syscall_entry)");
     }
 }
 
@@ -155,7 +153,7 @@ void interrupt_init(void) {
     /* Load IDT */
     idt_ptr.limit = sizeof(idt) - 1;
     idt_ptr.base = (u64)idt;
-    __asm__ __volatile__("lidt %0" : : "m"(idt_ptr));
+    asm volatile("lidt %0" : : "m"(idt_ptr));
     
     /* Initialize PIC */
     pic_init();
@@ -164,15 +162,15 @@ void interrupt_init(void) {
 }
 
 void enable_interrupts(void) {
-    __asm__ __volatile__("sti");
+    asm volatile("sti");
 }
 
 void disable_interrupts(void) {
-    __asm__ __volatile__("cli");
+    asm volatile("cli");
 }
 
 bool interrupts_enabled(void) {
     u64 rflags;
-    __asm__ __volatile__("pushfq; pop %0" : "=r"(rflags));
+    asm volatile("pushfq; pop %0" : "=r"(rflags));
     return (rflags & (1 << 9)) != 0;
 }

@@ -165,7 +165,7 @@ void scheduler_init(void) {
         idle_process->priority = PRIO_DEFAULT;
     }
     
-    DEBUG_INFO("CFS scheduler initialized");
+    DEBUG_INFO("%s", "CFS scheduler initialized");
 }
 
 void schedule(void) {

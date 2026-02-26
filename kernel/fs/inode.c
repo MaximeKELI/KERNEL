@@ -31,8 +31,8 @@ inode_t* inode_alloc(void) {
         if (inode_cache[i].ino == 0) {
             inode_t* inode = &inode_cache[i];
             memset(inode, 0, sizeof(inode_t));
-            inode->refcount = REFCOUNT_INIT;
-            refcount_get(&inode->refcount); /* Initial reference */
+            inode->refcount.count = 1;
+            spinlock_init(&inode->refcount.lock);
             inode->ino = next_ino++;
             inode->nlink = 1;
             

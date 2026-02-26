@@ -319,9 +319,9 @@ static test_result_t test_rcu_read_lock(void) {
 /* ========== Cache Tests ========== */
 
 static test_result_t test_cache_get(void) {
-    buffer_head_t* bh = cache_get(0, 0);
+    buffer_head_t* bh = buffer_get(0, 512);
     if (bh) {
-        cache_put(bh);
+        buffer_put(bh);
     }
     return TEST_PASS;
 }

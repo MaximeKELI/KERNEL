@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "refcount.h"
+#include "validate.h"
 
 #define MAX_INODES 1024
 #define INODE_HASH_SIZE 256
@@ -29,6 +31,8 @@ inode_t* inode_alloc(void) {
         if (inode_cache[i].ino == 0) {
             inode_t* inode = &inode_cache[i];
             memset(inode, 0, sizeof(inode_t));
+            inode->refcount = REFCOUNT_INIT;
+            refcount_get(&inode->refcount); /* Initial reference */
             inode->ino = next_ino++;
             inode->nlink = 1;
             

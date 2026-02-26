@@ -4,6 +4,7 @@
 #include "string.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
 
 static netif_t* netif_list = NULL;
 static socket_t* socket_list = NULL;
@@ -14,6 +15,11 @@ void net_init(void) {
 }
 
 socket_t* socket_create(int domain, int type, int protocol) {
+    /* Validate parameters */
+    VALIDATE_RANGE(domain, 0, 255);
+    VALIDATE_RANGE(type, 0, 255);
+    VALIDATE_RANGE(protocol, 0, 255);
+    
     socket_t* sock = (socket_t*)kzalloc(sizeof(socket_t));
     if (!sock) {
         DEBUG_ERROR("Failed to allocate socket");
@@ -35,7 +41,7 @@ socket_t* socket_create(int domain, int type, int protocol) {
 }
 
 int netif_register(netif_t* iface) {
-    if (!iface) return -1;
+    VALIDATE_PTR(iface);
     
     spinlock_lock(&net_lock);
     iface->next = netif_list;
@@ -47,6 +53,10 @@ int netif_register(netif_t* iface) {
 }
 
 int net_send_packet(netif_t* iface, const void* data, size_t len) {
+    VALIDATE_PTR(iface);
+    VALIDATE_PTR(data);
+    VALIDATE_RANGE(len, 0, 65535); /* Max Ethernet frame size */
+    
     (void)iface;
     (void)data;
     (void)len;
@@ -55,6 +65,10 @@ int net_send_packet(netif_t* iface, const void* data, size_t len) {
 }
 
 int net_recv_packet(netif_t* iface, void* data, size_t* len) {
+    VALIDATE_PTR(iface);
+    VALIDATE_PTR(data);
+    VALIDATE_PTR(len);
+    
     (void)iface;
     (void)data;
     (void)len;

@@ -3,8 +3,11 @@
 
 #include "types.h"
 
+#include "refcount.h"
+
 /* Inode structure */
 typedef struct inode {
+    refcount_t refcount;  /* Reference counting */
     u64 ino;              /* Inode number */
     u32 mode;             /* File mode */
     u32 nlink;            /* Number of hard links */

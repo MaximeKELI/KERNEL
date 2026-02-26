@@ -198,6 +198,8 @@ int shm_destroy(u64 key) {
 }
 
 int sem_create(u64 key, i32 initial_value) {
+    VALIDATE_RANGE(initial_value, -32768, 32767); /* Reasonable range */
+    
     if (next_sem_id >= MAX_SEM) {
         DEBUG_ERROR("Maximum semaphores reached");
         return -1;

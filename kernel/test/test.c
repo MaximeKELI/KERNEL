@@ -4,7 +4,13 @@
 #include "debug.h"
 #include "spinlock.h"
 
-static test_suite_t* test_suites = NULL;
+#define MAX_TEST_SUITES 32
+#define MAX_TESTS_PER_SUITE 64
+
+static test_suite_t test_suites_array[MAX_TEST_SUITES];
+static test_case_t test_cases_array[MAX_TEST_SUITES * MAX_TESTS_PER_SUITE];
+static u32 next_suite = 0;
+static u32 next_case = 0;
 static u32 total_passed = 0;
 static u32 total_failed = 0;
 static u32 total_skipped = 0;
@@ -14,6 +20,16 @@ void test_init(void) {
     DEBUG_INFO("Test framework initialized");
 }
 
+/* Helper to find suite */
+static test_suite_t* find_suite(const char* name) {
+    for (u32 i = 0; i < next_suite; i++) {
+        if (strcmp(test_suites_array[i].name, name) == 0) {
+            return &test_suites_array[i];
+        }
+    }
+    return NULL;
+}
+
 void test_register(const char* suite, const char* name, test_func_t func) {
     if (!suite || !name || !func) return;
     
@@ -21,22 +37,24 @@ void test_register(const char* suite, const char* name, test_func_t func) {
     test_suite_t* suite_ptr = find_suite(suite);
     
     if (!suite_ptr) {
-        suite_ptr = (test_suite_t*)kzalloc(sizeof(test_suite_t));
-        if (!suite_ptr) return;
+        if (next_suite >= MAX_TEST_SUITES) {
+            DEBUG_ERROR("Too many test suites");
+            return;
+        }
+        
+        suite_ptr = &test_suites_array[next_suite++];
         suite_ptr->name = suite;
         suite_ptr->cases = NULL;
         suite_ptr->passed = suite_ptr->failed = suite_ptr->skipped = 0;
-        
-        spinlock_lock(&test_lock);
-        suite_ptr->next = (test_suite_t*)test_suites;
-        test_suites = suite_ptr;
-        spinlock_unlock(&test_lock);
     }
     
     /* Add test case */
-    test_case_t* test = (test_case_t*)kzalloc(sizeof(test_case_t));
-    if (!test) return;
+    if (next_case >= MAX_TEST_SUITES * MAX_TESTS_PER_SUITE) {
+        DEBUG_ERROR("Too many test cases");
+        return;
+    }
     
+    test_case_t* test = &test_cases_array[next_case++];
     test->name = name;
     test->suite = suite;
     test->func = func;

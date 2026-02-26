@@ -64,6 +64,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/$(KERNEL_DIR)/syscall
 	mkdir -p $(BUILD_DIR)/$(LIB_DIR)
 	mkdir -p $(BUILD_DIR)/$(BOOT_DIR)
+	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)
 
 # Compile C sources
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)

@@ -33,9 +33,10 @@ void syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u6
 void syscall_init(void) {
     /* Setup syscall MSRs */
     extern void syscall_entry(void);
-    wrmsr(0xC0000080, rdmsr(0xC0000080) | (1 << 0));  /* SCE */
-    wrmsr(0xC0000081, (u64)syscall_entry);  /* STAR */
-    wrmsr(0xC0000082, 0x0018000800000000ULL);  /* LSTAR */
+    u64 efer = rdmsr(0xC0000080);
+    wrmsr(0xC0000080, efer | (1 << 0));  /* SCE */
+    wrmsr(0xC0000081, 0x0018000800000000ULL);  /* STAR */
+    wrmsr(0xC0000082, (u64)syscall_entry);  /* LSTAR */
     wrmsr(0xC0000084, 0x200);  /* SFMASK */
     
     printk("Syscall: Initialized\n");

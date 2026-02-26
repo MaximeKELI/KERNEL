@@ -53,12 +53,17 @@ dentry_t* dentry_alloc(const char* name, inode_t* inode) {
 }
 
 void dentry_free(dentry_t* dentry) {
-    if (!dentry) return;
+    VALIDATE_PTR_VOID(dentry);
     
     spinlock_lock(&dentry_lock);
     
     if (dentry->name) {
         kfree(dentry->name);
+    }
+    
+    /* Decrement inode reference */
+    if (dentry->inode) {
+        inode_put(dentry->inode);
     }
     
     /* Remove from parent's children */
@@ -82,14 +87,15 @@ void dentry_free(dentry_t* dentry) {
 }
 
 dentry_t* dentry_lookup(dentry_t* parent, const char* name) {
-    if (!parent || !name) return NULL;
+    VALIDATE_PTR_RET(parent, NULL);
+    VALIDATE_STRING(name, 256);
     
     spinlock_lock(&dentry_lock);
     
     dentry_t* child = parent->child;
     while (child) {
         if (strcmp(child->name, name) == 0) {
-            child->refcount++;
+            refcount_get(&child->refcount); /* Increment reference */
             spinlock_unlock(&dentry_lock);
             return child;
         }

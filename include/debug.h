@@ -5,27 +5,27 @@
 #include "stdio.h"
 
 /* Debug levels */
-#define DEBUG_NONE  0
-#define DEBUG_ERROR 1
-#define DEBUG_WARN  2
-#define DEBUG_INFO  3
-#define DEBUG_VERBOSE 4
+#define DEBUG_LEVEL_NONE    0
+#define DEBUG_LEVEL_ERROR   1
+#define DEBUG_LEVEL_WARN    2
+#define DEBUG_LEVEL_INFO    3
+#define DEBUG_LEVEL_VERBOSE 4
 
 /* Current debug level */
 extern u32 debug_level;
 
 /* Debug macros */
 #define DEBUG_ERROR(fmt, ...) \
-    do { if (debug_level >= DEBUG_ERROR) printk("[ERROR] " fmt "\n", ##__VA_ARGS__); } while(0)
+    do { if (debug_level >= DEBUG_LEVEL_ERROR) printk("[ERROR] " fmt "\n", ##__VA_ARGS__); } while(0)
 
 #define DEBUG_WARN(fmt, ...) \
-    do { if (debug_level >= DEBUG_WARN) printk("[WARN] " fmt "\n", ##__VA_ARGS__); } while(0)
+    do { if (debug_level >= DEBUG_LEVEL_WARN) printk("[WARN] " fmt "\n", ##__VA_ARGS__); } while(0)
 
 #define DEBUG_INFO(fmt, ...) \
-    do { if (debug_level >= DEBUG_INFO) printk("[INFO] " fmt "\n", ##__VA_ARGS__); } while(0)
+    do { if (debug_level >= DEBUG_LEVEL_INFO) printk("[INFO] " fmt "\n", ##__VA_ARGS__); } while(0)
 
 #define DEBUG_VERBOSE(fmt, ...) \
-    do { if (debug_level >= DEBUG_VERBOSE) printk("[VERBOSE] " fmt "\n", ##__VA_ARGS__); } while(0)
+    do { if (debug_level >= DEBUG_LEVEL_VERBOSE) printk("[VERBOSE] " fmt "\n", ##__VA_ARGS__); } while(0)
 
 /* Assertions */
 #ifdef NDEBUG

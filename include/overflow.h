@@ -11,13 +11,9 @@
 /* Check for addition overflow */
 #define CHECK_ADD_OVERFLOW(a, b, result) \
     do { \
-        if ((b) > 0 && (a) > SIZE_MAX - (b)) { \
+        if ((a) > SIZE_MAX - (b)) { \
             DEBUG_ERROR("Addition overflow at %s:%d: %llu + %llu", \
                        __FILE__, __LINE__, (unsigned long long)(a), (unsigned long long)(b)); \
-            return -1; \
-        } \
-        if ((b) < 0 && (a) < (size_t)(-(b))) { \
-            DEBUG_ERROR("Addition underflow at %s:%d", __FILE__, __LINE__); \
             return -1; \
         } \
         *(result) = (a) + (b); \

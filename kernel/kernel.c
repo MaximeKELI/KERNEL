@@ -121,6 +121,11 @@ void kernel_main(u64 magic, u64 mb_info) {
     syscall_init();
     printk("Syscalls initialized.\n\n");
     
+    /* Initialize AI Optimization Subsystem (after scheduler and memory) */
+    printk("Initializing AI Optimization Subsystem...\n");
+    ai_init();
+    printk("AI Optimization Subsystem initialized.\n\n");
+    
     /* Initialize signals */
     printk("Initializing signal system...\n");
     signal_init();

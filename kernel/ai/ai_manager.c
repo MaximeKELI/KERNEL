@@ -1,11 +1,11 @@
 #include "ai_manager.h"
 #include "ai_monitor.h"
 #include "ai_optimizer.h"
-#include "stdio.h"
 #include "debug.h"
+#include "validate.h"
+#include "stdio.h"
 #include "interrupt.h"
 #include "spinlock.h"
-#include "validate.h"
 
 bool ai_initialized = false;
 static spinlock_t ai_init_lock = SPINLOCK_INIT;

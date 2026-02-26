@@ -18,15 +18,7 @@ void test_register(const char* suite, const char* name, test_func_t func) {
     if (!suite || !name || !func) return;
     
     /* Find or create suite */
-    test_suite_t* suite_ptr = NULL;
-    test_suite_t* s = test_suites;
-    while (s) {
-        if (strcmp(s->name, suite) == 0) {
-            suite_ptr = s;
-            break;
-        }
-        s = (test_suite_t*)((u64)s + sizeof(test_suite_t)); /* Would be in list */
-    }
+    test_suite_t* suite_ptr = find_suite(suite);
     
     if (!suite_ptr) {
         suite_ptr = (test_suite_t*)kzalloc(sizeof(test_suite_t));

@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "validate.h"
 
 static xdp_prog_t* xdp_programs = NULL;
 static spinlock_t xdp_lock = SPINLOCK_INIT;

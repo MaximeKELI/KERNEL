@@ -178,11 +178,6 @@ run: iso
 run-debug: iso
 	qemu-system-x86_64 -cdrom $(ISO_IMAGE) -m 512M -serial stdio -d int -no-reboot
 
-# Run tests
-test: $(KERNEL_ELF)
-	@echo "Running kernel tests..."
-	# Tests would run in kernel context
-
 # Generate documentation
 docs:
 	@echo "Generating API documentation..."

@@ -8,16 +8,34 @@ void capabilities_init(void) {
     DEBUG_INFO("Capabilities system initialized");
 }
 
+/* Minimal capabilities for root (principle of least privilege) */
+static const u64 root_minimal_caps = 
+    (1ULL << CAP_SYS_ADMIN) |      /* System administration */
+    (1ULL << CAP_SYS_TIME) |        /* System time */
+    (1ULL << CAP_NET_ADMIN) |      /* Network administration */
+    (1ULL << CAP_SYS_MODULE);      /* Load modules */
+
 bool capable(int cap) {
     if (cap < 0 || cap > CAP_LAST_CAP) return false;
     
     process_t* proc = process_current();
     if (!proc) return false;
     
-    /* Root has all capabilities */
-    if (proc->uid == 0) return true;
+    /* Root has minimal capabilities by default (principle of least privilege) */
+    if (proc->uid == 0) {
+        /* Check if capability is in minimal set */
+        if (root_minimal_caps & (1ULL << cap)) {
+            return true;
+        }
+        /* For other capabilities, check if explicitly granted */
+        cap_t* caps = (cap_t*)proc->files;
+        if (caps && (caps->effective & (1ULL << cap))) {
+            return true;
+        }
+        return false;
+    }
     
-    /* Would check capability set */
+    /* Non-root: check capability set */
     cap_t* caps = (cap_t*)proc->files;
     if (!caps) return false;
     

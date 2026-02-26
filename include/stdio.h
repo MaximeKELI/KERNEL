@@ -2,6 +2,7 @@
 #define STDIO_H
 
 #include "types.h"
+#include <stdarg.h>
 
 /* Kernel logging */
 int printk(const char* format, ...);

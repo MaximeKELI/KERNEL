@@ -13,6 +13,9 @@ void dpdk_init(void) {
 }
 
 int dpdk_port_init(u32 port_id, u32 nb_rx_queues, u32 nb_tx_queues) {
+    VALIDATE_RANGE(nb_rx_queues, 1, 16);
+    VALIDATE_RANGE(nb_tx_queues, 1, 16);
+    
     dpdk_port_t* port = (dpdk_port_t*)kzalloc(sizeof(dpdk_port_t));
     if (!port) {
         DEBUG_ERROR("Failed to allocate DPDK port");

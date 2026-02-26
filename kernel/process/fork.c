@@ -9,10 +9,7 @@
 /* Fork process - create child copy */
 process_t* fork_process(void) {
     process_t* parent = process_current();
-    if (!parent) {
-        DEBUG_ERROR("No current process for fork");
-        return NULL;
-    }
+    VALIDATE_PTR_RET(parent, NULL);
     
     /* Allocate new process */
     process_t* child = (process_t*)kmalloc(sizeof(process_t));
@@ -24,8 +21,15 @@ process_t* fork_process(void) {
     /* Copy parent process */
     memcpy(child, parent, sizeof(process_t));
     
-    /* Allocate new stack */
-    child->stack_base = vmm_alloc_pages((child->stack_size + PAGE_SIZE - 1) / PAGE_SIZE);
+    /* Validate stack size */
+    VALIDATE_RANGE(parent->stack_size, PAGE_SIZE, 64 * 1024 * 1024); /* 4KB to 64MB */
+    
+    /* Allocate new stack with overflow check */
+    size_t pages_needed;
+    size_t stack_pages = (parent->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    CHECK_ADD_OVERFLOW(stack_pages, 0, &pages_needed);
+    
+    child->stack_base = vmm_alloc_pages(pages_needed);
     if (!child->stack_base) {
         DEBUG_ERROR("Failed to allocate child stack");
         kfree(child);
@@ -33,7 +37,7 @@ process_t* fork_process(void) {
     }
     
     /* Copy stack */
-    memcpy(child->stack_base, parent->stack_base, child->stack_size);
+    memcpy(child->stack_base, parent->stack_base, parent->stack_size);
     
     /* Update child properties */
     child->pid = 0; /* Will be assigned */
@@ -62,9 +66,15 @@ process_t* fork_process(void) {
 /* Exec - replace process image */
 int exec_process(const char* path, char* const argv[]) {
     process_t* proc = process_current();
-    if (!proc) {
-        DEBUG_ERROR("No current process for exec");
-        return -1;
+    VALIDATE_PTR(proc);
+    
+    /* Validate parameters */
+    VALIDATE_STRING(path, 4096);
+    /* argv can be NULL, but if not NULL, validate it */
+    if (argv) {
+        for (int i = 0; i < 64 && argv[i]; i++) {
+            VALIDATE_STRING(argv[i], 4096);
+        }
     }
     
     (void)path;

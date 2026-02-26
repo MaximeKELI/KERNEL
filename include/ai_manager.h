@@ -26,6 +26,14 @@ typedef struct {
     u64 process_count;       /**< Number of active processes */
     u64 context_switches;    /**< Context switch rate (per second) */
     u64 interrupt_rate;      /**< Interrupt rate (per second) */
+    u64 io_read_bytes;       /**< I/O read bytes (total) */
+    u64 io_write_bytes;      /**< I/O write bytes (total) */
+    u64 io_read_ops;         /**< I/O read operations (total) */
+    u64 io_write_ops;        /**< I/O write operations (total) */
+    u64 net_tx_bytes;        /**< Network TX bytes (total) */
+    u64 net_rx_bytes;        /**< Network RX bytes (total) */
+    u64 net_tx_packets;      /**< Network TX packets (total) */
+    u64 net_rx_packets;      /**< Network RX packets (total) */
 } ai_metrics_t;
 
 /**

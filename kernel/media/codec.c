@@ -112,7 +112,7 @@ static int mp3_decode(codec_t* codec, const void* input, size_t input_len,
     
     if (!valid_mp3 && input_len > 0) {
         /* For now, pass through as PCM if format not clearly MP3 */
-        DEBUG_INFO("MP3: Format validation unclear, using passthrough");
+        DEBUG_INFO("MP3: Format validation unclear, using passthrough", 0);
     }
     
     /* Simplified: passthrough for now (full MP3 decode would require libmp3lame or similar) */

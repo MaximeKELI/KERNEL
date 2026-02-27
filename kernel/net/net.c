@@ -26,7 +26,18 @@ static socket_t* socket_list = NULL;
 static spinlock_t net_lock = SPINLOCK_INIT;
 
 void net_init(void) {
+    /* Initialize network subsystems */
+    skb_init();
+    ip_init();
+    tcp_init();
+    udp_init();
+    icmp_init();
+    arp_init();
+    route_init();
+    netfilter_init();
+    
     DEBUG_INFO("Networking stack initialized");
+    printk("[Net] Complete networking infrastructure initialized\n");
 }
 
 socket_t* socket_create(int domain, int type, int protocol) {

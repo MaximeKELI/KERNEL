@@ -165,11 +165,46 @@ static ssize_t udp_recv(socket_t* sock, void* buf, size_t len,
         return -1;
     }
     
-    /* TODO: Receive from receive queue */
-    (void)src_addr;
-    (void)src_port;
+    udp_socket_t* udp_sock = (udp_socket_t*)sock->private_data;
+    if (!udp_sock) {
+        return -1;
+    }
     
-    return 0;
+    spinlock_lock(&udp_lock);
+    
+    /* Check if receive queue is empty */
+    if (!udp_sock->recv_queue || udp_sock->recv_queue_size == 0) {
+        spinlock_unlock(&udp_lock);
+        return 0; /* No data available */
+    }
+    
+    /* Get first entry from receive queue */
+    udp_recv_entry_t* entry = udp_sock->recv_queue;
+    udp_sock->recv_queue = entry->next;
+    udp_sock->recv_queue_size--;
+    
+    spinlock_unlock(&udp_lock);
+    
+    /* Copy data */
+    size_t to_copy = len;
+    if (to_copy > entry->len) {
+        to_copy = entry->len;
+    }
+    memcpy(buf, entry->data, to_copy);
+    
+    /* Fill source address if provided */
+    if (src_addr) {
+        *src_addr = entry->src_addr;
+    }
+    if (src_port) {
+        *src_port = entry->src_port;
+    }
+    
+    /* Free entry */
+    kfree(entry->data);
+    kfree(entry);
+    
+    return to_copy;
 }
 
 int udp_recv_packet(sk_buff_t* skb) {

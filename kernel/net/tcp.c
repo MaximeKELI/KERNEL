@@ -547,14 +547,14 @@ int tcp_recv_packet(sk_buff_t* skb) {
  * @param addr Output address of accepted connection
  * @return New socket on success, NULL on error
  */
-static int tcp_accept(socket_t* sock, sockaddr_t* addr) {
+static socket_t* tcp_accept(socket_t* sock, sockaddr_t* addr) {
     if (!sock) {
-        return -1;
+        return NULL;
     }
     
     tcp_conn_t* listen_conn = (tcp_conn_t*)sock->private_data;
     if (!listen_conn || listen_conn->state != TCP_LISTEN) {
-        return -1;
+        return NULL;
     }
     
     spinlock_lock(&tcp_lock);
@@ -562,7 +562,7 @@ static int tcp_accept(socket_t* sock, sockaddr_t* addr) {
     /* Check if there are pending connections */
     if (!listen_conn->accept_queue || listen_conn->accept_backlog == 0) {
         spinlock_unlock(&tcp_lock);
-        return -1; /* No pending connections */
+        return NULL; /* No pending connections */
     }
     
     /* Get first connection from accept queue */
@@ -576,7 +576,7 @@ static int tcp_accept(socket_t* sock, sockaddr_t* addr) {
     socket_t* new_sock = socket_create(2, SOCK_STREAM, IPPROTO_TCP); /* AF_INET = 2 */
     if (!new_sock) {
         spinlock_unlock(&tcp_lock);
-        return -1;
+        return NULL;
     }
     
     new_sock->private_data = new_conn;
@@ -597,7 +597,7 @@ static int tcp_accept(socket_t* sock, sockaddr_t* addr) {
     
     spinlock_unlock(&tcp_lock);
     
-    return 0; /* Return success, new socket is in new_sock */
+    return new_sock;
 }
 
 socket_ops_t tcp_ops = {

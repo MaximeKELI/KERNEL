@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "types.h"
 #include "string.h"
+#include "validate.h"
 
 #define TCP_HEADER_LEN 20
 #define MAX_TCP_CONNECTIONS 1024

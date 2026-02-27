@@ -45,7 +45,7 @@ typedef struct socket {
 typedef struct socket_ops {
     int (*bind)(socket_t* sock, const sockaddr_t* addr);
     int (*listen)(socket_t* sock, int backlog);
-    int (*accept)(socket_t* sock, sockaddr_t* addr);
+    socket_t* (*accept)(socket_t* sock, sockaddr_t* addr);
     int (*connect)(socket_t* sock, const sockaddr_t* addr);
     ssize_t (*send)(socket_t* sock, const void* buf, size_t len);
     ssize_t (*recv)(socket_t* sock, void* buf, size_t len);

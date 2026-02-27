@@ -103,15 +103,22 @@ audio_stream_t* audio_stream_create(audio_device_t* dev, u32 sample_rate,
     VALIDATE_RANGE(sample_rate, 8000, 192000);
     VALIDATE_RANGE(channels, 1, 8);
     
+    spinlock_lock(&audio_global_lock);
+    
+    /* Check limit while holding lock to avoid race condition */
     if (dev->num_streams >= MAX_AUDIO_STREAMS) {
+        spinlock_unlock(&audio_global_lock);
         return NULL;
     }
+    
+    spinlock_unlock(&audio_global_lock);
     
     audio_stream_t* stream = (audio_stream_t*)kzalloc(sizeof(audio_stream_t));
     if (!stream) {
         return NULL;
     }
     
+    /* Initialize all fields BEFORE adding to list (fixes race condition) */
     stream->stream_id = audio_stream_counter++;
     stream->sample_rate = sample_rate;
     stream->channels = channels;
@@ -127,9 +134,20 @@ audio_stream_t* audio_stream_create(audio_device_t* dev, u32 sample_rate,
     stream->read_pos = 0;
     stream->available = 0;
     stream->active = false;
+    stream->next = NULL;
     spinlock_init(&stream->lock);
     
+    /* Now add to list - stream is fully initialized */
     spinlock_lock(&audio_global_lock);
+    
+    /* Double-check limit (may have changed) */
+    if (dev->num_streams >= MAX_AUDIO_STREAMS) {
+        spinlock_unlock(&audio_global_lock);
+        kfree(stream->buffer);
+        kfree(stream);
+        return NULL;
+    }
+    
     dev->streams[dev->num_streams++] = stream;
     spinlock_unlock(&audio_global_lock);
     

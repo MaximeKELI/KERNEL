@@ -86,6 +86,14 @@
 #include "io.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "memory_pressure.h"
+#include "kswapd.h"
+#include "memory_defrag.h"
+#include "memory_overcommit.h"
+#include "thp.h"
+#include "memcg.h"
+#include "load_balance.h"
+#include "sched_domain.h"
 
 /* Kernel stack is defined in boot.asm */
 

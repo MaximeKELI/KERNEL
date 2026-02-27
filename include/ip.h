@@ -41,4 +41,7 @@ u32 ntohl(u32 netlong);
 /* IP checksum */
 u16 ip_checksum(const void* data, size_t len);
 
+/* IP header length */
+#define IP_HEADER_LEN 20
+
 #endif /* IP_H */

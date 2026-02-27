@@ -290,16 +290,16 @@ int audio_mixer_mix(void* output_buffer, size_t len) {
             
             if (read > 0) {
                 /* Simple mixing: add samples with volume */
-                s16* out_samples = (s16*)output_buffer;
-                s16* in_samples = (s16*)temp_buffer;
-                size_t num_samples = read / sizeof(s16);
+                i16* out_samples = (i16*)output_buffer;
+                i16* in_samples = (i16*)temp_buffer;
+                size_t num_samples = read / sizeof(i16);
                 
                 for (size_t j = 0; j < num_samples; j++) {
-                    s32 mixed = (s32)out_samples[j] + 
-                               ((s32)in_samples[j] * volume / 100);
+                    i32 mixed = (i32)out_samples[j] + 
+                               ((i32)in_samples[j] * volume / 100);
                     if (mixed > 32767) mixed = 32767;
                     if (mixed < -32768) mixed = -32768;
-                    out_samples[j] = (s16)mixed;
+                    out_samples[j] = (i16)mixed;
                 }
             }
         }

@@ -59,6 +59,7 @@ static audio_device_t* audio_devices = NULL;
 static audio_mixer_t global_mixer = {0};
 static spinlock_t audio_global_lock = SPINLOCK_INIT;
 static u32 audio_stream_counter = 0;
+static u32 audio_device_id_counter = 0;  /* Global counter for device IDs */
 
 void audio_core_init(void) {
     audio_devices = NULL;
@@ -81,8 +82,7 @@ audio_device_t* audio_device_create(const char* name, alsa_device_t* alsa_dev) {
     
     /* Generate unique device ID */
     spinlock_lock(&audio_global_lock);
-    static u32 device_id_counter = 0;
-    dev->device_id = device_id_counter++;
+    dev->device_id = audio_device_id_counter++;
     spinlock_unlock(&audio_global_lock);
     
     strncpy(dev->name, name, sizeof(dev->name) - 1);

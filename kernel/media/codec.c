@@ -23,6 +23,8 @@ typedef struct codec {
     void* buffer;
     size_t buffer_size;
     bool active;
+    bool destroyed;  /* Protection against double-free */
+    spinlock_t lock;  /* Per-codec lock for thread safety */
     struct codec* next;
 } codec_t;
 
@@ -386,6 +388,9 @@ codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format
         kfree(codec);
         return NULL;
     }
+    
+    codec->destroyed = false;
+    spinlock_init(&codec->lock);
     
     /* Select codec operations */
     codec_ops_t* ops = NULL;

@@ -257,6 +257,12 @@ video_buffer_t* video_buffer_create(video_device_t* dev, u32 width,
 void video_buffer_destroy(video_buffer_t* buf) {
     VALIDATE_PTR_VOID(buf);
     
+    /* Protection against double-free */
+    if (buf->destroyed) {
+        return;
+    }
+    buf->destroyed = true;
+    
     if (buf->data) {
         size_t pages = (buf->size + PAGE_SIZE - 1) / PAGE_SIZE;
         vmm_free_pages(buf->data, pages);

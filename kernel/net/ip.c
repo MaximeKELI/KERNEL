@@ -64,6 +64,16 @@ u16 ip_checksum(const void* data, size_t len) {
     return ~sum;
 }
 
+/**
+ * @brief Send an IP packet
+ * @param dst Destination IP address
+ * @param protocol IP protocol number (TCP, UDP, ICMP, etc.)
+ * @param data Packet payload data
+ * @param len Length of payload
+ * @return 0 on success, -1 on error
+ * 
+ * Builds an IP packet with header and sends it via the network interface.
+ */
 int ip_send_packet(ip_addr_t dst, u8 protocol, const void* data, size_t len) {
     if (!data || len == 0) {
         return -1;

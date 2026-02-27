@@ -8,6 +8,7 @@
 #include "types.h"
 #include "string.h"
 #include "validate.h"
+#include "vmm.h"
 
 #define MAX_VIDEO_DEVICES 8
 #define MAX_VIDEO_MODES 32

@@ -369,6 +369,11 @@ static codec_ops_t raw_ops = {
     .cleanup = pcm_cleanup
 };
 
+/* Forward declarations for codec ops defined later */
+static codec_ops_t opus_ops;
+static codec_ops_t flac_ops;
+static codec_ops_t av1_ops;
+
 codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format) {
     VALIDATE_PTR_RET(name, NULL);
     

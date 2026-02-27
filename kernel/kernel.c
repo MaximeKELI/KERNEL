@@ -124,6 +124,12 @@ void kernel_main(u64 magic, u64 mb_info) {
     pmm_init(512 * 1024 * 1024, 0x100000, 0x100000);  /* 512MB, reserve first 1MB */
     vmm_init();
     heap_init();
+    memory_pressure_init();
+    kswapd_init();
+    memory_defrag_init();
+    memory_overcommit_init();
+    thp_init();
+    memcg_init();
     printk("Memory management initialized.\n\n");
     
     /* Initialize interrupts */

@@ -236,7 +236,7 @@ static int h264_decode(codec_t* codec, const void* input, size_t input_len,
     }
     
     if (!valid_h264 && input_len > 0) {
-        DEBUG_INFO("H.264: Format validation unclear, using passthrough");
+        DEBUG_INFO("H.264: Format validation unclear, using passthrough", 0);
     }
     
     /* Simplified: passthrough for now (full H.264 decode would require libx264 or similar) */
@@ -281,7 +281,7 @@ static int h265_decode(codec_t* codec, const void* input, size_t input_len,
     }
     
     if (!valid_h265 && input_len > 0) {
-        DEBUG_INFO("H.265: Format validation unclear, using passthrough");
+        DEBUG_INFO("H.265: Format validation unclear, using passthrough", 0);
     }
     
     size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
@@ -309,13 +309,9 @@ static int vp8_decode(codec_t* codec, const void* input, size_t input_len,
     }
     
     /* Basic VP8 frame validation */
-    const u8* in = (const u8*)input;
-    bool valid_vp8 = false;
-    
     if (input_len >= 10) {
         /* VP8 keyframe starts with specific pattern */
-        /* Simplified check */
-        valid_vp8 = true; /* Accept for now */
+        /* Simplified check - accept for now */
     }
     
     size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
@@ -343,13 +339,9 @@ static int vp9_decode(codec_t* codec, const void* input, size_t input_len,
     }
     
     /* Basic VP9 frame validation */
-    const u8* in = (const u8*)input;
-    bool valid_vp9 = false;
-    
     if (input_len >= 1) {
         /* VP9 frame header validation */
-        /* Simplified check */
-        valid_vp9 = true; /* Accept for now */
+        /* Simplified check - accept for now */
     }
     
     size_t copy_len = (input_len < *output_len) ? input_len : *output_len;

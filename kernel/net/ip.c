@@ -109,6 +109,9 @@ int ip_recv_packet(sk_buff_t* skb) {
     
     ip_header_t* iph = (ip_header_t*)skb->data;
     
+    /* Store IP header pointer in skb */
+    skb->ip_hdr = iph;
+    
     /* Verify version */
     if ((iph->version_ihl >> 4) != IP_VERSION) {
         DEBUG_ERROR("Invalid IP version");
@@ -124,6 +127,7 @@ int ip_recv_packet(sk_buff_t* skb) {
         skb_free(skb);
         return -1;
     }
+    iph->checksum = checksum; /* Restore checksum */
     
     /* Check if packet is for us */
     extern netif_t* netif_list;
@@ -137,17 +141,28 @@ int ip_recv_packet(sk_buff_t* skb) {
     }
     
     if (!for_us) {
-        /* TODO: Forward packet */
-        skb_free(skb);
-        return 0;
+        /* Forward packet */
+        extern int route_forward(sk_buff_t* skb, ip_addr_t dst);
+        int ret = route_forward(skb, iph->dst);
+        if (ret < 0) {
+            skb_free(skb);
+        }
+        return ret;
     }
     
     /* Remove IP header */
     skb_pull(skb, IP_HEADER_LEN);
     
-    /* Call protocol handler */
-    if (ip_protocols[iph->protocol]) {
-        return ip_protocols[iph->protocol](skb);
+    /* Call protocol handler with RCU protection */
+    ip_protocol_handler_t handler = NULL;
+    rcu_read_lock();
+    spinlock_lock(&ip_protocols_lock);
+    handler = ip_protocols[iph->protocol];
+    spinlock_unlock(&ip_protocols_lock);
+    rcu_read_unlock();
+    
+    if (handler) {
+        return handler(skb);
     }
     
     DEBUG_ERROR("No handler for IP protocol %u", iph->protocol);

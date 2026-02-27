@@ -68,6 +68,7 @@ int media_hw_accel_get_caps(hw_accel_type_t type, hw_accel_caps_t* caps) {
         default:
             caps->decode_supported = false;
             caps->encode_supported = false;
+            caps->num_supported_formats = 0;
             break;
     }
     

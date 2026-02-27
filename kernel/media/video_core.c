@@ -33,6 +33,7 @@ typedef struct video_buffer {
     u32 format;
     u64 size;
     bool active;
+    bool destroyed;  /* Protection against double-free */
     struct video_buffer* next;
 } video_buffer_t;
 
@@ -155,8 +156,24 @@ int video_device_set_mode(video_device_t* dev, u32 mode_index) {
         return -1;
     }
     
-    /* Calculate new framebuffer parameters */
-    u32 new_pitch = mode->width * (mode->bpp / 8);
+    /* Validate BPP before division */
+    if (mode->bpp < 8 || mode->bpp % 8 != 0) {
+        return -1; /* Invalid BPP - must be multiple of 8 */
+    }
+    
+    /* Calculate new framebuffer parameters with overflow checks */
+    u32 bytes_per_pixel = mode->bpp / 8;
+    
+    /* Check for overflow in width * bytes_per_pixel */
+    if (mode->width > (UINT32_MAX / bytes_per_pixel)) {
+        return -1; /* Overflow in pitch calculation */
+    }
+    u32 new_pitch = mode->width * bytes_per_pixel;
+    
+    /* Check for overflow in pitch * height */
+    if (mode->height > (UINT64_MAX / new_pitch)) {
+        return -1; /* Overflow in size calculation */
+    }
     u64 new_size = (u64)new_pitch * mode->height;
     
     /* Validate new size is reasonable (prevent overflow) */

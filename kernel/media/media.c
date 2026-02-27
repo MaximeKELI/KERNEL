@@ -163,10 +163,13 @@ codec_type_t media_get_codec_type(codec_format_t format) {
         case CODEC_FORMAT_MP3:
         case CODEC_FORMAT_AAC:
         case CODEC_FORMAT_OGG_VORBIS:
+        case CODEC_FORMAT_OPUS:
+        case CODEC_FORMAT_FLAC:
         case CODEC_FORMAT_PCM:
             return CODEC_TYPE_AUDIO;
         case CODEC_FORMAT_H264:
         case CODEC_FORMAT_H265:
+        case CODEC_FORMAT_AV1:
         case CODEC_FORMAT_VP8:
         case CODEC_FORMAT_VP9:
             return CODEC_TYPE_VIDEO;

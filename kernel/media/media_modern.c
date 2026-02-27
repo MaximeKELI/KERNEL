@@ -257,17 +257,26 @@ int media_async_submit(media_async_io_t* async_io) {
         return -1;
     }
     
+    /* Check if already submitted */
+    if (async_io->completed == false) {
+        return -1; /* Already in progress */
+    }
+    
     async_io->completed = false;
     
     /* TODO: Submit to async I/O subsystem */
-    /* For now, mark as completed immediately */
+    /* For now, mark as completed immediately (simulate success) */
+    int result = 0; /* 0 = success, -1 = error */
+    size_t bytes_processed = async_io->size;
+    
+    /* Simulate async completion */
     async_io->completed = true;
     
     if (async_io->callback) {
-        async_io->callback(async_io->user_data, 0, async_io->size);
+        async_io->callback(async_io->user_data, result, bytes_processed);
     }
     
-    return 0;
+    return result;
 }
 
 int media_async_wait(media_async_io_t* async_io, u32 timeout_ms) {

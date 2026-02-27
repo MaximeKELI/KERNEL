@@ -368,7 +368,13 @@ int stream_receive_data(media_stream_t* stream, const void* data, size_t len) {
     if (len > 0) {
         memcpy((u8*)stream->buffer + stream->buffer_fill, data, len);
         stream->buffer_fill += len;
-        stream->bytes_received += len;
+        
+        /* Protect against integer overflow in bytes_received */
+        if (stream->bytes_received > UINT64_MAX - len) {
+            stream->bytes_received = UINT64_MAX; /* Saturate at max */
+        } else {
+            stream->bytes_received += len;
+        }
     }
     
     /* Process buffer if enough data */

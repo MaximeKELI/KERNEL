@@ -461,6 +461,15 @@ codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format
 void codec_destroy(codec_t* codec) {
     VALIDATE_PTR_VOID(codec);
     
+    /* Protection against double-free */
+    spinlock_lock(&codec->lock);
+    if (codec->destroyed) {
+        spinlock_unlock(&codec->lock);
+        return;
+    }
+    codec->destroyed = true;
+    spinlock_unlock(&codec->lock);
+    
     spinlock_lock(&codec_lock);
     
     /* Remove from list */
@@ -478,7 +487,7 @@ void codec_destroy(codec_t* codec) {
     
     spinlock_unlock(&codec_lock);
     
-    /* Cleanup */
+    /* Cleanup - codec is removed from list, safe to cleanup */
     codec_ops_t* ops = NULL;
     switch (codec->format) {
         case CODEC_FORMAT_PCM:

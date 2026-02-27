@@ -153,18 +153,22 @@ int media_metadata_set_string(media_metadata_t* metadata, const char* key, const
     
     if (strcmp(key, "title") == 0) {
         strncpy(metadata->title, value, sizeof(metadata->title) - 1);
+        metadata->title[sizeof(metadata->title) - 1] = '\0'; /* Ensure null termination */
         return 0;
     }
     if (strcmp(key, "artist") == 0) {
         strncpy(metadata->artist, value, sizeof(metadata->artist) - 1);
+        metadata->artist[sizeof(metadata->artist) - 1] = '\0'; /* Ensure null termination */
         return 0;
     }
     if (strcmp(key, "album") == 0) {
         strncpy(metadata->album, value, sizeof(metadata->album) - 1);
+        metadata->album[sizeof(metadata->album) - 1] = '\0'; /* Ensure null termination */
         return 0;
     }
     if (strcmp(key, "genre") == 0) {
         strncpy(metadata->genre, value, sizeof(metadata->genre) - 1);
+        metadata->genre[sizeof(metadata->genre) - 1] = '\0'; /* Ensure null termination */
         return 0;
     }
     

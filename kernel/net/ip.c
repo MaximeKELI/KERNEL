@@ -199,6 +199,15 @@ int ip_recv_packet(sk_buff_t* skb) {
     return -1;
 }
 
+/**
+ * @brief Register an IP protocol handler
+ * @param protocol IP protocol number (0-255)
+ * @param handler Function to call when packets of this protocol are received
+ * 
+ * Registers a protocol handler that will be called when IP packets
+ * with the specified protocol number are received.
+ * Uses RCU for thread-safe access.
+ */
 void ip_register_protocol(u8 protocol, ip_protocol_handler_t handler) {
     if (protocol < 256) {
         spinlock_lock(&ip_protocols_lock);

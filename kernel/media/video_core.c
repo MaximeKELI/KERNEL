@@ -55,6 +55,7 @@ typedef struct video_device {
 static video_device_t* video_devices = NULL;
 static spinlock_t video_global_lock = SPINLOCK_INIT;
 static u32 video_buffer_counter = 0;
+static u32 video_device_id_counter = 0;  /* Global counter for device IDs */
 
 void video_core_init(void) {
     video_devices = NULL;
@@ -73,8 +74,7 @@ video_device_t* video_device_create(const char* name, drm_device_t* drm_dev) {
     
     /* Generate unique device ID */
     spinlock_lock(&video_global_lock);
-    static u32 device_id_counter = 0;
-    dev->device_id = device_id_counter++;
+    dev->device_id = video_device_id_counter++;
     spinlock_unlock(&video_global_lock);
     
     strncpy(dev->name, name, sizeof(dev->name) - 1);

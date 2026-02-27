@@ -99,13 +99,44 @@ static tcp_conn_t* tcp_find_connection(ip_addr_t local_addr, u16 local_port,
     return NULL;
 }
 
+/**
+ * @brief Parse sockaddr structure to extract IP and port
+ * @param addr Socket address structure
+ * @param ip Output IP address
+ * @param port Output port number
+ * @return 0 on success, -1 on error
+ */
+static int parse_sockaddr(const sockaddr_t* addr, ip_addr_t* ip, u16* port) {
+    if (!addr || !ip || !port) {
+        return -1;
+    }
+    
+    /* sockaddr structure: sa_family (2 bytes) + sa_data (14 bytes) */
+    /* For AF_INET: sa_data contains port (2 bytes) + IP (4 bytes) + padding */
+    if (addr->sa_family != 2) { /* AF_INET = 2 */
+        return -1;
+    }
+    
+    /* Extract port (network byte order) */
+    *port = ntohs(*(u16*)&addr->sa_data[0]);
+    
+    /* Extract IP address */
+    memcpy(ip, &addr->sa_data[2], 4);
+    
+    return 0;
+}
+
 static int tcp_bind(socket_t* sock, const sockaddr_t* addr) {
     if (!sock || !addr) {
         return -1;
     }
     
-    /* TODO: Parse sockaddr */
+    ip_addr_t bind_ip = {0};
     u16 port = 0;
+    
+    if (parse_sockaddr(addr, &bind_ip, &port) < 0) {
+        return -1;
+    }
     
     spinlock_lock(&tcp_lock);
     
@@ -118,6 +149,9 @@ static int tcp_bind(socket_t* sock, const sockaddr_t* addr) {
         }
         conn = conn->next;
     }
+    
+    sock->local_addr = bind_ip;
+    sock->local_port = port;
     
     spinlock_unlock(&tcp_lock);
     

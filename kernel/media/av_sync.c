@@ -26,6 +26,7 @@ typedef struct av_stream {
     u64 start_time;
     bool playing;
     bool paused;
+    bool destroyed;  /* Protection against double-free */
     spinlock_t lock;
     struct av_stream* next;
 } av_stream_t;

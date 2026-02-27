@@ -106,8 +106,14 @@ audio_device_t* audio_device_create(const char* name, alsa_device_t* alsa_dev) {
 audio_stream_t* audio_stream_create(audio_device_t* dev, u32 sample_rate, 
                                     u32 channels, u32 format) {
     VALIDATE_PTR_RET(dev, NULL);
-    VALIDATE_RANGE(sample_rate, 8000, 192000);
-    VALIDATE_RANGE(channels, 1, 8);
+    
+    /* Validate ranges manually (VALIDATE_RANGE returns -1, not NULL) */
+    if (sample_rate < 8000 || sample_rate > 192000) {
+        return NULL;
+    }
+    if (channels < 1 || channels > 8) {
+        return NULL;
+    }
     
     spinlock_lock(&audio_global_lock);
     
@@ -186,8 +192,9 @@ int audio_stream_write(audio_stream_t* stream, const void* data, size_t len) {
             memcpy(buf + stream->write_pos, data, len);
             stream->write_pos = (stream->write_pos + len) % stream->buffer_size;
         } else {
-            memcpy(buf + stream->write_pos, data, to_end);
-            memcpy(buf, (u8*)data + to_end, len - to_end);
+            const u8* src = (const u8*)data;
+            memcpy(buf + stream->write_pos, src, to_end);
+            memcpy(buf, src + to_end, len - to_end);
             stream->write_pos = len - to_end;
         }
         

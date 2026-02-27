@@ -414,8 +414,11 @@ int tcp_recv_packet(sk_buff_t* skb) {
     u32 ack = ntohl(tcph->ack_num);
     u8 flags = tcph->flags;
     
-    /* Get source IP from IP header */
-    ip_addr_t src_addr = {0}; /* TODO: Extract from IP header */
+    /* Get source IP from IP header stored in skb */
+    ip_addr_t src_addr = {0};
+    if (skb->ip_hdr) {
+        src_addr = skb->ip_hdr->src;
+    }
     
     /* Find connection */
     spinlock_lock(&tcp_lock);
@@ -423,14 +426,29 @@ int tcp_recv_packet(sk_buff_t* skb) {
     
     if (!conn && (flags & TCP_FLAG_SYN)) {
         /* New connection - find listen socket */
-        conn = tcp_connections;
-        while (conn) {
-            if (conn->local_port == dst_port && conn->state == TCP_LISTEN) {
+        tcp_conn_t* listen_conn = tcp_connections;
+        while (listen_conn) {
+            if (listen_conn->local_port == dst_port && listen_conn->state == TCP_LISTEN) {
+                /* Check accept queue limit */
+                if (listen_conn->accept_backlog >= listen_conn->max_backlog) {
+                    spinlock_unlock(&tcp_lock);
+                    skb_free(skb);
+                    return -1; /* Accept queue full */
+                }
+                
+                /* Check connection limit */
+                if (tcp_connection_count >= MAX_TCP_CONNECTIONS) {
+                    spinlock_unlock(&tcp_lock);
+                    skb_free(skb);
+                    return -1; /* Too many connections */
+                }
+                
                 /* Create new connection */
                 tcp_conn_t* new_conn = (tcp_conn_t*)kzalloc(sizeof(tcp_conn_t));
                 if (new_conn) {
-                    new_conn->sock = conn->sock;
+                    new_conn->sock = listen_conn->sock;
                     new_conn->state = TCP_SYN_RCVD;
+                    new_conn->local_addr = listen_conn->local_addr;
                     new_conn->local_port = dst_port;
                     new_conn->remote_addr = src_addr;
                     new_conn->remote_port = src_port;
@@ -438,19 +456,38 @@ int tcp_recv_packet(sk_buff_t* skb) {
                     new_conn->ack = seq + 1;
                     new_conn->send_window = TCP_WINDOW_SIZE;
                     new_conn->recv_window = TCP_WINDOW_SIZE;
+                    new_conn->recv_buffer = kzalloc(TCP_RECV_BUFFER_SIZE);
+                    new_conn->recv_size = TCP_RECV_BUFFER_SIZE;
+                    new_conn->recv_head = 0;
+                    new_conn->recv_tail = 0;
+                    new_conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
+                    new_conn->last_activity = 0; /* TODO: Use actual timestamp */
                     new_conn->next = tcp_connections;
                     tcp_connections = new_conn;
+                    tcp_connection_count++;
+                    
+                    /* Add to accept queue */
+                    tcp_accept_entry_t* entry = (tcp_accept_entry_t*)kzalloc(sizeof(tcp_accept_entry_t));
+                    if (entry) {
+                        entry->conn = new_conn;
+                        entry->next = listen_conn->accept_queue;
+                        listen_conn->accept_queue = entry;
+                        listen_conn->accept_backlog++;
+                    }
                     
                     /* Send SYN-ACK */
                     tcp_send_packet(new_conn, TCP_FLAG_SYN | TCP_FLAG_ACK, NULL, 0);
                 }
                 break;
             }
-            conn = conn->next;
+            listen_conn = listen_conn->next;
         }
     }
     
     if (conn) {
+        /* Update last activity */
+        conn->last_activity = 0; /* TODO: Use actual timestamp */
+        
         if (flags & TCP_FLAG_SYN && conn->state == TCP_SYN_SENT) {
             conn->state = TCP_ESTABLISHED;
             conn->ack = seq + 1;
@@ -465,7 +502,33 @@ int tcp_recv_packet(sk_buff_t* skb) {
         } else if (flags & TCP_FLAG_ACK && (flags & TCP_FLAG_PSH)) {
             /* Data packet */
             skb_pull(skb, TCP_HEADER_LEN);
-            /* TODO: Add to receive buffer */
+            
+            /* Add to receive buffer */
+            if (conn->recv_buffer && skb->len > 0) {
+                u8* recv_buf = (u8*)conn->recv_buffer;
+                size_t data_len = skb->len;
+                size_t free_space = 0;
+                
+                if (conn->recv_tail >= conn->recv_head) {
+                    free_space = conn->recv_size - conn->recv_tail;
+                } else {
+                    free_space = conn->recv_head - conn->recv_tail;
+                }
+                
+                if (data_len <= free_space) {
+                    size_t to_copy = data_len;
+                    if (conn->recv_tail + to_copy > conn->recv_size) {
+                        size_t first_part = conn->recv_size - conn->recv_tail;
+                        memcpy(recv_buf + conn->recv_tail, skb->data, first_part);
+                        memcpy(recv_buf, skb->data + first_part, to_copy - first_part);
+                        conn->recv_tail = to_copy - first_part;
+                    } else {
+                        memcpy(recv_buf + conn->recv_tail, skb->data, to_copy);
+                        conn->recv_tail = (conn->recv_tail + to_copy) % conn->recv_size;
+                    }
+                }
+            }
+            
             conn->ack = seq + skb->len;
             tcp_send_packet(conn, TCP_FLAG_ACK, NULL, 0);
         }

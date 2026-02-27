@@ -425,6 +425,17 @@ int tcp_send_packet(tcp_conn_t* conn, u8 flags, const void* data, size_t len) {
     return ret;
 }
 
+/**
+ * @brief Receive and process a TCP packet from IP layer
+ * @param skb Socket buffer containing the TCP packet
+ * @return 0 on success, -1 on error
+ * 
+ * Processes incoming TCP packets, handling:
+ * - Connection establishment (SYN, SYN-ACK, ACK)
+ * - Data reception (PSH+ACK)
+ * - Connection termination (FIN)
+ * - Accept queue management for listening sockets
+ */
 int tcp_recv_packet(sk_buff_t* skb) {
     if (!skb || skb->len < TCP_HEADER_LEN) {
         return -1;

@@ -54,6 +54,12 @@ codec_format_t media_detect_format_from_extension(const char* filename) {
         strcmp(ext, "oga") == 0 || strcmp(ext, "OGA") == 0) {
         return CODEC_FORMAT_OGG_VORBIS;
     }
+    if (strcmp(ext, "opus") == 0 || strcmp(ext, "OPUS") == 0) {
+        return CODEC_FORMAT_OPUS;
+    }
+    if (strcmp(ext, "flac") == 0 || strcmp(ext, "FLAC") == 0) {
+        return CODEC_FORMAT_FLAC;
+    }
     if (strcmp(ext, "wav") == 0 || strcmp(ext, "WAV") == 0 ||
         strcmp(ext, "pcm") == 0 || strcmp(ext, "PCM") == 0) {
         return CODEC_FORMAT_PCM;
@@ -68,6 +74,10 @@ codec_format_t media_detect_format_from_extension(const char* filename) {
         strcmp(ext, "hevc") == 0 || strcmp(ext, "HEVC") == 0 ||
         strcmp(ext, "265") == 0) {
         return CODEC_FORMAT_H265;
+    }
+    if (strcmp(ext, "av1") == 0 || strcmp(ext, "AV1") == 0 ||
+        strcmp(ext, "obu") == 0 || strcmp(ext, "OBU") == 0) {
+        return CODEC_FORMAT_AV1;
     }
     if (strcmp(ext, "vp8") == 0 || strcmp(ext, "VP8") == 0) {
         return CODEC_FORMAT_VP8;

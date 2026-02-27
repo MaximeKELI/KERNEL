@@ -401,11 +401,20 @@ codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format
         case CODEC_FORMAT_OGG_VORBIS:
             ops = &ogg_vorbis_ops;
             break;
+        case CODEC_FORMAT_OPUS:
+            ops = &opus_ops;
+            break;
+        case CODEC_FORMAT_FLAC:
+            ops = &flac_ops;
+            break;
         case CODEC_FORMAT_H264:
             ops = &h264_ops;
             break;
         case CODEC_FORMAT_H265:
             ops = &h265_ops;
+            break;
+        case CODEC_FORMAT_AV1:
+            ops = &av1_ops;
             break;
         case CODEC_FORMAT_VP8:
             ops = &vp8_ops;
@@ -478,11 +487,20 @@ void codec_destroy(codec_t* codec) {
         case CODEC_FORMAT_OGG_VORBIS:
             ops = &ogg_vorbis_ops;
             break;
+        case CODEC_FORMAT_OPUS:
+            ops = &opus_ops;
+            break;
+        case CODEC_FORMAT_FLAC:
+            ops = &flac_ops;
+            break;
         case CODEC_FORMAT_H264:
             ops = &h264_ops;
             break;
         case CODEC_FORMAT_H265:
             ops = &h265_ops;
+            break;
+        case CODEC_FORMAT_AV1:
+            ops = &av1_ops;
             break;
         case CODEC_FORMAT_VP8:
             ops = &vp8_ops;

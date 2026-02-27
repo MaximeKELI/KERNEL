@@ -79,11 +79,16 @@ video_device_t* video_device_create(const char* name, drm_device_t* drm_dev) {
     dev->active_buffer = 0;
     dev->active = false;
     
-    /* Initialize framebuffer */
-    dev->fb = framebuffer_create(1024, 768, 32); /* Default mode */
+    /* Get framebuffer */
+    dev->fb = framebuffer_get();
     if (!dev->fb) {
-        kfree(dev);
-        return NULL;
+        /* Initialize default framebuffer */
+        framebuffer_init(VESA_MODE_1024x768_8);
+        dev->fb = framebuffer_get();
+        if (!dev->fb) {
+            kfree(dev);
+            return NULL;
+        }
     }
     
     spinlock_lock(&video_global_lock);

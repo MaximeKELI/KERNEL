@@ -202,6 +202,13 @@ video_buffer_t* video_buffer_create(video_device_t* dev, u32 width,
     VALIDATE_RANGE(width, 1, 7680);
     VALIDATE_RANGE(height, 1, 4320);
     
+    /* Validate format */
+    if (format != VIDEO_FORMAT_RGB888 && format != VIDEO_FORMAT_RGBA8888 &&
+        format != VIDEO_FORMAT_YUV420 && format != VIDEO_FORMAT_YUV422 &&
+        format != VIDEO_FORMAT_YUV444) {
+        return NULL; /* Invalid format */
+    }
+    
     if (dev->num_buffers >= MAX_VIDEO_BUFFERS) {
         return NULL;
     }
@@ -215,8 +222,21 @@ video_buffer_t* video_buffer_create(video_device_t* dev, u32 width,
     buf->width = width;
     buf->height = height;
     buf->format = format;
-    buf->pitch = width * 4; /* Assume 32bpp for now */
-    buf->size = buf->pitch * height;
+    
+    /* Calculate pitch with overflow protection (assume 32bpp = 4 bytes) */
+    u32 bytes_per_pixel = 4; /* 32bpp */
+    if (width > (UINT32_MAX / bytes_per_pixel)) {
+        kfree(buf);
+        return NULL; /* Overflow in pitch calculation */
+    }
+    buf->pitch = width * bytes_per_pixel;
+    
+    /* Calculate size with overflow protection */
+    if (height > (UINT64_MAX / buf->pitch)) {
+        kfree(buf);
+        return NULL; /* Overflow in size calculation */
+    }
+    buf->size = (u64)buf->pitch * height;
     buf->data = vmm_alloc_pages((buf->size + PAGE_SIZE - 1) / PAGE_SIZE);
     
     if (!buf->data) {
@@ -225,6 +245,7 @@ video_buffer_t* video_buffer_create(video_device_t* dev, u32 width,
     }
     
     buf->active = false;
+    buf->destroyed = false;
     
     dev->buffers[dev->num_buffers++] = buf;
     

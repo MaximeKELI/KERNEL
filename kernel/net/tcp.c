@@ -370,6 +370,17 @@ static int tcp_close(socket_t* sock) {
     return 0;
 }
 
+/**
+ * @brief Send a TCP packet
+ * @param conn TCP connection structure
+ * @param flags TCP flags (SYN, ACK, FIN, etc.)
+ * @param data Packet data payload
+ * @param len Length of data payload
+ * @return 0 on success, -1 on error
+ * 
+ * Builds and sends a TCP packet with the specified flags and data.
+ * Updates sequence numbers automatically.
+ */
 int tcp_send_packet(tcp_conn_t* conn, u8 flags, const void* data, size_t len) {
     if (!conn) {
         return -1;

@@ -78,7 +78,10 @@ bool media_hw_accel_is_supported(codec_format_t format, hw_accel_type_t type) {
 }
 
 media_zerocopy_buffer_t* media_zerocopy_buffer_create(size_t size) {
-    VALIDATE_SIZE(size);
+    /* Validate size manually (VALIDATE_SIZE returns -1, not NULL) */
+    if (size == 0 || size > (1024 * 1024 * 1024)) { /* Max 1GB */
+        return NULL;
+    }
     
     media_zerocopy_buffer_t* buf = (media_zerocopy_buffer_t*)kzalloc(sizeof(media_zerocopy_buffer_t));
     if (!buf) {

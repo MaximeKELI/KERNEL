@@ -71,8 +71,14 @@ video_device_t* video_device_create(const char* name, drm_device_t* drm_dev) {
         return NULL;
     }
     
-    dev->device_id = 0; /* TODO: Generate unique ID */
+    /* Generate unique device ID */
+    spinlock_lock(&video_global_lock);
+    static u32 device_id_counter = 0;
+    dev->device_id = device_id_counter++;
+    spinlock_unlock(&video_global_lock);
+    
     strncpy(dev->name, name, sizeof(dev->name) - 1);
+    dev->name[sizeof(dev->name) - 1] = '\0'; /* Ensure null termination */
     dev->drm_dev = drm_dev;
     dev->num_modes = 0;
     dev->current_mode = 0;

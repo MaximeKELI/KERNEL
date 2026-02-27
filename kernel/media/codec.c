@@ -377,6 +377,7 @@ codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format
     
     codec->codec_id = codec_counter++;
     strncpy(codec->name, name, sizeof(codec->name) - 1);
+    codec->name[sizeof(codec->name) - 1] = '\0'; /* Ensure null termination */
     codec->type = type;
     codec->format = format;
     codec->buffer_size = CODEC_BUFFER_SIZE;

@@ -79,8 +79,14 @@ audio_device_t* audio_device_create(const char* name, alsa_device_t* alsa_dev) {
         return NULL;
     }
     
-    dev->device_id = 0; /* TODO: Generate unique ID */
+    /* Generate unique device ID */
+    spinlock_lock(&audio_global_lock);
+    static u32 device_id_counter = 0;
+    dev->device_id = device_id_counter++;
+    spinlock_unlock(&audio_global_lock);
+    
     strncpy(dev->name, name, sizeof(dev->name) - 1);
+    dev->name[sizeof(dev->name) - 1] = '\0'; /* Ensure null termination */
     dev->alsa_dev = alsa_dev;
     dev->num_streams = 0;
     dev->sample_rate = DEFAULT_SAMPLE_RATE;

@@ -152,6 +152,70 @@ void stream_destroy(media_stream_t* stream) {
     kfree(stream);
 }
 
+/* Helper function to parse IP address string to ip_addr_t */
+static int parse_ip_address(const char* host, ip_addr_t* addr) {
+    if (!host || !addr) {
+        return -1;
+    }
+    
+    /* Simple IP address parsing (supports IPv4 dotted decimal) */
+    u8 ip[4] = {0};
+    int parts[4] = {0};
+    int num_parts = 0;
+    const char* p = host;
+    
+    /* Parse dotted decimal format: a.b.c.d */
+    while (*p && num_parts < 4) {
+        if (*p >= '0' && *p <= '9') {
+            parts[num_parts] = parts[num_parts] * 10 + (*p - '0');
+            if (parts[num_parts] > 255) {
+                return -1; /* Invalid IP */
+            }
+        } else if (*p == '.') {
+            num_parts++;
+        } else {
+            return -1; /* Invalid character */
+        }
+        p++;
+    }
+    num_parts++; /* Count last part */
+    
+    if (num_parts != 4) {
+        return -1; /* Invalid IP format */
+    }
+    
+    for (int i = 0; i < 4; i++) {
+        ip[i] = (u8)parts[i];
+    }
+    
+    addr->addr[0] = ip[0];
+    addr->addr[1] = ip[1];
+    addr->addr[2] = ip[2];
+    addr->addr[3] = ip[3];
+    
+    return 0;
+}
+
+/* Helper function to create sockaddr_t from IP and port */
+static void create_sockaddr(ip_addr_t* ip, u16 port, sockaddr_t* addr) {
+    if (!ip || !addr) {
+        return;
+    }
+    
+    addr->sa_family = 2; /* AF_INET */
+    /* Format: port (2 bytes, network byte order) + IP (4 bytes) */
+    addr->sa_data[0] = (port >> 8) & 0xFF;
+    addr->sa_data[1] = port & 0xFF;
+    addr->sa_data[2] = ip->addr[0];
+    addr->sa_data[3] = ip->addr[1];
+    addr->sa_data[4] = ip->addr[2];
+    addr->sa_data[5] = ip->addr[3];
+    /* Rest is zero */
+    for (int i = 6; i < 14; i++) {
+        addr->sa_data[i] = 0;
+    }
+}
+
 int stream_connect(media_stream_t* stream, const char* host, u16 port) {
     VALIDATE_PTR_RET(stream, -1);
     VALIDATE_PTR_RET(host, -1);
@@ -163,11 +227,39 @@ int stream_connect(media_stream_t* stream, const char* host, u16 port) {
     
     stream->socket = socket_create(domain, type, protocol);
     if (!stream->socket) {
+        DEBUG_ERROR("Failed to create socket for stream: %s", stream->name);
         return -1;
     }
     
-    /* TODO: Connect to host:port */
-    /* For now, just set state */
+    /* Parse host IP address */
+    ip_addr_t remote_ip = {0};
+    if (parse_ip_address(host, &remote_ip) < 0) {
+        DEBUG_ERROR("Invalid IP address: %s", host);
+        socket_destroy(stream->socket);
+        stream->socket = NULL;
+        return -1;
+    }
+    
+    /* Create sockaddr for connection */
+    sockaddr_t addr;
+    create_sockaddr(&remote_ip, port, &addr);
+    
+    /* Connect socket */
+    if (stream->socket->ops && stream->socket->ops->connect) {
+        int ret = stream->socket->ops->connect(stream->socket, &addr);
+        if (ret < 0) {
+            DEBUG_ERROR("Failed to connect socket for stream: %s", stream->name);
+            socket_destroy(stream->socket);
+            stream->socket = NULL;
+            return -1;
+        }
+    } else {
+        DEBUG_ERROR("Socket connect operation not available");
+        socket_destroy(stream->socket);
+        stream->socket = NULL;
+        return -1;
+    }
+    
     stream->state = STREAM_STATE_CONNECTING;
     
     DEBUG_INFO("Stream connecting: %s -> %s:%u", stream->name, host, port);

@@ -78,6 +78,7 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/gpu/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/audio/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/input/*.c) \
+                 $(wildcard $(KERNEL_DIR)/media/*.c) \
                  $(wildcard $(LIB_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 

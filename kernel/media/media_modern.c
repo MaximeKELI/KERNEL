@@ -97,7 +97,10 @@ media_zerocopy_buffer_t* media_zerocopy_buffer_create(size_t size) {
         return NULL;
     }
     
-    buf->physical_addr = buf->virtual_addr; /* TODO: Get physical address */
+    /* TODO: Get actual physical address from virtual address */
+    /* For now, set to NULL to indicate invalid physical address */
+    /* This prevents incorrect use of physical_addr */
+    buf->physical_addr = NULL; /* TODO: Implement proper virtual-to-physical mapping */
     
     DEBUG_INFO("Zero-copy buffer created: %zu bytes", size);
     return buf;

@@ -146,6 +146,7 @@ audio_stream_t* audio_stream_create(audio_device_t* dev, u32 sample_rate,
     stream->read_pos = 0;
     stream->available = 0;
     stream->active = false;
+    stream->destroyed = false;
     stream->next = NULL;
     spinlock_init(&stream->lock);
     

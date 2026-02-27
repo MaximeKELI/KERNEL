@@ -38,6 +38,9 @@ int media_hw_accel_get_caps(hw_accel_type_t type, hw_accel_caps_t* caps) {
     memset(caps, 0, sizeof(hw_accel_caps_t));
     caps->type = type;
     
+    /* Protect against array overflow */
+    u32 max_formats = sizeof(caps->supported_formats) / sizeof(caps->supported_formats[0]);
+    
     /* TODO: Query actual hardware capabilities */
     /* For now, return basic structure */
     switch (type) {
@@ -46,9 +49,18 @@ int media_hw_accel_get_caps(hw_accel_type_t type, hw_accel_caps_t* caps) {
         case HW_ACCEL_QUICKSYNC:
             caps->decode_supported = true;
             caps->encode_supported = true;
-            caps->supported_formats[0] = CODEC_FORMAT_H264;
-            caps->supported_formats[1] = CODEC_FORMAT_H265;
-            caps->num_supported_formats = 2;
+            if (max_formats > 0) {
+                caps->supported_formats[0] = CODEC_FORMAT_H264;
+                caps->num_supported_formats = 1;
+            }
+            if (max_formats > 1) {
+                caps->supported_formats[1] = CODEC_FORMAT_H265;
+                caps->num_supported_formats = 2;
+            }
+            /* Ensure num_supported_formats doesn't exceed array size */
+            if (caps->num_supported_formats > max_formats) {
+                caps->num_supported_formats = max_formats;
+            }
             caps->max_width = 7680;
             caps->max_height = 4320;
             caps->max_bitrate = 100000000; /* 100 Mbps */

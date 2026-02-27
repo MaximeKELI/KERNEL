@@ -605,3 +605,248 @@ codec_t* codec_find(const char* name) {
     spinlock_unlock(&codec_lock);
     return NULL;
 }
+
+/* Opus decoder stub (modern audio codec) */
+static int opus_decode(codec_t* codec, const void* input, size_t input_len,
+                        void* output, size_t* output_len) {
+    (void)codec;
+    
+    if (!input || !output || !output_len || input_len == 0) {
+        return -1;
+    }
+    
+    /* Basic Opus packet validation */
+    const u8* in = (const u8*)input;
+    bool valid_opus = false;
+    
+    if (input_len >= 1) {
+        /* Opus packet starts with TOC (Table of Contents) byte */
+        u8 toc = in[0];
+        u8 config = (toc >> 3) & 0x1F;
+        if (config <= 18) { /* Valid Opus configuration */
+            valid_opus = true;
+        }
+    }
+    
+    if (!valid_opus && input_len > 0) {
+        DEBUG_INFO("Opus: Format validation unclear, using passthrough", 0);
+    }
+    
+    size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
+    memcpy(output, input, copy_len);
+    *output_len = copy_len;
+    
+    DEBUG_INFO("Opus decode: %zu bytes -> %zu bytes (passthrough mode)", input_len, copy_len);
+    return 0;
+}
+
+static codec_ops_t opus_ops = {
+    .decode = opus_decode,
+    .encode = NULL,
+    .init = pcm_init,
+    .cleanup = pcm_cleanup
+};
+
+/* FLAC decoder stub (lossless audio) */
+static int flac_decode(codec_t* codec, const void* input, size_t input_len,
+                        void* output, size_t* output_len) {
+    (void)codec;
+    
+    if (!input || !output || !output_len || input_len == 0) {
+        return -1;
+    }
+    
+    /* Basic FLAC header validation */
+    const u8* in = (const u8*)input;
+    bool valid_flac = false;
+    
+    if (input_len >= 4) {
+        /* FLAC signature: "fLaC" */
+        if (in[0] == 'f' && in[1] == 'L' && in[2] == 'a' && in[3] == 'C') {
+            valid_flac = true;
+        }
+    }
+    
+    if (!valid_flac && input_len > 0) {
+        DEBUG_INFO("FLAC: Format validation unclear, using passthrough", 0);
+    }
+    
+    size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
+    memcpy(output, input, copy_len);
+    *output_len = copy_len;
+    
+    DEBUG_INFO("FLAC decode: %zu bytes -> %zu bytes (passthrough mode)", input_len, copy_len);
+    return 0;
+}
+
+static codec_ops_t flac_ops = {
+    .decode = flac_decode,
+    .encode = NULL,
+    .init = pcm_init,
+    .cleanup = pcm_cleanup
+};
+
+/* AV1 decoder stub (modern video codec - AOMedia Video 1) */
+static int av1_decode(codec_t* codec, const void* input, size_t input_len,
+                       void* output, size_t* output_len) {
+    (void)codec;
+    
+    if (!input || !output || !output_len || input_len == 0) {
+        return -1;
+    }
+    
+    /* Basic AV1 OBU (Open Bitstream Unit) validation */
+    const u8* in = (const u8*)input;
+    bool valid_av1 = false;
+    
+    if (input_len >= 1) {
+        /* AV1 OBU header */
+        u8 obu_header = in[0];
+        u8 obu_type = (obu_header >> 3) & 0x1F;
+        if (obu_type <= 8) { /* Valid OBU types */
+            valid_av1 = true;
+        }
+    }
+    
+    if (!valid_av1 && input_len > 0) {
+        DEBUG_INFO("AV1: Format validation unclear, using passthrough", 0);
+    }
+    
+    size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
+    memcpy(output, input, copy_len);
+    *output_len = copy_len;
+    
+    DEBUG_INFO("AV1 decode: %zu bytes -> %zu bytes (passthrough mode)", input_len, copy_len);
+    return 0;
+}
+
+static codec_ops_t av1_ops = {
+    .decode = av1_decode,
+    .encode = NULL,
+    .init = pcm_init,
+    .cleanup = pcm_cleanup
+};
+
+/* FourCC utilities */
+fourcc_t codec_format_to_fourcc(codec_format_t format) {
+    switch (format) {
+        case CODEC_FORMAT_MP3:
+            return FOURCC_MP3;
+        case CODEC_FORMAT_AAC:
+            return FOURCC_AAC;
+        case CODEC_FORMAT_OPUS:
+            return FOURCC_OPUS;
+        case CODEC_FORMAT_FLAC:
+            return FOURCC_FLAC;
+        case CODEC_FORMAT_H264:
+            return FOURCC_H264;
+        case CODEC_FORMAT_H265:
+            return FOURCC_H265;
+        case CODEC_FORMAT_AV1:
+            return FOURCC_AV1;
+        case CODEC_FORMAT_VP8:
+            return FOURCC_VP8;
+        case CODEC_FORMAT_VP9:
+            return FOURCC_VP9;
+        default:
+            return 0;
+    }
+}
+
+codec_format_t codec_fourcc_to_format(fourcc_t fourcc) {
+    switch (fourcc) {
+        case FOURCC_MP3:
+            return CODEC_FORMAT_MP3;
+        case FOURCC_AAC:
+            return CODEC_FORMAT_AAC;
+        case FOURCC_OPUS:
+            return CODEC_FORMAT_OPUS;
+        case FOURCC_FLAC:
+            return CODEC_FORMAT_FLAC;
+        case FOURCC_H264:
+            return CODEC_FORMAT_H264;
+        case FOURCC_H265:
+            return CODEC_FORMAT_H265;
+        case FOURCC_AV1:
+            return CODEC_FORMAT_AV1;
+        case FOURCC_VP8:
+            return CODEC_FORMAT_VP8;
+        case FOURCC_VP9:
+            return CODEC_FORMAT_VP9;
+        default:
+            return CODEC_FORMAT_RAW;
+    }
+}
+
+const char* codec_fourcc_to_string(fourcc_t fourcc) {
+    static char fourcc_str[5];
+    fourcc_str[0] = (fourcc >> 24) & 0xFF;
+    fourcc_str[1] = (fourcc >> 16) & 0xFF;
+    fourcc_str[2] = (fourcc >> 8) & 0xFF;
+    fourcc_str[3] = fourcc & 0xFF;
+    fourcc_str[4] = '\0';
+    return fourcc_str;
+}
+
+/* Container format detection */
+container_format_t codec_detect_container(const void* data, size_t len) {
+    if (!data || len < 12) {
+        return CONTAINER_FORMAT_RAW;
+    }
+    
+    const u8* bytes = (const u8*)data;
+    
+    /* MP4: ftyp box at offset 4 */
+    if (len >= 12) {
+        if (bytes[4] == 'f' && bytes[5] == 't' && bytes[6] == 'y' && bytes[7] == 'p') {
+            return CONTAINER_FORMAT_MP4;
+        }
+    }
+    
+    /* MKV/WebM: EBML header */
+    if (len >= 4) {
+        if (bytes[0] == 0x1A && bytes[1] == 0x45 && bytes[2] == 0xDF && bytes[3] == 0xA3) {
+            /* Check for WebM specific signature */
+            if (len >= 12 && bytes[8] == 0x42 && bytes[9] == 0x82 &&
+                bytes[10] == 0x77 && bytes[11] == 0x65) {
+                return CONTAINER_FORMAT_WEBM;
+            }
+            return CONTAINER_FORMAT_MKV;
+        }
+    }
+    
+    /* OGG: OggS header */
+    if (len >= 4 && bytes[0] == 'O' && bytes[1] == 'g' && 
+        bytes[2] == 'g' && bytes[3] == 'S') {
+        return CONTAINER_FORMAT_OGG;
+    }
+    
+    /* AVI: RIFF...AVI */
+    if (len >= 12 && bytes[0] == 'R' && bytes[1] == 'I' && 
+        bytes[2] == 'F' && bytes[3] == 'F' &&
+        bytes[8] == 'A' && bytes[9] == 'V' && 
+        bytes[10] == 'I' && bytes[11] == ' ') {
+        return CONTAINER_FORMAT_AVI;
+    }
+    
+    return CONTAINER_FORMAT_RAW;
+}
+
+const char* container_format_to_string(container_format_t format) {
+    switch (format) {
+        case CONTAINER_FORMAT_MP4:
+            return "MP4";
+        case CONTAINER_FORMAT_MKV:
+            return "MKV";
+        case CONTAINER_FORMAT_WEBM:
+            return "WebM";
+        case CONTAINER_FORMAT_OGG:
+            return "OGG";
+        case CONTAINER_FORMAT_AVI:
+            return "AVI";
+        case CONTAINER_FORMAT_RAW:
+            return "RAW";
+        default:
+            return "Unknown";
+    }
+}

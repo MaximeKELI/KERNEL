@@ -172,7 +172,10 @@ int ip_recv_packet(sk_buff_t* skb) {
 
 void ip_register_protocol(u8 protocol, ip_protocol_handler_t handler) {
     if (protocol < 256) {
+        spinlock_lock(&ip_protocols_lock);
         ip_protocols[protocol] = handler;
+        spinlock_unlock(&ip_protocols_lock);
+        synchronize_rcu(); /* Ensure all readers see the update */
         DEBUG_INFO("IP protocol %u registered", protocol);
     }
 }

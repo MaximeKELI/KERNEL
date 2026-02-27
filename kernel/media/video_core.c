@@ -137,15 +137,19 @@ int video_device_set_mode(video_device_t* dev, u32 mode_index) {
         return -1;
     }
     
-    /* Recreate framebuffer with new mode */
-    if (dev->fb) {
-        framebuffer_destroy(dev->fb);
-    }
-    
-    dev->fb = framebuffer_create(mode->width, mode->height, mode->bpp);
+    /* Update framebuffer mode */
+    /* Note: framebuffer is global, we just update our reference */
+    dev->fb = framebuffer_get();
     if (!dev->fb) {
         return -1;
     }
+    
+    /* Update framebuffer dimensions if possible */
+    dev->fb->width = mode->width;
+    dev->fb->height = mode->height;
+    dev->fb->bpp = mode->bpp;
+    dev->fb->pitch = mode->width * (mode->bpp / 8);
+    dev->fb->size = dev->fb->pitch * mode->height;
     
     dev->current_mode = mode_index;
     

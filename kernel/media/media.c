@@ -9,7 +9,6 @@
 #include "debug.h"
 #include "string.h"
 #include "types.h"
-#include "lib/string.h"
 
 void media_init(void) {
     /* Initialize all media subsystems */

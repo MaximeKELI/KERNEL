@@ -35,6 +35,10 @@ void net_init(void) {
     arp_init();
     route_init();
     netfilter_init();
+    net_stats_init();
+    tc_init();
+    packet_sched_init();
+    multipath_init();
     
     DEBUG_INFO("Networking stack initialized");
     printk("[Net] Complete networking infrastructure initialized\n");

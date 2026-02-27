@@ -1,5 +1,6 @@
 #include "net.h"
 #include "arp.h"
+#include "ip.h"
 #include "ethernet.h"
 #include "skbuff.h"
 #include "memory.h"

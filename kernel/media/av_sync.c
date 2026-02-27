@@ -57,7 +57,7 @@ av_stream_t* av_stream_create(const char* name, audio_stream_t* audio,
     stream->video_pts = 0;
     stream->audio_duration = 0;
     stream->video_duration = 0;
-    stream->start_time = 0; /* TODO: Use actual timestamp */
+    stream->start_time = hrtimer_get_time(); /* Use actual timestamp in nanoseconds */
     stream->playing = false;
     stream->paused = false;
     spinlock_init(&stream->lock);
@@ -106,7 +106,7 @@ int av_stream_play(av_stream_t* stream) {
     
     stream->playing = true;
     stream->paused = false;
-    stream->start_time = 0; /* TODO: Use actual timestamp */
+    stream->start_time = hrtimer_get_time(); /* Use actual timestamp in nanoseconds */
     
     if (stream->audio_stream) {
         audio_stream_start(stream->audio_stream);
@@ -180,18 +180,33 @@ int av_stream_sync(av_stream_t* stream) {
     
     spinlock_lock(&stream->lock);
     
-    u64 current_time = 0; /* TODO: Use actual timestamp */
-    u64 elapsed = current_time - stream->start_time;
+    u64 current_time = hrtimer_get_time(); /* Get current time in nanoseconds */
+    u64 elapsed_ns = current_time - stream->start_time;
+    u64 elapsed_ms = elapsed_ns / 1000000; /* Convert to milliseconds */
     
-    /* Calculate drift between audio and video */
+    /* Calculate drift between audio and video (PTS are in milliseconds) */
     i64 drift = (i64)stream->audio_pts - (i64)stream->video_pts;
     
+    /* Also check against wall clock time */
+    i64 audio_drift = (i64)stream->audio_pts - (i64)elapsed_ms;
+    i64 video_drift = (i64)stream->video_pts - (i64)elapsed_ms;
+    
     if (drift > SYNC_THRESHOLD_MS) {
-        /* Audio ahead, slow down or skip video frame */
-        DEBUG_INFO("AV sync: Audio ahead by %lld ms", (long long)drift);
+        /* Audio ahead of video, slow down or skip video frame */
+        DEBUG_INFO("AV sync: Audio ahead by %lld ms (audio=%llu, video=%llu)", 
+                   (long long)drift, stream->audio_pts, stream->video_pts);
     } else if (drift < -SYNC_THRESHOLD_MS) {
-        /* Video ahead, slow down or skip audio */
-        DEBUG_INFO("AV sync: Video ahead by %lld ms", (long long)-drift);
+        /* Video ahead of audio, slow down or skip audio */
+        DEBUG_INFO("AV sync: Video ahead by %lld ms (audio=%llu, video=%llu)", 
+                   (long long)-drift, stream->audio_pts, stream->video_pts);
+    }
+    
+    /* Check for drift against wall clock */
+    if (audio_drift > SYNC_THRESHOLD_MS || audio_drift < -SYNC_THRESHOLD_MS) {
+        DEBUG_INFO("AV sync: Audio drift from wall clock: %lld ms", (long long)audio_drift);
+    }
+    if (video_drift > SYNC_THRESHOLD_MS || video_drift < -SYNC_THRESHOLD_MS) {
+        DEBUG_INFO("AV sync: Video drift from wall clock: %lld ms", (long long)video_drift);
     }
     
     spinlock_unlock(&stream->lock);

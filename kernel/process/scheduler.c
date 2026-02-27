@@ -190,3 +190,19 @@ void idle_task(void) {
         schedule();
     }
 }
+
+u64 scheduler_get_running_count(u32 cpu_id) {
+    (void)cpu_id; /* TODO: Per-CPU tracking */
+    
+    u64 count = 0;
+    process_t* p = process_list;
+    
+    while (p) {
+        if (p->state == PROCESS_RUNNING) {
+            count++;
+        }
+        p = p->next;
+    }
+    
+    return count;
+}

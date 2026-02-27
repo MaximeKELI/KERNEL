@@ -43,4 +43,7 @@ void scheduler_get_stats(scheduler_stats_t* stats);
 /* Calculate virtual runtime (for CFS) */
 u64 calc_vruntime(process_t* proc);
 
+/* Get running task count for CPU */
+u64 scheduler_get_running_count(u32 cpu_id);
+
 #endif /* SCHEDULER_H */

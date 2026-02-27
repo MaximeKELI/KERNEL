@@ -170,12 +170,18 @@ const char* media_format_to_string(codec_format_t format) {
             return "AAC";
         case CODEC_FORMAT_OGG_VORBIS:
             return "OGG Vorbis";
+        case CODEC_FORMAT_OPUS:
+            return "Opus";
+        case CODEC_FORMAT_FLAC:
+            return "FLAC";
         case CODEC_FORMAT_PCM:
             return "PCM";
         case CODEC_FORMAT_H264:
             return "H.264";
         case CODEC_FORMAT_H265:
             return "H.265/HEVC";
+        case CODEC_FORMAT_AV1:
+            return "AV1";
         case CODEC_FORMAT_VP8:
             return "VP8";
         case CODEC_FORMAT_VP9:

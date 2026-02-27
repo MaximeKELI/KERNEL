@@ -274,6 +274,11 @@ void kernel_main(u64 magic, u64 mb_info) {
     framebuffer_init(VESA_MODE_1024x768_8);
     printk("Framebuffer initialized.\n\n");
     
+    /* Initialize multimedia subsystem */
+    printk("Initializing multimedia subsystem...\n");
+    media_init();
+    printk("Multimedia subsystem initialized.\n\n");
+    
     /* Initialize System V IPC */
     printk("Initializing System V IPC...\n");
     sysv_ipc_init();

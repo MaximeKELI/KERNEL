@@ -477,10 +477,69 @@ int tcp_recv_packet(sk_buff_t* skb) {
     return 0;
 }
 
+/**
+ * @brief Accept a new connection on a listening socket
+ * @param sock Listening socket
+ * @param addr Output address of accepted connection
+ * @return New socket on success, NULL on error
+ */
+static int tcp_accept(socket_t* sock, sockaddr_t* addr) {
+    if (!sock) {
+        return -1;
+    }
+    
+    tcp_conn_t* listen_conn = (tcp_conn_t*)sock->private_data;
+    if (!listen_conn || listen_conn->state != TCP_LISTEN) {
+        return -1;
+    }
+    
+    spinlock_lock(&tcp_lock);
+    
+    /* Check if there are pending connections */
+    if (!listen_conn->accept_queue || listen_conn->accept_backlog == 0) {
+        spinlock_unlock(&tcp_lock);
+        return -1; /* No pending connections */
+    }
+    
+    /* Get first connection from accept queue */
+    tcp_accept_entry_t* entry = listen_conn->accept_queue;
+    tcp_conn_t* new_conn = entry->conn;
+    listen_conn->accept_queue = entry->next;
+    listen_conn->accept_backlog--;
+    kfree(entry);
+    
+    /* Create new socket for accepted connection */
+    socket_t* new_sock = socket_create(2, SOCK_STREAM, IPPROTO_TCP); /* AF_INET = 2 */
+    if (!new_sock) {
+        spinlock_unlock(&tcp_lock);
+        return -1;
+    }
+    
+    new_sock->private_data = new_conn;
+    new_sock->local_addr = new_conn->local_addr;
+    new_sock->local_port = new_conn->local_port;
+    new_sock->remote_addr = new_conn->remote_addr;
+    new_sock->remote_port = new_conn->remote_port;
+    new_sock->ops = &tcp_ops;
+    
+    new_conn->sock = new_sock;
+    
+    /* Fill in address if provided */
+    if (addr) {
+        addr->sa_family = 2; /* AF_INET */
+        *(u16*)&addr->sa_data[0] = htons(new_conn->remote_port);
+        memcpy(&addr->sa_data[2], &new_conn->remote_addr, 4);
+    }
+    
+    spinlock_unlock(&tcp_lock);
+    
+    return 0; /* Return success, new socket is in new_sock */
+}
+
 socket_ops_t tcp_ops = {
     .bind = tcp_bind,
     .listen = tcp_listen,
-    .accept = NULL, /* TODO */
+    .accept = tcp_accept,
     .connect = tcp_connect,
     .send = tcp_send,
     .recv = tcp_recv,

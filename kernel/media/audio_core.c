@@ -293,19 +293,40 @@ int audio_mixer_mix(void* output_buffer, size_t len) {
     
     memset(output_buffer, 0, len);
     
-    spinlock_lock(&global_mixer.lock);
+    /* Copy mixer state to local variables to reduce lock time */
+    u32 num_inputs;
+    audio_stream_t* inputs[MAX_AUDIO_STREAMS];
+    u32 volumes[MAX_AUDIO_STREAMS];
     
-    /* Mix all active input streams */
-    for (u32 i = 0; i < global_mixer.num_inputs; i++) {
-        audio_stream_t* stream = global_mixer.inputs[i];
-        if (!stream || !stream->active) {
+    spinlock_lock(&global_mixer.lock);
+    num_inputs = global_mixer.num_inputs;
+    for (u32 i = 0; i < num_inputs && i < MAX_AUDIO_STREAMS; i++) {
+        inputs[i] = global_mixer.inputs[i];
+        volumes[i] = global_mixer.volumes[i];
+    }
+    spinlock_unlock(&global_mixer.lock);
+    
+    /* Mix all active input streams (without holding lock) */
+    for (u32 i = 0; i < num_inputs; i++) {
+        audio_stream_t* stream = inputs[i];
+        if (!stream) {
             continue;
         }
         
-        u32 volume = global_mixer.volumes[i];
+        /* Check if stream is active (needs stream lock) */
+        spinlock_lock(&stream->lock);
+        bool is_active = stream->active;
+        size_t available = stream->available;
+        spinlock_unlock(&stream->lock);
+        
+        if (!is_active) {
+            continue;
+        }
+        
+        u32 volume = volumes[i];
         size_t to_read = len;
-        if (to_read > stream->available) {
-            to_read = stream->available;
+        if (to_read > available) {
+            to_read = available;
         }
         
         if (to_read > 0) {
@@ -319,8 +340,12 @@ int audio_mixer_mix(void* output_buffer, size_t len) {
                 size_t num_samples = read / sizeof(i16);
                 
                 for (size_t j = 0; j < num_samples; j++) {
-                    i32 mixed = (i32)out_samples[j] + 
-                               ((i32)in_samples[j] * volume / 100);
+                    /* Check for integer overflow before calculation */
+                    i64 sample_val = (i64)in_samples[j] * volume;
+                    i64 scaled = sample_val / 100;
+                    i64 mixed = (i64)out_samples[j] + scaled;
+                    
+                    /* Clamp to prevent overflow */
                     if (mixed > 32767) mixed = 32767;
                     if (mixed < -32768) mixed = -32768;
                     out_samples[j] = (i16)mixed;
@@ -328,8 +353,6 @@ int audio_mixer_mix(void* output_buffer, size_t len) {
             }
         }
     }
-    
-    spinlock_unlock(&global_mixer.lock);
     
     return len;
 }

@@ -151,33 +151,58 @@ static int parse_ip_address(const char* host, ip_addr_t* addr) {
         return -1;
     }
     
+    /* Empty string check */
+    if (*host == '\0') {
+        return -1;
+    }
+    
     /* Simple IP address parsing (supports IPv4 dotted decimal) */
     u8 ip[4] = {0};
     int parts[4] = {0};
     int num_parts = 0;
+    int digits_in_part = 0;
     const char* p = host;
     
     /* Parse dotted decimal format: a.b.c.d */
     while (*p && num_parts < 4) {
         if (*p >= '0' && *p <= '9') {
+            /* Prevent overflow: check if multiplying by 10 would overflow */
+            if (parts[num_parts] > 25) {
+                return -1; /* Will overflow */
+            }
             parts[num_parts] = parts[num_parts] * 10 + (*p - '0');
             if (parts[num_parts] > 255) {
-                return -1; /* Invalid IP */
+                return -1; /* Invalid IP - value > 255 */
+            }
+            digits_in_part++;
+            if (digits_in_part > 3) {
+                return -1; /* Too many digits in one part */
             }
         } else if (*p == '.') {
+            if (digits_in_part == 0) {
+                return -1; /* Empty part */
+            }
             num_parts++;
+            digits_in_part = 0;
+            if (num_parts >= 4) {
+                return -1; /* Too many parts */
+            }
         } else {
             return -1; /* Invalid character */
         }
         p++;
     }
-    num_parts++; /* Count last part */
     
-    if (num_parts != 4) {
+    /* Must have exactly 4 parts and last part must have digits */
+    if (num_parts != 3 || digits_in_part == 0) {
         return -1; /* Invalid IP format */
     }
     
+    /* Validate all parts are in valid range */
     for (int i = 0; i < 4; i++) {
+        if (parts[i] > 255) {
+            return -1;
+        }
         ip[i] = (u8)parts[i];
     }
     

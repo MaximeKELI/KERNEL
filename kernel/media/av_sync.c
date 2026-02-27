@@ -61,6 +61,7 @@ av_stream_t* av_stream_create(const char* name, audio_stream_t* audio,
     stream->start_time = hrtimer_get_time(); /* Use actual timestamp in nanoseconds */
     stream->playing = false;
     stream->paused = false;
+    stream->destroyed = false;
     spinlock_init(&stream->lock);
     
     spinlock_lock(&av_global_lock);
@@ -74,6 +75,15 @@ av_stream_t* av_stream_create(const char* name, audio_stream_t* audio,
 
 void av_stream_destroy(av_stream_t* stream) {
     VALIDATE_PTR_VOID(stream);
+    
+    /* Protection against double-free */
+    spinlock_lock(&stream->lock);
+    if (stream->destroyed) {
+        spinlock_unlock(&stream->lock);
+        return;
+    }
+    stream->destroyed = true;
+    spinlock_unlock(&stream->lock);
     
     spinlock_lock(&av_global_lock);
     
@@ -109,8 +119,16 @@ int av_stream_play(av_stream_t* stream) {
     stream->paused = false;
     stream->start_time = hrtimer_get_time(); /* Use actual timestamp in nanoseconds */
     
+    int ret = 0;
     if (stream->audio_stream) {
-        audio_stream_start(stream->audio_stream);
+        ret = audio_stream_start(stream->audio_stream);
+        if (ret < 0) {
+            /* If audio start fails, mark stream as not playing */
+            stream->playing = false;
+            spinlock_unlock(&stream->lock);
+            DEBUG_ERROR("Failed to start audio stream: %s", stream->name);
+            return -1;
+        }
     }
     
     spinlock_unlock(&stream->lock);

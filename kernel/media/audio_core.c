@@ -27,6 +27,7 @@ typedef struct audio_stream {
     u32 read_pos;
     u32 available;
     bool active;
+    bool destroyed;  /* Protection against double-free */
     spinlock_t lock;
     struct audio_stream* next;
 } audio_stream_t;

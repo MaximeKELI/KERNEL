@@ -292,10 +292,52 @@ static ssize_t tcp_recv(socket_t* sock, void* buf, size_t len) {
         return -1;
     }
     
-    /* TODO: Read from receive buffer */
-    (void)len;
+    if (!conn->recv_buffer) {
+        return -1;
+    }
     
-    return 0;
+    spinlock_lock(&tcp_lock);
+    
+    /* Calculate available data */
+    size_t available = 0;
+    if (conn->recv_tail >= conn->recv_head) {
+        available = conn->recv_tail - conn->recv_head;
+    } else {
+        available = conn->recv_size - conn->recv_head + conn->recv_tail;
+    }
+    
+    if (available == 0) {
+        spinlock_unlock(&tcp_lock);
+        return 0; /* No data available */
+    }
+    
+    /* Limit to requested length */
+    if (len > available) {
+        len = available;
+    }
+    
+    /* Copy data from receive buffer */
+    u8* recv_buf = (u8*)conn->recv_buffer;
+    size_t copied = 0;
+    
+    while (copied < len && available > 0) {
+        size_t to_copy = len - copied;
+        if (conn->recv_head + to_copy > conn->recv_size) {
+            to_copy = conn->recv_size - conn->recv_head;
+        }
+        if (to_copy > available) {
+            to_copy = available;
+        }
+        
+        memcpy((u8*)buf + copied, recv_buf + conn->recv_head, to_copy);
+        conn->recv_head = (conn->recv_head + to_copy) % conn->recv_size;
+        copied += to_copy;
+        available -= to_copy;
+    }
+    
+    spinlock_unlock(&tcp_lock);
+    
+    return copied;
 }
 
 static int tcp_close(socket_t* sock) {

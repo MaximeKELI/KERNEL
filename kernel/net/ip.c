@@ -37,6 +37,14 @@ void ip_init(void) {
     printk("[IP] IP protocol layer initialized\n");
 }
 
+/**
+ * @brief Calculate IP checksum
+ * @param data Pointer to data
+ * @param len Length of data in bytes
+ * @return 16-bit checksum value
+ * 
+ * Calculates the standard IP checksum (one's complement sum).
+ */
 u16 ip_checksum(const void* data, size_t len) {
     const u16* words = (const u16*)data;
     u32 sum = 0;

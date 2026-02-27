@@ -10,19 +10,33 @@
 #include "string.h"
 
 #define UDP_HEADER_LEN 8
-#define MAX_UDP_SOCKETS 256
+#define MAX_UDP_SOCKETS 1024
+#define UDP_RECV_QUEUE_SIZE 64
+
+/* UDP receive queue entry */
+typedef struct udp_recv_entry {
+    void* data;
+    size_t len;
+    ip_addr_t src_addr;
+    u16 src_port;
+    struct udp_recv_entry* next;
+} udp_recv_entry_t;
 
 /* UDP socket */
 typedef struct udp_socket {
     ip_addr_t local_addr;
     u16 local_port;
     socket_t* sock;
+    udp_recv_entry_t* recv_queue;
+    u32 recv_queue_size;
+    u32 max_recv_queue_size;
     struct udp_socket* next;
 } udp_socket_t;
 
 static udp_socket_t* udp_sockets = NULL;
 static spinlock_t udp_lock = SPINLOCK_INIT;
 static u16 udp_port_counter = 1024;
+static u32 udp_socket_count = 0;
 
 void udp_init(void) {
     udp_sockets = NULL;
@@ -34,15 +48,47 @@ void udp_init(void) {
     printk("[UDP] UDP protocol initialized\n");
 }
 
+/**
+ * @brief Parse sockaddr structure to extract IP and port
+ * @param addr Socket address structure
+ * @param ip Output IP address
+ * @param port Output port number
+ * @return 0 on success, -1 on error
+ */
+static int parse_sockaddr(const sockaddr_t* addr, ip_addr_t* ip, u16* port) {
+    if (!addr || !ip || !port) {
+        return -1;
+    }
+    
+    if (addr->sa_family != 2) { /* AF_INET = 2 */
+        return -1;
+    }
+    
+    *port = ntohs(*(u16*)&addr->sa_data[0]);
+    memcpy(ip, &addr->sa_data[2], 4);
+    
+    return 0;
+}
+
 static int udp_bind(socket_t* sock, const sockaddr_t* addr) {
     if (!sock || !addr) {
         return -1;
     }
     
-    /* TODO: Parse sockaddr to get IP and port */
+    ip_addr_t bind_ip = {0};
     u16 port = 0;
     
+    if (parse_sockaddr(addr, &bind_ip, &port) < 0) {
+        return -1;
+    }
+    
     spinlock_lock(&udp_lock);
+    
+    /* Check socket limit */
+    if (udp_socket_count >= MAX_UDP_SOCKETS) {
+        spinlock_unlock(&udp_lock);
+        return -1;
+    }
     
     /* Check if port is already in use */
     udp_socket_t* s = udp_sockets;
@@ -62,9 +108,18 @@ static int udp_bind(socket_t* sock, const sockaddr_t* addr) {
     }
     
     udp_sock->sock = sock;
+    udp_sock->local_addr = bind_ip;
     udp_sock->local_port = port;
+    udp_sock->recv_queue = NULL;
+    udp_sock->recv_queue_size = 0;
+    udp_sock->max_recv_queue_size = UDP_RECV_QUEUE_SIZE;
     udp_sock->next = udp_sockets;
     udp_sockets = udp_sock;
+    udp_socket_count++;
+    
+    sock->private_data = udp_sock;
+    sock->local_addr = bind_ip;
+    sock->local_port = port;
     
     spinlock_unlock(&udp_lock);
     

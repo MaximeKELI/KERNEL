@@ -12,25 +12,6 @@
 #define MAX_CODECS 32
 #define CODEC_BUFFER_SIZE (256 * 1024)  /* 256KB */
 
-/* Codec type */
-typedef enum {
-    CODEC_TYPE_AUDIO,
-    CODEC_TYPE_VIDEO
-} codec_type_t;
-
-/* Codec format */
-typedef enum {
-    CODEC_FORMAT_MP3,
-    CODEC_FORMAT_AAC,
-    CODEC_FORMAT_OGG_VORBIS,
-    CODEC_FORMAT_PCM,
-    CODEC_FORMAT_H264,
-    CODEC_FORMAT_H265,
-    CODEC_FORMAT_VP8,
-    CODEC_FORMAT_VP9,
-    CODEC_FORMAT_RAW
-} codec_format_t;
-
 /* Codec */
 typedef struct codec {
     u32 codec_id;

@@ -12,6 +12,11 @@
 #include "tc.h"
 #include "packet_sched.h"
 #include "multipath.h"
+#include "kernel_bypass.h"
+#include "hw_offload.h"
+#include "zero_copy.h"
+#include "adaptive_routing.h"
+#include "network_slicing.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
@@ -43,6 +48,13 @@ void net_init(void) {
     tc_init();
     packet_sched_init();
     multipath_init();
+    
+    /* Initialize advanced networking features */
+    kernel_bypass_init();
+    hw_offload_init();
+    zero_copy_init();
+    adaptive_routing_init();
+    network_slicing_init();
     
     DEBUG_INFO("Networking stack initialized");
     printk("[Net] Complete networking infrastructure initialized\n");

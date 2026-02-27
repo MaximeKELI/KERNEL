@@ -2,6 +2,8 @@
 #include "ip.h"
 #include "skbuff.h"
 #include "ethernet.h"
+#include "route.h"
+#include "rcu.h"
 #include "memory.h"
 #include "stdio.h"
 #include "debug.h"

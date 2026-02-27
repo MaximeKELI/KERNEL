@@ -292,6 +292,8 @@ int media_async_submit(media_async_io_t* async_io) {
 int media_async_wait(media_async_io_t* async_io, u32 timeout_ms) {
     VALIDATE_PTR_RET(async_io, -1);
     
+    (void)timeout_ms; /* TODO: Use timeout in proper implementation */
+    
     /* TODO: Implement proper waiting mechanism */
     /* For now, just check if completed */
     if (async_io->completed) {

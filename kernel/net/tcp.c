@@ -71,6 +71,7 @@ static tcp_conn_t* tcp_connections = NULL;
 static spinlock_t tcp_lock = SPINLOCK_INIT;
 static u16 tcp_port_counter = 1024;
 static u32 tcp_seq_counter = 0;
+static u32 tcp_connection_count = 0;
 
 void tcp_init(void) {
     tcp_connections = NULL;

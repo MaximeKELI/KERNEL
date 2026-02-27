@@ -213,18 +213,47 @@ int udp_recv_packet(sk_buff_t* skb) {
     }
     
     udp_header_t* udph = (udp_header_t*)skb->data;
+    u16 src_port = ntohs(udph->src_port);
+    u16 dst_port = ntohs(udph->dst_port);
+    
+    /* Get source IP from IP header */
+    ip_addr_t src_addr = {0};
+    if (skb->ip_hdr) {
+        src_addr = skb->ip_hdr->src;
+    }
     
     /* Remove UDP header */
     skb_pull(skb, UDP_HEADER_LEN);
     
     /* Find socket */
-    u16 dst_port = ntohs(udph->dst_port);
-    
     spinlock_lock(&udp_lock);
     udp_socket_t* udp_sock = udp_sockets;
     while (udp_sock) {
         if (udp_sock->local_port == dst_port) {
-            /* TODO: Deliver to socket receive queue */
+            /* Check receive queue limit */
+            if (udp_sock->recv_queue_size >= udp_sock->max_recv_queue_size) {
+                spinlock_unlock(&udp_lock);
+                skb_free(skb);
+                return -1; /* Receive queue full */
+            }
+            
+            /* Allocate receive queue entry */
+            udp_recv_entry_t* entry = (udp_recv_entry_t*)kzalloc(sizeof(udp_recv_entry_t));
+            if (entry) {
+                entry->len = skb->len;
+                entry->data = kzalloc(skb->len);
+                if (entry->data) {
+                    memcpy(entry->data, skb->data, skb->len);
+                    entry->src_addr = src_addr;
+                    entry->src_port = src_port;
+                    entry->next = udp_sock->recv_queue;
+                    udp_sock->recv_queue = entry;
+                    udp_sock->recv_queue_size++;
+                } else {
+                    kfree(entry);
+                }
+            }
+            
             spinlock_unlock(&udp_lock);
             skb_free(skb);
             return 0;

@@ -18,6 +18,7 @@ static spinlock_t ip_lock = SPINLOCK_INIT;
 /* IP protocol handlers */
 typedef int (*ip_protocol_handler_t)(sk_buff_t* skb);
 static ip_protocol_handler_t ip_protocols[256];
+static spinlock_t ip_protocols_lock = SPINLOCK_INIT;
 
 void ip_init(void) {
     ip_id_counter = 0;

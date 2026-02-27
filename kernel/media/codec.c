@@ -152,7 +152,7 @@ static int aac_decode(codec_t* codec, const void* input, size_t input_len,
     }
     
     if (!valid_aac && input_len > 0) {
-        DEBUG_INFO("AAC: Format validation unclear, using passthrough");
+        DEBUG_INFO("AAC: Format validation unclear, using passthrough", 0);
     }
     
     size_t copy_len = (input_len < *output_len) ? input_len : *output_len;
@@ -191,7 +191,7 @@ static int ogg_vorbis_decode(codec_t* codec, const void* input, size_t input_len
     }
     
     if (!valid_ogg && input_len > 0) {
-        DEBUG_INFO("OGG Vorbis: Format validation unclear, using passthrough");
+        DEBUG_INFO("OGG Vorbis: Format validation unclear, using passthrough", 0);
     }
     
     size_t copy_len = (input_len < *output_len) ? input_len : *output_len;

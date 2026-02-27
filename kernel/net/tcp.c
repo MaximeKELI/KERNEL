@@ -12,6 +12,9 @@
 #define TCP_HEADER_LEN 20
 #define MAX_TCP_CONNECTIONS 1024
 #define TCP_WINDOW_SIZE 65535
+#define TCP_DEFAULT_TIMEOUT_MS 30000  /* 30 seconds */
+#define TCP_ACCEPT_BACKLOG_MAX 128
+#define TCP_RECV_BUFFER_SIZE (64 * 1024)  /* 64KB */
 
 /* TCP connection states */
 #define TCP_CLOSED      0
@@ -34,6 +37,12 @@
 #define TCP_FLAG_ACK 0x10
 #define TCP_FLAG_URG 0x20
 
+/* TCP accept queue entry */
+typedef struct tcp_accept_entry {
+    tcp_conn_t* conn;
+    struct tcp_accept_entry* next;
+} tcp_accept_entry_t;
+
 /* TCP connection */
 typedef struct tcp_conn {
     ip_addr_t local_addr;
@@ -50,6 +59,11 @@ typedef struct tcp_conn {
     size_t recv_size;
     size_t recv_head;
     size_t recv_tail;
+    u64 last_activity;      /* Last activity timestamp */
+    u64 timeout_ms;         /* Connection timeout */
+    tcp_accept_entry_t* accept_queue;  /* Accept queue for listen sockets */
+    u32 accept_backlog;     /* Current accept queue size */
+    u32 max_backlog;        /* Maximum accept queue size */
     struct tcp_conn* next;
 } tcp_conn_t;
 

@@ -86,6 +86,7 @@
 #include "io.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "media.h"
 #include "memory_pressure.h"
 #include "kswapd.h"
 #include "memory_defrag.h"

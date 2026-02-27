@@ -184,14 +184,14 @@ int av_stream_sync(av_stream_t* stream) {
     u64 elapsed = current_time - stream->start_time;
     
     /* Calculate drift between audio and video */
-    s64 drift = (s64)stream->audio_pts - (s64)stream->video_pts;
+    i64 drift = (i64)stream->audio_pts - (i64)stream->video_pts;
     
     if (drift > SYNC_THRESHOLD_MS) {
         /* Audio ahead, slow down or skip video frame */
-        DEBUG_INFO("AV sync: Audio ahead by %lld ms", drift);
+        DEBUG_INFO("AV sync: Audio ahead by %lld ms", (long long)drift);
     } else if (drift < -SYNC_THRESHOLD_MS) {
         /* Video ahead, slow down or skip audio */
-        DEBUG_INFO("AV sync: Video ahead by %lld ms", -drift);
+        DEBUG_INFO("AV sync: Video ahead by %lld ms", (long long)-drift);
     }
     
     spinlock_unlock(&stream->lock);

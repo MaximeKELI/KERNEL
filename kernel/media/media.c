@@ -18,6 +18,10 @@ void media_init(void) {
     av_sync_init();
     streaming_init();
     
+    /* Initialize modern features */
+    extern int media_hw_accel_init(void);
+    media_hw_accel_init();
+    
     DEBUG_INFO("Media subsystem initialized", 0);
     printk("[Media] Complete multimedia subsystem initialized\n");
 }

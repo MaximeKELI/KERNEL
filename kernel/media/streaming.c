@@ -77,6 +77,7 @@ media_stream_t* stream_create(const char* name, stream_protocol_t protocol) {
     stream->bytes_received = 0;
     stream->bytes_sent = 0;
     stream->active = false;
+    stream->destroyed = false;
     spinlock_init(&stream->lock);
     
     spinlock_lock(&stream_lock);
@@ -90,6 +91,15 @@ media_stream_t* stream_create(const char* name, stream_protocol_t protocol) {
 
 void stream_destroy(media_stream_t* stream) {
     VALIDATE_PTR_VOID(stream);
+    
+    /* Protection against double-free */
+    spinlock_lock(&stream->lock);
+    if (stream->destroyed) {
+        spinlock_unlock(&stream->lock);
+        return;
+    }
+    stream->destroyed = true;
+    spinlock_unlock(&stream->lock);
     
     /* Stop stream */
     stream_stop(stream);

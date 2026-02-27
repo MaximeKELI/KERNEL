@@ -422,8 +422,26 @@ codec_t* codec_create(const char* name, codec_type_t type, codec_format_t format
         case CODEC_FORMAT_MP3:
             ops = &mp3_ops;
             break;
+        case CODEC_FORMAT_AAC:
+            ops = &aac_ops;
+            break;
+        case CODEC_FORMAT_OGG_VORBIS:
+            ops = &ogg_vorbis_ops;
+            break;
         case CODEC_FORMAT_H264:
             ops = &h264_ops;
+            break;
+        case CODEC_FORMAT_H265:
+            ops = &h265_ops;
+            break;
+        case CODEC_FORMAT_VP8:
+            ops = &vp8_ops;
+            break;
+        case CODEC_FORMAT_VP9:
+            ops = &vp9_ops;
+            break;
+        case CODEC_FORMAT_RAW:
+            ops = &raw_ops;
             break;
         default:
             DEBUG_ERROR("Unsupported codec format: %u", format);
@@ -481,8 +499,26 @@ void codec_destroy(codec_t* codec) {
         case CODEC_FORMAT_MP3:
             ops = &mp3_ops;
             break;
+        case CODEC_FORMAT_AAC:
+            ops = &aac_ops;
+            break;
+        case CODEC_FORMAT_OGG_VORBIS:
+            ops = &ogg_vorbis_ops;
+            break;
         case CODEC_FORMAT_H264:
             ops = &h264_ops;
+            break;
+        case CODEC_FORMAT_H265:
+            ops = &h265_ops;
+            break;
+        case CODEC_FORMAT_VP8:
+            ops = &vp8_ops;
+            break;
+        case CODEC_FORMAT_VP9:
+            ops = &vp9_ops;
+            break;
+        case CODEC_FORMAT_RAW:
+            ops = &raw_ops;
             break;
         default:
             break;
@@ -518,8 +554,26 @@ int codec_decode(codec_t* codec, const void* input, size_t input_len,
         case CODEC_FORMAT_MP3:
             ops = &mp3_ops;
             break;
+        case CODEC_FORMAT_AAC:
+            ops = &aac_ops;
+            break;
+        case CODEC_FORMAT_OGG_VORBIS:
+            ops = &ogg_vorbis_ops;
+            break;
         case CODEC_FORMAT_H264:
             ops = &h264_ops;
+            break;
+        case CODEC_FORMAT_H265:
+            ops = &h265_ops;
+            break;
+        case CODEC_FORMAT_VP8:
+            ops = &vp8_ops;
+            break;
+        case CODEC_FORMAT_VP9:
+            ops = &vp9_ops;
+            break;
+        case CODEC_FORMAT_RAW:
+            ops = &raw_ops;
             break;
         default:
             return -1;

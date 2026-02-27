@@ -144,6 +144,10 @@ int video_device_set_mode(video_device_t* dev, u32 mode_index) {
         return -1;
     }
     
+    /* Save current mode for rollback */
+    u32 old_mode = dev->current_mode;
+    framebuffer_t* old_fb = dev->fb;
+    
     /* Update framebuffer mode */
     /* Note: framebuffer is global, we just update our reference */
     dev->fb = framebuffer_get();
@@ -151,13 +155,23 @@ int video_device_set_mode(video_device_t* dev, u32 mode_index) {
         return -1;
     }
     
-    /* Update framebuffer dimensions if possible */
+    /* Calculate new framebuffer parameters */
+    u32 new_pitch = mode->width * (mode->bpp / 8);
+    u64 new_size = (u64)new_pitch * mode->height;
+    
+    /* Validate new size is reasonable (prevent overflow) */
+    if (new_size > (u64)1024 * 1024 * 1024) { /* 1GB max */
+        return -1;
+    }
+    
+    /* Update framebuffer dimensions */
     dev->fb->width = mode->width;
     dev->fb->height = mode->height;
     dev->fb->bpp = mode->bpp;
-    dev->fb->pitch = mode->width * (mode->bpp / 8);
-    dev->fb->size = dev->fb->pitch * mode->height;
+    dev->fb->pitch = new_pitch;
+    dev->fb->size = new_size;
     
+    /* Only update current_mode if everything succeeded */
     dev->current_mode = mode_index;
     
     DEBUG_INFO("Video mode set: %ux%u@%uHz", 

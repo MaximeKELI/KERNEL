@@ -538,6 +538,17 @@ int codec_decode(codec_t* codec, const void* input, size_t input_len,
         return -1;
     }
     
+    /* Validate output buffer size */
+    if (*output_len == 0) {
+        return -1;
+    }
+    
+    /* Validate input size */
+    if (input_len == 0) {
+        *output_len = 0;
+        return -1;
+    }
+    
     codec_ops_t* ops = NULL;
     switch (codec->format) {
         case CODEC_FORMAT_PCM:

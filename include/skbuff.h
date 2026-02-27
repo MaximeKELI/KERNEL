@@ -25,6 +25,9 @@ typedef struct sk_buff {
     
     u32 users;         /* Reference count */
     
+    /* Network layer headers */
+    ip_header_t* ip_hdr;  /* IP header pointer */
+    
     void* private_data;
 } sk_buff_t;
 

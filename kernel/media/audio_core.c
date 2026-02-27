@@ -341,8 +341,14 @@ int audio_mixer_mix(void* output_buffer, size_t len) {
             to_read = available;
         }
         
+        /* Limit to buffer size to prevent overflow */
+        #define MIXER_TEMP_BUFFER_SIZE 4096
+        if (to_read > MIXER_TEMP_BUFFER_SIZE) {
+            to_read = MIXER_TEMP_BUFFER_SIZE;
+        }
+        
         if (to_read > 0) {
-            u8 temp_buffer[4096];
+            u8 temp_buffer[MIXER_TEMP_BUFFER_SIZE];
             size_t read = audio_stream_read(stream, temp_buffer, to_read);
             
             if (read > 0) {

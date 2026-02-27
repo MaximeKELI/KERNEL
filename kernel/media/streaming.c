@@ -15,25 +15,6 @@
 #define MAX_STREAMS 32
 #define STREAM_BUFFER_SIZE (512 * 1024)  /* 512KB */
 
-/* Stream protocol */
-typedef enum {
-    STREAM_PROTOCOL_RTP,
-    STREAM_PROTOCOL_RTSP,
-    STREAM_PROTOCOL_HTTP,
-    STREAM_PROTOCOL_UDP,
-    STREAM_PROTOCOL_TCP
-} stream_protocol_t;
-
-/* Stream state */
-typedef enum {
-    STREAM_STATE_IDLE,
-    STREAM_STATE_CONNECTING,
-    STREAM_STATE_BUFFERING,
-    STREAM_STATE_PLAYING,
-    STREAM_STATE_PAUSED,
-    STREAM_STATE_ERROR
-} stream_state_t;
-
 /* Media stream */
 typedef struct media_stream {
     u32 stream_id;
@@ -254,7 +235,7 @@ int stream_connect(media_stream_t* stream, const char* host, u16 port) {
             return -1;
         }
     } else {
-        DEBUG_ERROR("Socket connect operation not available");
+        DEBUG_ERROR("Socket connect operation not available", 0);
         socket_destroy(stream->socket);
         stream->socket = NULL;
         return -1;

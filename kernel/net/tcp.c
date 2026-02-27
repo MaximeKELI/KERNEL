@@ -74,6 +74,17 @@ static u16 tcp_port_counter = 1024;
 static u32 tcp_seq_counter = 0;
 static u32 tcp_connection_count = 0;
 
+/**
+ * @brief Initialize TCP protocol layer
+ * 
+ * Initializes the TCP protocol subsystem, including:
+ * - Connection list
+ * - Port counter
+ * - Sequence number counter
+ * - Registration with IP layer
+ * 
+ * @note Must be called before any TCP operations
+ */
 void tcp_init(void) {
     tcp_connections = NULL;
     tcp_port_counter = 1024;

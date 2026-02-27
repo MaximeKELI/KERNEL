@@ -572,10 +572,12 @@ void kernel_main(u64 magic, u64 mb_info) {
     extern void register_memory_tests(void);
     extern void register_scheduler_tests(void);
     extern void register_all_tests(void);
+    extern void register_network_tests(void);
     register_memory_tests();
     register_scheduler_tests();
     register_all_tests();
-    
+    register_network_tests();
+
     /* Register AI tests */
     extern void register_ai_tests(void);
     register_ai_tests();

@@ -19,4 +19,7 @@ void hugepage_free(void* addr, size_t size);
 /* Get huge page statistics */
 void hugepages_get_stats(u64* total, u64* free, u64* used);
 
+/* Check if address is a huge page */
+bool hugepage_is_huge(void* addr);
+
 #endif /* HUGEPAGES_H */

@@ -278,7 +278,10 @@ int audio_mixer_add_input(audio_stream_t* stream) {
 }
 
 int audio_mixer_set_volume(u32 input_id, u32 volume) {
-    VALIDATE_RANGE(volume, 0, 100);
+    /* Validate volume range manually (VALIDATE_RANGE has issues with unsigned) */
+    if (volume > 100) {
+        return -1;
+    }
     
     spinlock_lock(&global_mixer.lock);
     

@@ -29,11 +29,19 @@ codec_format_t media_detect_format_from_extension(const char* filename) {
         return CODEC_FORMAT_RAW;
     }
     
-    const char* ext = strrchr(filename, '.');
-    if (!ext) {
+    /* Find last dot in filename */
+    const char* ext = filename;
+    const char* last_dot = NULL;
+    while (*ext) {
+        if (*ext == '.') {
+            last_dot = ext;
+        }
+        ext++;
+    }
+    if (!last_dot) {
         return CODEC_FORMAT_RAW;
     }
-    ext++; /* Skip the dot */
+    ext = last_dot + 1; /* Skip the dot */
     
     /* Audio formats */
     if (strcmp(ext, "mp3") == 0 || strcmp(ext, "MP3") == 0) {

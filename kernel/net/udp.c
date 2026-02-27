@@ -38,6 +38,16 @@ static spinlock_t udp_lock = SPINLOCK_INIT;
 static u16 udp_port_counter = 1024;
 static u32 udp_socket_count = 0;
 
+/**
+ * @brief Initialize UDP protocol layer
+ * 
+ * Initializes the UDP protocol subsystem, including:
+ * - Socket list
+ * - Port counter
+ * - Registration with IP layer
+ * 
+ * @note Must be called before any UDP operations
+ */
 void udp_init(void) {
     udp_sockets = NULL;
     udp_port_counter = 1024;

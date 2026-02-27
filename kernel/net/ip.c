@@ -22,6 +22,15 @@ typedef int (*ip_protocol_handler_t)(sk_buff_t* skb);
 static ip_protocol_handler_t ip_protocols[256];
 static spinlock_t ip_protocols_lock = SPINLOCK_INIT;
 
+/**
+ * @brief Initialize IP protocol layer
+ * 
+ * Initializes the IP protocol subsystem, including:
+ * - IP ID counter
+ * - Protocol handler table
+ * 
+ * @note Must be called before any IP operations
+ */
 void ip_init(void) {
     ip_id_counter = 0;
     memset(ip_protocols, 0, sizeof(ip_protocols));

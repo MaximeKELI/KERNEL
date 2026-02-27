@@ -88,6 +88,12 @@ int icmp_recv_packet(sk_buff_t* skb) {
         return -1;
     }
     
+    /* Get source IP from IP header */
+    ip_addr_t src = {0};
+    if (skb->ip_hdr) {
+        src = skb->ip_hdr->src;
+    }
+    
     switch (icmph->type) {
         case ICMP_ECHO_REQUEST:
             /* Send echo reply */
@@ -95,19 +101,30 @@ int icmp_recv_packet(sk_buff_t* skb) {
             icmph->checksum = 0;
             icmph->checksum = ip_checksum(icmph, skb->len);
             
-            /* Get source IP from IP header */
-            /* TODO: Extract from IP header */
-            ip_addr_t src = {0};
             ip_send_packet(src, IPPROTO_ICMP, skb->data, skb->len);
             break;
             
         case ICMP_ECHO_REPLY:
-            /* TODO: Handle echo reply */
+            /* Handle echo reply - typically used by ping */
+            /* In a full implementation, this would wake up waiting processes */
+            DEBUG_INFO("ICMP echo reply received from %u.%u.%u.%u",
+                      src.addr[0], src.addr[1], src.addr[2], src.addr[3]);
             break;
             
         case ICMP_DEST_UNREACH:
+            /* Handle destination unreachable */
+            DEBUG_INFO("ICMP destination unreachable: code=%u", icmph->code);
+            /* In a full implementation, this would notify the sending socket */
+            break;
+            
         case ICMP_TIME_EXCEEDED:
-            /* TODO: Handle error messages */
+            /* Handle time exceeded */
+            DEBUG_INFO("ICMP time exceeded: code=%u", icmph->code);
+            /* In a full implementation, this would notify routing layer */
+            break;
+            
+        default:
+            DEBUG_INFO("ICMP message type %u not handled", icmph->type);
             break;
     }
     

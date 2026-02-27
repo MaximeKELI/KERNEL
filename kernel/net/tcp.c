@@ -163,7 +163,20 @@ static int tcp_listen(socket_t* sock, int backlog) {
         return -1;
     }
     
+    if (backlog < 1) {
+        backlog = 1;
+    }
+    if (backlog > TCP_ACCEPT_BACKLOG_MAX) {
+        backlog = TCP_ACCEPT_BACKLOG_MAX;
+    }
+    
     spinlock_lock(&tcp_lock);
+    
+    /* Check connection limit */
+    if (tcp_connection_count >= MAX_TCP_CONNECTIONS) {
+        spinlock_unlock(&tcp_lock);
+        return -1;
+    }
     
     /* Create listen connection */
     tcp_conn_t* conn = (tcp_conn_t*)kzalloc(sizeof(tcp_conn_t));
@@ -174,11 +187,20 @@ static int tcp_listen(socket_t* sock, int backlog) {
     
     conn->sock = sock;
     conn->state = TCP_LISTEN;
-    conn->local_port = tcp_port_counter++;
+    conn->local_addr = sock->local_addr;
+    conn->local_port = sock->local_port ? sock->local_port : tcp_port_counter++;
     conn->send_window = TCP_WINDOW_SIZE;
     conn->recv_window = TCP_WINDOW_SIZE;
+    conn->accept_queue = NULL;
+    conn->accept_backlog = 0;
+    conn->max_backlog = backlog;
+    conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
+    conn->last_activity = 0; /* TODO: Use actual timestamp */
     conn->next = tcp_connections;
     tcp_connections = conn;
+    tcp_connection_count++;
+    
+    sock->private_data = conn;
     
     spinlock_unlock(&tcp_lock);
     
@@ -190,11 +212,20 @@ static int tcp_connect(socket_t* sock, const sockaddr_t* addr) {
         return -1;
     }
     
-    /* TODO: Parse sockaddr to get remote address */
     ip_addr_t remote_addr = {0};
     u16 remote_port = 0;
     
+    if (parse_sockaddr(addr, &remote_addr, &remote_port) < 0) {
+        return -1;
+    }
+    
     spinlock_lock(&tcp_lock);
+    
+    /* Check connection limit */
+    if (tcp_connection_count >= MAX_TCP_CONNECTIONS) {
+        spinlock_unlock(&tcp_lock);
+        return -1;
+    }
     
     /* Create connection */
     tcp_conn_t* conn = (tcp_conn_t*)kzalloc(sizeof(tcp_conn_t));
@@ -205,15 +236,27 @@ static int tcp_connect(socket_t* sock, const sockaddr_t* addr) {
     
     conn->sock = sock;
     conn->state = TCP_SYN_SENT;
-    conn->local_port = tcp_port_counter++;
+    conn->local_addr = sock->local_addr;
+    conn->local_port = sock->local_port ? sock->local_port : tcp_port_counter++;
     conn->remote_addr = remote_addr;
     conn->remote_port = remote_port;
     conn->seq = tcp_seq_counter++;
     conn->ack = 0;
     conn->send_window = TCP_WINDOW_SIZE;
     conn->recv_window = TCP_WINDOW_SIZE;
+    conn->recv_buffer = kzalloc(TCP_RECV_BUFFER_SIZE);
+    conn->recv_size = TCP_RECV_BUFFER_SIZE;
+    conn->recv_head = 0;
+    conn->recv_tail = 0;
+    conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
+    conn->last_activity = 0; /* TODO: Use actual timestamp */
     conn->next = tcp_connections;
     tcp_connections = conn;
+    tcp_connection_count++;
+    
+    sock->private_data = conn;
+    sock->remote_addr = remote_addr;
+    sock->remote_port = remote_port;
     
     spinlock_unlock(&tcp_lock);
     

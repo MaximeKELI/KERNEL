@@ -152,6 +152,8 @@ void kernel_main(u64 magic, u64 mb_info) {
     /* Initialize process manager */
     printk("Initializing process manager...\n");
     process_init();
+    load_balance_init();
+    sched_domain_init();
     printk("Process manager initialized.\n\n");
     
     /* Initialize syscalls */

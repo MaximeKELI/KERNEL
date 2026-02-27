@@ -232,13 +232,16 @@ int video_buffer_flip(video_device_t* dev, u32 buffer_id) {
     }
     
     /* Copy buffer to framebuffer */
-    if (dev->fb && buf->data) {
+    if (dev->fb && buf->data && dev->fb->addr) {
         video_mode_t* mode = &dev->modes[dev->current_mode];
         size_t copy_size = mode->width * mode->height * (mode->bpp / 8);
         if (copy_size > buf->size) {
             copy_size = buf->size;
         }
-        memcpy(dev->fb->buffer, buf->data, copy_size);
+        if (copy_size > dev->fb->size) {
+            copy_size = dev->fb->size;
+        }
+        memcpy(dev->fb->addr, buf->data, copy_size);
     }
     
     dev->active_buffer = buffer_id;

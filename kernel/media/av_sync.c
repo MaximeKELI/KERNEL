@@ -51,6 +51,7 @@ av_stream_t* av_stream_create(const char* name, audio_stream_t* audio,
     
     stream->stream_id = av_stream_counter++;
     strncpy(stream->name, name, sizeof(stream->name) - 1);
+    stream->name[sizeof(stream->name) - 1] = '\0'; /* Ensure null termination */
     stream->audio_stream = audio;
     stream->video_buffer = video;
     stream->audio_pts = 0;

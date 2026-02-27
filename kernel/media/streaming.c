@@ -33,6 +33,7 @@ typedef struct media_stream {
     u64 bytes_received;
     u64 bytes_sent;
     bool active;
+    bool destroyed;  /* Protection against double-free */
     spinlock_t lock;
     struct media_stream* next;
 } media_stream_t;
@@ -57,6 +58,7 @@ media_stream_t* stream_create(const char* name, stream_protocol_t protocol) {
     
     stream->stream_id = stream_counter++;
     strncpy(stream->name, name, sizeof(stream->name) - 1);
+    stream->name[sizeof(stream->name) - 1] = '\0'; /* Ensure null termination */
     stream->protocol = protocol;
     stream->state = STREAM_STATE_IDLE;
     stream->socket = NULL;

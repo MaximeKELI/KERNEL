@@ -74,6 +74,34 @@ void* memmove(void* dest, const void* src, size_t n) {
     return dest;
 }
 
+char* strchr(const char* s, int c) {
+    while (*s) {
+        if (*s == (char)c) {
+            return (char*)s;
+        }
+        s++;
+    }
+    return (c == '\0') ? (char*)s : NULL;
+}
+
+char* strstr(const char* haystack, const char* needle) {
+    if (!needle || !*needle) {
+        return (char*)haystack;
+    }
+    for (; *haystack; haystack++) {
+        const char* h = haystack;
+        const char* n = needle;
+        while (*h && *n && *h == *n) {
+            h++;
+            n++;
+        }
+        if (!*n) {
+            return (char*)haystack;
+        }
+    }
+    return NULL;
+}
+
 int memcmp(const void* s1, const void* s2, size_t n) {
     const unsigned char* p1 = (const unsigned char*)s1;
     const unsigned char* p2 = (const unsigned char*)s2;

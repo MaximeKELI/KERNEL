@@ -105,7 +105,6 @@ vfs_file_t* vfs_open(const char* path, u64 flags) {
     if (be == VFS_BACKEND_TMPFS) {
         ops = tmpfs_get_file_ops();
     } else if (be == VFS_BACKEND_EXT2) {
-        extern vfs_ops_t* ext2_get_file_ops(void);
         ops = ext2_get_file_ops();
     }
 

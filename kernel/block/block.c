@@ -1,4 +1,5 @@
 #include "block.h"
+#include "blk_mq.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
@@ -15,6 +16,7 @@ static block_device_t* block_devices = NULL;
 static spinlock_t block_lock = SPINLOCK_INIT;
 
 void block_init(void) {
+    blk_mq_init();
     DEBUG_INFO("Block layer initialized");
 }
 

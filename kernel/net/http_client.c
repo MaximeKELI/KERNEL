@@ -31,7 +31,7 @@ int http_get(const ip_addr_t* host, u16 port, const char* path, http_response_t*
     }
     memset(resp, 0, sizeof(*resp));
 
-    socket_t* sock = socket_create(SOCK_STREAM, IPPROTO_TCP);
+    socket_t* sock = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!sock) {
         return -1;
     }
@@ -78,7 +78,13 @@ int http_get(const ip_addr_t* host, u16 port, const char* path, http_response_t*
     if (status) {
         const char* code = strchr(status, ' ');
         if (code) {
-            resp->status_code = atoi(code + 1);
+            const char* s = code + 1;
+            int st = 0;
+            while (*s >= '0' && *s <= '9') {
+                st = st * 10 + (*s - '0');
+                s++;
+            }
+            resp->status_code = st;
         }
     }
 

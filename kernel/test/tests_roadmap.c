@@ -25,7 +25,7 @@ static int test_smp(void) {
 }
 
 static int test_ebpf(void) {
-    typedef struct { u8 opcode; u8 dst; u8 src; s16 off; s32 imm; } insn_t;
+    typedef struct { u8 opcode; u8 dst; u8 src; i16 off; i32 imm; } insn_t;
     insn_t prog[] = {
         {0x04, 0, 0, 0, 10},
         {0x95, 0, 0, 0, 0},

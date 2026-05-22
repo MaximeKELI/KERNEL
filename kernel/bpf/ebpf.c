@@ -11,8 +11,8 @@ typedef struct {
     u8 opcode;
     u8 dst;
     u8 src;
-    s16 off;
-    s32 imm;
+    i16 off;
+    i32 imm;
 } ebpf_insn_t;
 
 static bool ebpf_enabled = false;

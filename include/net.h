@@ -2,20 +2,15 @@
 #define NET_H
 
 #include "types.h"
+#include "net_socket.h"
 
-/* Network protocols */
-#define ETH_P_IP  0x0800
-#define ETH_P_ARP 0x0806
-
-/* IP protocol */
-#define IPPROTO_ICMP 1
-#define IPPROTO_TCP  6
-#define IPPROTO_UDP  17
-
-/* Socket types */
-#define SOCK_STREAM 1
-#define SOCK_DGRAM  2
-#define SOCK_RAW    3
+/* Legacy aliases (also in net_socket.h) */
+#ifndef ETH_P_IP
+#define ETH_P_IP  ETH_P_IP
+#endif
+#ifndef ETH_P_ARP
+#define ETH_P_ARP ETH_P_ARP
+#endif
 
 /* Socket address */
 typedef struct sockaddr {

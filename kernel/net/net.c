@@ -212,11 +212,11 @@ int net_process_packet(netif_t* iface, void* data, size_t len) {
 }
 
 void net_poll(void) {
+    ethernet_poll_all();
     netif_t* iface = netif_list;
     while (iface) {
         if (iface->up) {
             while (eth_poll(iface) > 0) {
-                /* drain loopback queue */
             }
         }
         iface = iface->next;

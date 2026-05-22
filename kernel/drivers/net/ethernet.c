@@ -51,22 +51,33 @@ void ethernet_init(void) {
     eth_loopback_init();
     ethernet_initialized = true;
     
-    /* Always create eth0 (loopback path works without PCI NIC) */
     ethernet_device_t* dev = ethernet_alloc_device();
     if (dev) {
-        pci_device_t* pci_dev = pci_find_class(0x02, 0x00);
-        if (pci_dev) {
-            dev->io_base = pci_dev->bar[0] & ~0xF;
-            dev->irq = 11;
-            DEBUG_INFO("Ethernet PCI %04x:%04x", pci_dev->vendor_id, pci_dev->device_id);
-        }
         snprintf(dev->name, sizeof(dev->name), "eth%d", dev->id);
-        dev->mac_address[0] = 0x02;
-        dev->mac_address[1] = 0x00;
-        dev->mac_address[2] = 0x00;
-        dev->mac_address[3] = 0x00;
-        dev->mac_address[4] = 0x00;
-        dev->mac_address[5] = (u8)(0x10 + dev->id);
+        bool nic_ok = false;
+
+        pci_device_t* pci = pci_find_device(VIRTIO_VENDOR_ID, VIRTIO_DEVICE_NET);
+        if (!pci) {
+            pci = pci_find_device(VIRTIO_VENDOR_ID, VIRTIO_DEVICE_NET_TRANS);
+        }
+        if (pci && virtio_net_probe(pci, dev) == 0) {
+            nic_ok = true;
+        } else {
+            pci = pci_find_device(RTL8139_VENDOR, RTL8139_DEVICE);
+            if (pci && rtl8139_probe(pci, dev) == 0) {
+                nic_ok = true;
+            }
+        }
+
+        if (!nic_ok) {
+            dev->mac_address[0] = 0x02;
+            dev->mac_address[1] = 0x00;
+            dev->mac_address[2] = 0x00;
+            dev->mac_address[3] = 0x00;
+            dev->mac_address[4] = 0x00;
+            dev->mac_address[5] = (u8)(0x10 + dev->id);
+            printk("[Ethernet] No virtio/rtl8139 — loopback only\n");
+        }
     }
     
     printk("[Ethernet] Ethernet drivers initialized\n");
@@ -144,12 +155,27 @@ int ethernet_down(ethernet_device_t* dev) {
     return 0;
 }
 
+void ethernet_poll_all(void) {
+    spinlock_lock(&ethernet_lock);
+    ethernet_device_t* dev = ethernet_devices;
+    while (dev) {
+        if (dev->up && dev->poll_fn) {
+            dev->poll_fn(dev);
+        }
+        dev = dev->next;
+    }
+    spinlock_unlock(&ethernet_lock);
+}
+
 int ethernet_send_packet(ethernet_device_t* dev, void* data, size_t len) {
     if (!dev || !dev->up || !data || len == 0) {
         return -1;
     }
 
-    /* Software loopback until real NIC TX is implemented */
+    if (dev->tx_fn) {
+        return dev->tx_fn(dev, data, len);
+    }
+
     if (eth_loop_enqueue(dev->name, data, len) < 0) {
         dev->tx_errors++;
         return -1;
@@ -163,6 +189,10 @@ int ethernet_send_packet(ethernet_device_t* dev, void* data, size_t len) {
 int ethernet_receive_packet(ethernet_device_t* dev, void* buffer, size_t buffer_size) {
     if (!dev || !dev->up || !buffer || buffer_size == 0) {
         return -1;
+    }
+
+    if (dev->rx_fn) {
+        return dev->rx_fn(dev, buffer, buffer_size);
     }
 
     int n = eth_loop_dequeue(dev->name, buffer, buffer_size);

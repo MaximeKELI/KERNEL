@@ -33,6 +33,9 @@ ethernet_device_t* ethernet_find_device(const char* name);
 /* Get device count */
 u32 ethernet_get_device_count(void);
 
+/* Poll all hardware NICs (RX) */
+void ethernet_poll_all(void);
+
 /* Copy MAC address */
 int ethernet_get_mac(ethernet_device_t* dev, u8 mac[6]);
 

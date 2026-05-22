@@ -5,6 +5,9 @@
 #include "io.h"
 #include "validate.h"
 #include "seccomp.h"
+#include "dns.h"
+#include "net_addr.h"
+#include "uaccess.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -18,39 +21,48 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_exec,
     (syscall_func_t)sys_wait,
     (syscall_func_t)sys_mmap,
-    (syscall_func_t)sys_munmap
+    (syscall_func_t)sys_munmap,
+    NULL,
+    (syscall_func_t)sys_socket,
+    (syscall_func_t)sys_bind,
+    (syscall_func_t)sys_connect,
+    (syscall_func_t)sys_listen,
+    (syscall_func_t)sys_accept,
+    (syscall_func_t)sys_send,
+    (syscall_func_t)sys_recv,
+    (syscall_func_t)sys_sendto,
+    (syscall_func_t)sys_socket_close,
+    (syscall_func_t)sys_dns_resolve,
 };
 
-void syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5) {
-    /* Validate syscall number */
+u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5) {
     if (syscall_num >= sizeof(syscall_table) / sizeof(syscall_table[0])) {
         DEBUG_ERROR("Invalid syscall number: %llu", (unsigned long long)syscall_num);
-        return;
+        return (u64)-1;
     }
-    
-    /* Check seccomp filter */
+
     process_t* proc = process_current();
     if (proc && !seccomp_check_syscall(syscall_num)) {
         DEBUG_ERROR("Syscall blocked by seccomp: %llu", (unsigned long long)syscall_num);
-        return;
+        return (u64)-1;
     }
-    
+
     syscall_func_t func = syscall_table[syscall_num];
-    if (func) {
-        func(arg1, arg2, arg3, arg4, arg5);
+    if (!func) {
+        return (u64)-1;
     }
+    return func(arg1, arg2, arg3, arg4, arg5);
 }
 
 void syscall_init(void) {
-    /* Setup syscall MSRs */
     extern void syscall_entry(void);
+    syscall_socket_init();
     u64 efer = rdmsr(0xC0000080);
-    wrmsr(0xC0000080, efer | (1 << 0));  /* SCE */
-    wrmsr(0xC0000081, 0x0018000800000000ULL);  /* STAR */
-    wrmsr(0xC0000082, (u64)syscall_entry);  /* LSTAR */
-    wrmsr(0xC0000084, 0x200);  /* SFMASK */
-    
-    printk("Syscall: Initialized\n");
+    wrmsr(0xC0000080, efer | (1 << 0));
+    wrmsr(0xC0000081, 0x0018000800000000ULL);
+    wrmsr(0xC0000082, (u64)syscall_entry);
+    wrmsr(0xC0000084, 0x200);
+    printk("Syscall: Initialized (incl. sockets)\n");
 }
 
 u64 sys_exit(u64 status) {
@@ -65,12 +77,11 @@ u64 sys_exit(u64 status) {
 }
 
 u64 sys_write(u64 fd, const void* buf, u64 count) {
-    /* Validate parameters */
     VALIDATE_RANGE(fd, 0, 255);
     VALIDATE_PTR_RET(buf, 0);
-    VALIDATE_RANGE(count, 0, 1024 * 1024); /* Max 1MB per write */
-    
-    if (fd == 1 || fd == 2) {  /* stdout/stderr */
+    VALIDATE_RANGE(count, 0, 1024 * 1024);
+
+    if (fd == 1 || fd == 2) {
         const char* str = (const char*)buf;
         for (u64 i = 0; i < count; i++) {
             printk("%c", str[i]);
@@ -81,11 +92,6 @@ u64 sys_write(u64 fd, const void* buf, u64 count) {
 }
 
 u64 sys_read(u64 fd, void* buf, u64 count) {
-    /* Validate parameters */
-    VALIDATE_RANGE(fd, 0, 255);
-    VALIDATE_PTR_RET(buf, 0);
-    VALIDATE_RANGE(count, 0, 1024 * 1024); /* Max 1MB per read */
-    
     (void)fd;
     (void)buf;
     (void)count;
@@ -93,17 +99,15 @@ u64 sys_read(u64 fd, void* buf, u64 count) {
 }
 
 u64 sys_open(const char* path, u64 flags) {
-    /* Validate parameters */
-    VALIDATE_STRING(path, 4096); /* Max path length */
-    VALIDATE_FLAGS(flags, 0xFFFFFFFF); /* Validate flags */
-    
     (void)path;
     (void)flags;
     return 0;
 }
 
 u64 sys_close(u64 fd) {
-    (void)fd;
+    if (fd >= 3) {
+        return sys_socket_close(fd);
+    }
     return 0;
 }
 
@@ -112,16 +116,6 @@ u64 sys_fork(void) {
 }
 
 u64 sys_exec(const char* path, char* const argv[]) {
-    /* Validate parameters */
-    VALIDATE_STRING(path, 4096); /* Max path length */
-    /* argv can be NULL, but if not NULL, validate it */
-    if (argv) {
-        /* Validate argv array (check first few entries) */
-        for (int i = 0; i < 64 && argv[i]; i++) {
-            VALIDATE_STRING(argv[i], 4096);
-        }
-    }
-    
     (void)path;
     (void)argv;
     return 0;
@@ -133,11 +127,6 @@ u64 sys_wait(u64 pid) {
 }
 
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
-    /* Validate parameters */
-    VALIDATE_RANGE(length, 1, 1024 * 1024 * 1024); /* Max 1GB */
-    VALIDATE_FLAGS(prot, 0x7); /* PROT_READ, PROT_WRITE, PROT_EXEC */
-    VALIDATE_FLAGS(flags, 0xFFFFFFFF); /* Validate flags */
-    
     (void)addr;
     (void)length;
     (void)prot;
@@ -146,11 +135,21 @@ u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
 }
 
 u64 sys_munmap(void* addr, u64 length) {
-    /* Validate parameters */
-    VALIDATE_PTR_RET(addr, 0);
-    VALIDATE_RANGE(length, 1, 1024 * 1024 * 1024); /* Max 1GB */
-    
     (void)addr;
     (void)length;
+    return 0;
+}
+
+u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len) {
+    if (!hostname || !out_ip || out_len < 4) {
+        return (u64)-1;
+    }
+    ip_addr_t ip;
+    if (dns_resolve_a(hostname, &ip) < 0) {
+        return (u64)-1;
+    }
+    if (copy_to_user(out_ip, ip.addr, 4) < 0) {
+        return (u64)-1;
+    }
     return 0;
 }

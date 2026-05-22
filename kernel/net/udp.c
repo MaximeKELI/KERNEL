@@ -1,6 +1,8 @@
 #include "net.h"
 #include "ip.h"
 #include "udp.h"
+#include "dhcp.h"
+#include "dns.h"
 #include "skbuff.h"
 #include "memory.h"
 #include "stdio.h"
@@ -237,8 +239,18 @@ int udp_recv_packet(sk_buff_t* skb) {
         src_addr = skb->ip_hdr->src;
     }
     
-    /* Remove UDP header */
     skb_pull(skb, UDP_HEADER_LEN);
+
+    if (dst_port == 68) {
+        dhcp_handle_packet(skb, dst_addr, dst_port);
+        skb_free(skb);
+        return 0;
+    }
+    if (src_port == 53) {
+        dns_handle_reply(skb, src_port);
+        skb_free(skb);
+        return 0;
+    }
     
     /* Find socket */
     spinlock_lock(&udp_lock);

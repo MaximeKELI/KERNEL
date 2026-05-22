@@ -34,4 +34,17 @@ u64 sys_wait(u64 pid);
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags);
 u64 sys_munmap(void* addr, u64 length);
 
+void syscall_socket_init(void);
+u64 sys_socket(u64 domain, u64 type, u64 protocol);
+u64 sys_bind(u64 fd, const void* addr, u64 addrlen);
+u64 sys_connect(u64 fd, const void* addr, u64 addrlen);
+u64 sys_listen(u64 fd, u64 backlog);
+u64 sys_accept(u64 fd, void* addr, u64 addrlen);
+u64 sys_send(u64 fd, const void* buf, u64 len, u64 flags);
+u64 sys_recv(u64 fd, void* buf, u64 len, u64 flags);
+u64 sys_sendto(u64 fd, const void* buf, u64 len, u64 flags,
+               const void* addr, u64 addrlen);
+u64 sys_socket_close(u64 fd);
+u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len);
+
 #endif /* SYSCALL_H */

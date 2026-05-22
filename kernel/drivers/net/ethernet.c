@@ -1,4 +1,5 @@
 #include "ethernet.h"
+#include "eth.h"
 #include "pci.h"
 #include "net.h"
 #include "stdio.h"
@@ -42,6 +43,7 @@ void ethernet_init(void) {
     
     ethernet_devices = NULL;
     ethernet_device_count = 0;
+    eth_loopback_init();
     ethernet_initialized = true;
     
     /* Scan PCI for Ethernet controllers */
@@ -152,11 +154,15 @@ int ethernet_send_packet(ethernet_device_t* dev, void* data, size_t len) {
     if (!dev || !dev->up || !data || len == 0) {
         return -1;
     }
-    
-    /* TODO: Send packet to hardware */
+
+    /* Software loopback until real NIC TX is implemented */
+    if (eth_loop_enqueue(dev->name, data, len) < 0) {
+        dev->tx_errors++;
+        return -1;
+    }
+
     dev->tx_packets++;
     dev->tx_bytes += len;
-    
     return 0;
 }
 
@@ -164,12 +170,13 @@ int ethernet_receive_packet(ethernet_device_t* dev, void* buffer, size_t buffer_
     if (!dev || !dev->up || !buffer || buffer_size == 0) {
         return -1;
     }
-    
-    /* TODO: Receive packet from hardware */
-    dev->rx_packets++;
-    dev->rx_bytes += buffer_size;
-    
-    return 0;
+
+    int n = eth_loop_dequeue(dev->name, buffer, buffer_size);
+    if (n > 0) {
+        dev->rx_packets++;
+        dev->rx_bytes += (u64)n;
+    }
+    return n;
 }
 
 ethernet_device_t* ethernet_find_device(const char* name) {

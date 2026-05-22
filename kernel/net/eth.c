@@ -57,8 +57,8 @@ static int eth_loop_dequeue(const char* ifname, void* buf, size_t buf_size) {
 
     spinlock_lock(&loop_lock);
     for (u32 i = 0; i < loop_count; i++) {
-        u32 idx = (loop_head + i) % ETH_LOOP_QUEUE;
-        eth_loop_frame_t* slot = &loop_queue[idx];
+        u32 pos = (loop_head + i) % ETH_LOOP_QUEUE;
+        eth_loop_frame_t* slot = &loop_queue[pos];
         if (strcmp(slot->ifname, ifname) != 0) {
             continue;
         }
@@ -67,24 +67,16 @@ static int eth_loop_dequeue(const char* ifname, void* buf, size_t buf_size) {
             return -1;
         }
         memcpy(buf, slot->data, slot->len);
-        size_t len = slot->len;
-
+        int len = (int)slot->len;
         for (u32 j = i; j < loop_count - 1; j++) {
             u32 a = (loop_head + j) % ETH_LOOP_QUEUE;
             u32 b = (loop_head + j + 1) % ETH_LOOP_QUEUE;
             loop_queue[a] = loop_queue[b];
         }
         loop_count--;
-        if (loop_count == 0) {
-            loop_head = loop_tail = 0;
-        } else {
-            loop_head = (loop_head + 1) % ETH_LOOP_QUEUE;
-            if (loop_tail > 0) {
-                loop_tail = (loop_tail + ETH_LOOP_QUEUE - 1) % ETH_LOOP_QUEUE;
-            }
-        }
+        loop_tail = (loop_head + loop_count) % ETH_LOOP_QUEUE;
         spinlock_unlock(&loop_lock);
-        return (int)len;
+        return len;
     }
     spinlock_unlock(&loop_lock);
     return 0;

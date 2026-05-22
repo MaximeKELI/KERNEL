@@ -7,9 +7,6 @@ typedef struct {
     u64 entries[512];
 } page_table_t;
 
-extern page_table_t* vmm_get_pml4(void);
-static void vmm_set_pml4(page_table_t* p);
-
 static page_table_t* kernel_pml4 = NULL;
 
 #define USER_ADDR_MAX 0x00007FFFFFFFFFFFULL

@@ -4,6 +4,10 @@
 #include "debug.h"
 #include "drivers/ata.h"
 #include "string.h"
+#include "cache.h"
+
+extern void ext2_journal_init(void);
+extern void ext2_journal_log(u32 ino, u32 block, u32 op);
 
 #define EXT2_MAGIC 0xEF53
 #define EXT2_ROOT_INO 2

@@ -44,6 +44,10 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_socket_close,
     (syscall_func_t)sys_dns_resolve,
     (syscall_func_t)sys_ai_metrics,
+    (syscall_func_t)sys_epoll_create,
+    (syscall_func_t)sys_epoll_ctl,
+    (syscall_func_t)sys_epoll_wait,
+    (syscall_func_t)sys_poll,
 };
 
 static char audit_buf[64];

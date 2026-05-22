@@ -64,5 +64,6 @@ int sigprocmask(int how, const sigset_t* set, sigset_t* oldset);
 int sigwait(const sigset_t* set, int* sig);
 
 void signal_return_from_handler(void);
+int signal_deliver_pending(process_t* proc);
 
 #endif /* SIGNAL_H */

@@ -24,6 +24,9 @@
 #include "device.h"
 #include "module.h"
 #include "scheduler.h"
+#include "sched_stats.h"
+#include "sched_tune.h"
+#include "fs_checksum.h"
 #include "cache.h"
 #include "log.h"
 #include "kthread.h"
@@ -256,10 +259,7 @@ void kernel_main(u64 magic, u64 mb_info) {
     hrtimer_init();
     printk("High-resolution timers initialized.\n\n");
     
-    /* Initialize serial port */
-    printk("Initializing serial port...\n");
-    serial_init(COM1);
-    printk("Serial port initialized.\n\n");
+    printk("Serial port ready.\n\n");
     
     /* Initialize networking stack */
     printk("Initializing networking stack...\n");

@@ -81,9 +81,10 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/media/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
+KERNEL_SOURCES += $(KERNEL_DIR)/test/test.c
 ifeq ($(RUN_TESTS),1)
 CFLAGS += -DRUN_TESTS
-KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/*.c)
+KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 endif
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
@@ -180,7 +181,11 @@ iso: $(KERNEL_ELF) grub.cfg
 	cp grub.cfg $(ISO_GRUB_DIR)/
 	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
 
-# Run in QEMU
+# Run kernel directly in QEMU (no ISO; needs qemu-system-x86)
+run-kernel: $(KERNEL_ELF)
+	qemu-system-x86_64 -kernel $(KERNEL_ELF) -m 512M -serial stdio -display none -no-reboot
+
+# Run in QEMU from ISO (needs qemu-system-x86 and mtools for grub-mkrescue)
 run: iso
 	qemu-system-x86_64 -cdrom $(ISO_IMAGE) -m 512M -serial stdio
 

@@ -5,7 +5,7 @@
 #include "debug.h"
 #include "spinlock.h"
 
-static workqueue_t* system_wq = NULL;
+workqueue_t* system_wq = NULL;
 
 void workqueue_init(void) {
     system_wq = workqueue_create("system");

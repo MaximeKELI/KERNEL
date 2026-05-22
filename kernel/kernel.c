@@ -570,33 +570,28 @@ void kernel_main(u64 magic, u64 mb_info) {
     audit_log(AUDIT_CONFIG, "Kernel initialization complete");
     DEBUG_INFO("Debug system initialized (level: %u)", debug_level);
     
+    #ifdef RUN_TESTS
     /* Initialize test framework */
     printk("Initializing test framework...\n");
     test_init();
-    
-    /* Register test suites */
+
     extern void register_memory_tests(void);
     extern void register_scheduler_tests(void);
     extern void register_all_tests(void);
     extern void register_network_tests(void);
+    extern void register_ai_tests(void);
     register_memory_tests();
     register_scheduler_tests();
     register_all_tests();
     register_network_tests();
-
-    /* Register AI tests */
-    extern void register_ai_tests(void);
     register_ai_tests();
-    
-    /* Run tests (optional, can be disabled) */
-    #ifdef RUN_TESTS
     printk("Running kernel tests...\n");
     int test_result = test_run_all();
     if (test_result != 0) {
         printk("WARNING: Some tests failed!\n");
     }
-    #endif
-    
+    #endif /* RUN_TESTS */
+
     /* Main loop */
     while (true) {
         /* Process high-resolution timers */

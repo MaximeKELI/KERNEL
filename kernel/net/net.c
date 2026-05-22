@@ -121,10 +121,37 @@ socket_t* socket_create(int domain, int type, int protocol) {
     sock->type = type;
     sock->protocol = protocol;
 
-    if (type == SOCK_STREAM) {
-        sock->ops = &tcp_ops;
-    } else if (type == SOCK_DGRAM) {
-        sock->ops = &udp_ops;
+    u32 base_type = net_sock_type_base(type);
+    u32 proto = protocol;
+
+    if (domain != AF_INET && domain != AF_UNSPEC) {
+        DEBUG_INFO("Socket domain %s not fully supported", net_af_name(domain));
+    }
+
+    switch (base_type) {
+    case SOCK_STREAM:
+    case SOCK_SEQPACKET:
+        if (proto == 0 || proto == IPPROTO_TCP || proto == IPPROTO_SCTP) {
+            sock->ops = &tcp_ops;
+        }
+        break;
+    case SOCK_DGRAM:
+    case SOCK_RDM:
+        if (proto == 0 || proto == IPPROTO_UDP) {
+            sock->ops = &udp_ops;
+        }
+        break;
+    case SOCK_RAW:
+    case SOCK_DCCP:
+        sock->ops = &raw_ops;
+        raw_attach_socket(sock);
+        break;
+    case SOCK_PACKET:
+        sock->ops = &raw_ops;
+        raw_attach_socket(sock);
+        break;
+    default:
+        break;
     }
 
     spinlock_lock(&net_lock);

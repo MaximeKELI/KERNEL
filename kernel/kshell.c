@@ -17,6 +17,7 @@
 #include "hw_ports.h"
 #include "dhcp.h"
 #include "dns.h"
+#include "kernel_score.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -48,6 +49,7 @@ static void kshell_cmd_help(void) {
     printk("  ioport N   - lookup port 0xN (hex ok)\n");
     printk("  dhcp       - DHCP acquire\n");
     printk("  dns NAME   - DNS A lookup\n");
+    printk("  score      - kernel scorecard vs Linux\n");
 }
 
 static void kshell_cmd_mem(void) {
@@ -251,8 +253,10 @@ static void kshell_execute(const char* cmd) {
     } else if (strcmp(cmd, "init-full") == 0) {
         if (kernel_extended_ready()) {
             printk("Extended init already done.\n");
+            kernel_score_print();
         } else {
             kernel_init_extended();
+            kernel_score_print();
         }
     } else if (strcmp(cmd, "ifconfig") == 0) {
         kshell_cmd_ifconfig();
@@ -273,6 +277,8 @@ static void kshell_execute(const char* cmd) {
         if (iface) {
             net_dhcp_acquire(iface);
         }
+    } else if (strcmp(cmd, "score") == 0) {
+        kernel_score_print();
     } else if (strncmp(cmd, "dns ", 4) == 0) {
         ip_addr_t ip;
         if (dns_resolve_a(cmd + 4, &ip) == 0) {

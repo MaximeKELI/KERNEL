@@ -1,4 +1,5 @@
 #include "kernel_init.h"
+#include "boot_profiler.h"
 #include "stdio.h"
 #include "memory.h"
 #include "interrupt.h"
@@ -117,6 +118,7 @@ void kernel_init_minimal(void) {
     hw_ports_init();
     keyboard_init();
     timer_init(100);
+    boot_profiler_reset();
 
     printk("Process / syscall / scheduler...\n");
     process_init();
@@ -128,6 +130,7 @@ void kernel_init_minimal(void) {
     landlock_init();
     seccomp_init();
 
+    boot_profiler_mark("minimal_done");
     printk("[init] fast boot done\n");
 }
 
@@ -136,6 +139,7 @@ void kernel_init_extended(void) {
         return;
     }
     printk("[init] loading extended subsystems...\n");
+    boot_profiler_mark("extended_start");
 
     /* Initialize VFS */
     printk("Initializing VFS...\n");
@@ -543,6 +547,7 @@ void kernel_init_extended(void) {
     printk("Checkpoint/restore initialized.\n\n");
     
 
+    boot_profiler_mark("extended_done");
     g_extended_ready = true;
     printk("[init] extended subsystems ready\n");
 }

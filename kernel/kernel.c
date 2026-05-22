@@ -1,5 +1,6 @@
 #include "kernel.h"
 #include "kernel_init.h"
+#include "boot_profiler.h"
 #include "kshell.h"
 #include "stdio.h"
 #include "interrupt.h"
@@ -48,9 +49,11 @@ void kernel_main(u64 magic, u64 mb_info) {
 
     kernel_init_minimal();
     enable_interrupts();
+    boot_profiler_mark("shell");
 
     printk("========================================\n");
     printk("Fast boot complete. Shell ready.\n");
+    printk("  score      - maturity vs Linux (honest)\n");
     printk("  init-full  - load all subsystems\n");
     printk("========================================\n\n");
 

@@ -20,6 +20,23 @@
  * - Context switch rate (per second)
  * - Interrupt rate (per second)
  */
+typedef struct __packed {
+    u32 magic;
+    u32 version;
+    u32 cpu_usage;
+    u32 memory_usage;
+    u32 cpu_predict;
+    u32 mem_predict;
+    u32 health_score;
+    u32 policy_mode;
+    u32 goal_mode;
+    u32 process_count;
+    u32 decisions_total;
+    u32 io_class_count;
+    u32 net_class_count;
+    u32 reserved[2];
+} ai_user_info_t;
+
 typedef struct {
     u64 cpu_usage;           /**< CPU usage percentage (0-100) */
     u64 memory_usage;        /**< Memory usage percentage (0-100) */
@@ -66,6 +83,9 @@ void ai_tick(void);
  * @note This function is thread-safe.
  */
 void ai_get_metrics(ai_metrics_t* metrics);
+
+u32 ai_health_score(void);
+void ai_fill_user_info(ai_user_info_t* out);
 
 /**
  * @brief Check if AI subsystem is initialized

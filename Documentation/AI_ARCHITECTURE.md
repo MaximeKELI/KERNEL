@@ -53,16 +53,25 @@ Selon la politique active :
 | `throughput` | Timeslices larges si idle |
 | `powersave` | Moins d’interventions IA |
 
+## v3 — nouveautés
+
+- **Auto-policy** : bascule automatique selon EMA (net→latency, idle→powersave)
+- **Apprentissage** : poids par action, reward/penalty au tick suivant
+- **CFS hook** : `calc_vruntime()` favorise IO/NET
+- **Score** : `ai_score` 0–100 par processus
+- **Historique** : `ai history` (sparklines ASCII)
+
 ## kshell
 
 ```text
 init-full
-ai                  # statut complet
-ai policy latency   # mode faible latence
-ai log              # dernières décisions
-ai bench            # benchmark
-ai tune cpu 70      # seuil CPU
-ai off / ai on
+ai                  # statut + learn weights
+ai policy auto      # politique automatique
+ai policy latency   # forcer manuel
+ai history          # sparklines cpu/mem/net/io
+ai ps               # PID, class, score, boost
+ai learn            # poids renforcement
+ai log / ai bench
 ```
 
 ## Différenciation vs Linux CFS

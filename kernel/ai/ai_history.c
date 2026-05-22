@@ -37,7 +37,9 @@ static void sparkline(const char* label, u64 max_val,
     u32 start = (head + AI_HISTORY_LEN - count) % AI_HISTORY_LEN;
     for (u32 i = 0; i < count; i++) {
         u32 idx = (start + i) % AI_HISTORY_LEN;
-        u64 v = getter(&ring[idx]);
+        const ai_hist_sample_t* sample = &ring[idx];
+        u64 v = getter(sample);
+        (void)sample;
         u32 bars = max_val ? (v * 8 / max_val) : 0;
         if (bars > 8) {
             bars = 8;

@@ -30,6 +30,17 @@
 #define AI_ACT_POLICY_AUTO    8
 #define AI_ACT_LEARN_REWARD   9
 #define AI_ACT_VRUNTIME_TUNED 10
+#define AI_ACT_ALERT          11
+#define AI_ACT_GOAL_APPLY     12
+
+/* User optimization goals */
+#define AI_GOAL_NONE        0
+#define AI_GOAL_LATENCY     1
+#define AI_GOAL_THROUGHPUT  2
+#define AI_GOAL_POWER       3
+#define AI_GOAL_STABILITY   4
+
+#define AI_USER_MAGIC 0x41494D31U
 
 #define AI_LOG_SIZE 48
 #define AI_HISTORY_LEN 24

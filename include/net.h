@@ -4,14 +4,6 @@
 #include "types.h"
 #include "net_socket.h"
 
-/* Legacy aliases (also in net_socket.h) */
-#ifndef ETH_P_IP
-#define ETH_P_IP  ETH_P_IP
-#endif
-#ifndef ETH_P_ARP
-#define ETH_P_ARP ETH_P_ARP
-#endif
-
 /* Socket address */
 typedef struct sockaddr {
     u16 sa_family;

@@ -101,39 +101,32 @@ bool kernel_extended_ready(void) {
 }
 
 void kernel_init_minimal(void) {
-    printk("[init] fast boot path
-");
+    printk("[init] fast boot path\n");
 
-    printk("Memory (core)...
-");
+    printk("Memory (core)...\n");
     pmm_init(512 * 1024 * 1024, 0x100000, 0x100000);
     vmm_init();
     heap_init();
     memory_pressure_init();
 
-    printk("Interrupts...
-");
+    printk("Interrupts...\n");
     interrupt_init();
 
-    printk("Drivers (core)...
-");
+    printk("Drivers (core)...\n");
     keyboard_init();
     timer_init(100);
 
-    printk("Process / syscall / scheduler...
-");
+    printk("Process / syscall / scheduler...\n");
     process_init();
     syscall_init();
     scheduler_init();
 
-    printk("Block / security (core)...
-");
+    printk("Block / security (core)...\n");
     block_init();
     landlock_init();
     seccomp_init();
 
-    printk("[init] fast boot done
-");
+    printk("[init] fast boot done\n");
 }
 
 void kernel_init_extended(void) {

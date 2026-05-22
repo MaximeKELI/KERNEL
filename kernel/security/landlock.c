@@ -24,6 +24,9 @@ static bool landlock_enabled = false;
 static spinlock_t landlock_lock = SPINLOCK_INIT;
 
 void landlock_init(void) {
+    if (landlock_enabled) {
+        return;
+    }
     memset(rules, 0, sizeof(rules));
     rule_count = 0;
     landlock_enabled = true;

@@ -1,5 +1,6 @@
 #include "signal.h"
 #include "process.h"
+#include "types.h"
 #include "memory.h"
 #include "exec.h"
 #include "stdio.h"

@@ -1,6 +1,7 @@
 #include "dhcp.h"
 #include "udp.h"
 #include "ip.h"
+#include "net_socket.h"
 #include "net_addr.h"
 #include "net.h"
 #include "memory.h"
@@ -60,10 +61,16 @@ static int dhcp_send_discover(netif_t* iface) {
     *opt++ = 255;
 
     socket_t* sock = socket_create(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (!sock) {
+    if (!sock || !sock->ops || !sock->ops->bind) {
         kfree(pkt);
         return -1;
     }
+
+    sockaddr_t bind_addr;
+    bind_addr.sa_family = AF_INET;
+    u16 cport = htons(DHCP_CLIENT_PORT);
+    memcpy(bind_addr.sa_data, &cport, 2);
+    sock->ops->bind(sock, &bind_addr);
 
     ip_addr_t bcast = {{255, 255, 255, 255}};
     ssize_t ret = udp_send(sock, pkt, (size_t)(opt - (u8*)pkt), bcast, DHCP_SERVER_PORT);

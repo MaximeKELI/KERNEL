@@ -104,8 +104,27 @@ void tcp_init(void) {
     
     /* Register TCP with IP layer */
     ip_register_protocol(IPPROTO_TCP, tcp_recv_packet);
-    
-    printk("[TCP] TCP protocol initialized\n");
+    printk("[TCP] RFC-style stack (RTO/retransmit/time-wait)\n");
+}
+
+static u64 tcp_now_ms(void) {
+    return timer_get_ticks();
+}
+
+static void tcp_arm_retransmit(tcp_conn_t* conn) {
+    if (!conn) {
+        return;
+    }
+    conn->retransmit_at = tcp_now_ms() + conn->rto_ms;
+}
+
+static int tcp_retransmit_last(tcp_conn_t* conn) {
+    if (!conn) {
+        return -1;
+    }
+    return tcp_send_packet(conn, conn->last_flags,
+                           conn->last_len ? conn->last_payload : NULL,
+                           conn->last_len);
 }
 
 static tcp_conn_t* tcp_find_connection(ip_addr_t local_addr, u16 local_port,
@@ -422,13 +441,23 @@ int tcp_send_packet(tcp_conn_t* conn, u8 flags, const void* data, size_t len) {
     tcph->urgent = 0;
     
     /* Update sequence number */
-    if (len > 0 || (flags & TCP_FLAG_SYN) || (flags & TCP_FLAG_FIN)) {
-        conn->seq += len;
-        if (flags & TCP_FLAG_SYN || flags & TCP_FLAG_FIN) {
-            conn->seq++;
-        }
+    conn->last_flags = flags;
+    conn->last_len = len;
+    if (data && len > 0 && len <= sizeof(conn->last_payload)) {
+        memcpy(conn->last_payload, data, len);
     }
-    
+
+    if (len > 0 || (flags & TCP_FLAG_SYN) || (flags & TCP_FLAG_FIN)) {
+        u32 seq_inc = (u32)len;
+        if (flags & TCP_FLAG_SYN || flags & TCP_FLAG_FIN) {
+            seq_inc++;
+        }
+        conn->seq += seq_inc;
+        conn->snd_nxt = conn->seq;
+    }
+
+    tcp_arm_retransmit(conn);
+
     /* Send via IP layer */
     int ret = ip_send_packet(conn->remote_addr, IPPROTO_TCP, skb->data, skb->len);
     

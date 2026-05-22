@@ -207,6 +207,12 @@ int ip_recv_packet(sk_buff_t* skb) {
         return ret;
     }
     
+    verdict = netfilter_hook(NF_INET_LOCAL_IN, skb, iface, NULL);
+    if (verdict == NF_DROP) {
+        skb_free(skb);
+        return -1;
+    }
+
     /* Remove IP header */
     skb_pull(skb, IP_HEADER_LEN);
     

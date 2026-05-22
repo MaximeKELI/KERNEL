@@ -1,6 +1,8 @@
 #include "route.h"
 #include "net.h"
 #include "ip.h"
+#include "eth.h"
+#include "arp.h"
 #include "skbuff.h"
 #include "memory.h"
 #include "stdio.h"

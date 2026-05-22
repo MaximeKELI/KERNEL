@@ -17,6 +17,7 @@
 #include "kspp.h"
 #include "fb_console.h"
 #include "gdt.h"
+#include "epoll.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 

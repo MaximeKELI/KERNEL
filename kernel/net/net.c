@@ -58,11 +58,10 @@ static void net_setup_default_interface(void) {
     netif_register(&default_netif);
 
     ip_addr_t net_dst = {{10, 0, 2, 0}};
-    route_add(net_dst, default_netif.netmask, default_netif.ip, &default_netif, 1);
+    ip_addr_t zero = {{0, 0, 0, 0}};
+    route_add(net_dst, default_netif.netmask, zero, &default_netif, 1);
 
-    ip_addr_t def_dst = {{0, 0, 0, 0}};
-    ip_addr_t def_mask = {{0, 0, 0, 0}};
-    route_add(def_dst, def_mask, default_netif.gateway, &default_netif, 0);
+    route_add(zero, zero, default_netif.gateway, &default_netif, 0);
 
     u8 gw_mac[6] = {0x52, 0x54, 0x00, 0x12, 0x34, 0x56};
     arp_add_entry(default_netif.gateway, gw_mac);

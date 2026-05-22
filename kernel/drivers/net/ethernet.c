@@ -46,33 +46,22 @@ void ethernet_init(void) {
     eth_loopback_init();
     ethernet_initialized = true;
     
-    /* Scan PCI for Ethernet controllers */
-    pci_device_t* pci_dev = pci_find_class(0x02, 0x00); /* Ethernet Controller */
-    if (pci_dev) {
-        DEBUG_INFO("Ethernet controller found: %04x:%04x", 
-                  pci_dev->vendor_id, pci_dev->device_id);
-        
-        /* Create ethernet device */
-        ethernet_device_t* dev = ethernet_alloc_device();
-        if (dev) {
+    /* Always create eth0 (loopback path works without PCI NIC) */
+    ethernet_device_t* dev = ethernet_alloc_device();
+    if (dev) {
+        pci_device_t* pci_dev = pci_find_class(0x02, 0x00);
+        if (pci_dev) {
             dev->io_base = pci_dev->bar[0] & ~0xF;
-            dev->irq = 11; /* Default IRQ */
-            snprintf(dev->name, sizeof(dev->name), "eth%d", dev->id);
-            
-            /* Read MAC address (would read from hardware) */
-            memset(dev->mac_address, 0, ETH_ALEN);
-            dev->mac_address[0] = 0x02;
-            dev->mac_address[1] = 0x00;
-            dev->mac_address[2] = 0x00;
-            dev->mac_address[3] = 0x00;
-            dev->mac_address[4] = 0x00;
-            dev->mac_address[5] = dev->id;
-            
-            DEBUG_INFO("Ethernet device created: %s, MAC: %02x:%02x:%02x:%02x:%02x:%02x",
-                      dev->name,
-                      dev->mac_address[0], dev->mac_address[1], dev->mac_address[2],
-                      dev->mac_address[3], dev->mac_address[4], dev->mac_address[5]);
+            dev->irq = 11;
+            DEBUG_INFO("Ethernet PCI %04x:%04x", pci_dev->vendor_id, pci_dev->device_id);
         }
+        snprintf(dev->name, sizeof(dev->name), "eth%d", dev->id);
+        dev->mac_address[0] = 0x02;
+        dev->mac_address[1] = 0x00;
+        dev->mac_address[2] = 0x00;
+        dev->mac_address[3] = 0x00;
+        dev->mac_address[4] = 0x00;
+        dev->mac_address[5] = (u8)(0x10 + dev->id);
     }
     
     printk("[Ethernet] Ethernet drivers initialized\n");

@@ -9,6 +9,7 @@
 #include "workqueue.h"
 #include "timer_hr.h"
 #include "scheduler.h"
+#include "net.h"
 #include "log.h"
 #include "audit.h"
 #include "debug.h"

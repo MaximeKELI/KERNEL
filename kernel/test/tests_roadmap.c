@@ -1,10 +1,9 @@
 #include "test.h"
 #include "stdio.h"
 #include "appliance_config.h"
-#include "tmpfs.h"
+#include "fs/vfs.h"
 #include "ebpf.h"
 #include "smp.h"
-#include "blk_mq.h"
 
 static int test_config(void) {
     appliance_config_init();
@@ -14,7 +13,9 @@ static int test_config(void) {
 
 static int test_tmpfs(void) {
     char buf[16];
-    vfs_write_path("/tmp/roadmap_test", "ok", 2);
+    if (vfs_write_path("/tmp/roadmap_test", "ok", 2) < 0) {
+        return -1;
+    }
     ssize_t n = vfs_read_path("/tmp/roadmap_test", buf, sizeof(buf));
     return n == 2 && buf[0] == 'o' ? 0 : -1;
 }
@@ -34,8 +35,8 @@ static int test_ebpf(void) {
 }
 
 void register_roadmap_tests(void) {
-    test_register("roadmap_config", test_config);
-    test_register("roadmap_tmpfs", test_tmpfs);
-    test_register("roadmap_smp", test_smp);
-    test_register("roadmap_ebpf", test_ebpf);
+    test_register("roadmap", "config", test_config);
+    test_register("roadmap", "tmpfs", test_tmpfs);
+    test_register("roadmap", "smp", test_smp);
+    test_register("roadmap", "ebpf", test_ebpf);
 }

@@ -107,10 +107,9 @@ int icmp_recv_packet(sk_buff_t* skb) {
             break;
             
         case ICMP_ECHO_REPLY:
-            /* Handle echo reply - typically used by ping */
-            /* In a full implementation, this would wake up waiting processes */
-            DEBUG_INFO("ICMP echo reply received from %u.%u.%u.%u",
-                      src.addr[0], src.addr[1], src.addr[2], src.addr[3]);
+            icmp_reply_count++;
+            printk("[ICMP] echo reply from %u.%u.%u.%u\n",
+                   src.addr[0], src.addr[1], src.addr[2], src.addr[3]);
             break;
             
         case ICMP_DEST_UNREACH:
@@ -132,4 +131,17 @@ int icmp_recv_packet(sk_buff_t* skb) {
     
     skb_free(skb);
     return 0;
+}
+
+int icmp_ping(ip_addr_t dst, u16 id, u16 seq) {
+    const char payload[] = "kernel-ping";
+    return icmp_send_echo(dst, id, seq, payload, sizeof(payload) - 1);
+}
+
+u32 icmp_ping_replies_received(void) {
+    return icmp_reply_count;
+}
+
+void icmp_ping_reset_stats(void) {
+    icmp_reply_count = 0;
 }

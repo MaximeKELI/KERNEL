@@ -62,7 +62,7 @@ static void kshell_cmd_help(void) {
     printk("  appliance  - DHCP + ping QEMU gateway\n");
     printk("  bench-ai   - AI scheduler benchmark\n");
     printk("  ai [cmd]   - AI v4 (ai help, goal, health, advise)\n");
-    printk("  exec PATH  - run user ELF (e.g. nettest)\n");
+    printk("  exec PATH  - run user ELF (nettest, sh)\n");
     printk("  video [cmd] - video (video help, demo, blit)\n");
     printk("  http HOST [path] - HTTP GET (init-full)\n");
     printk("  config     - show appliance config\n");

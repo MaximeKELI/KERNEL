@@ -133,8 +133,7 @@ void kernel_init_extended(void) {
     if (g_extended_ready) {
         return;
     }
-    printk("[init] loading extended subsystems...
-");
+    printk("[init] loading extended subsystems...\n");
 
     /* Initialize VFS */
     printk("Initializing VFS...\n");
@@ -543,6 +542,5 @@ void kernel_init_extended(void) {
     
 
     g_extended_ready = true;
-    printk("[init] extended subsystems ready
-");
+    printk("[init] extended subsystems ready\n");
 }

@@ -3,14 +3,30 @@
 
 #include "types.h"
 
-struct ethernet_device;
-
 typedef int (*eth_driver_tx_t)(struct ethernet_device* dev, void* data, size_t len);
 typedef int (*eth_driver_rx_t)(struct ethernet_device* dev, void* buffer, size_t buffer_size);
 typedef void (*eth_driver_poll_t)(struct ethernet_device* dev);
 
-/* Ethernet device */
-typedef struct ethernet_device ethernet_device_t;
+typedef struct ethernet_device {
+    u32 id;
+    char name[16];
+    u8 mac_address[6];
+    u32 io_base;
+    u32 irq;
+    u32 flags;
+    u64 tx_packets;
+    u64 rx_packets;
+    u64 tx_bytes;
+    u64 rx_bytes;
+    u64 tx_errors;
+    u64 rx_errors;
+    bool up;
+    void* priv_data;
+    eth_driver_tx_t tx_fn;
+    eth_driver_rx_t rx_fn;
+    eth_driver_poll_t poll_fn;
+    struct ethernet_device* next;
+} ethernet_device_t;
 
 /* Initialize Ethernet drivers */
 void ethernet_init(void);

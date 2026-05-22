@@ -233,12 +233,13 @@ int udp_recv_packet(sk_buff_t* skb) {
     u16 src_port = ntohs(udph->src_port);
     u16 dst_port = ntohs(udph->dst_port);
     
-    /* Get source IP from IP header */
-    ip_addr_t src_addr = {0};
+    ip_addr_t src_addr = {{0, 0, 0, 0}};
+    ip_addr_t dst_addr = {{0, 0, 0, 0}};
     if (skb->ip_hdr) {
         src_addr = skb->ip_hdr->src;
+        dst_addr = skb->ip_hdr->dst;
     }
-    
+
     skb_pull(skb, UDP_HEADER_LEN);
 
     if (dst_port == 68) {

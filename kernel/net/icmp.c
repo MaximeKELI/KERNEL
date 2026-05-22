@@ -10,6 +10,8 @@
 
 #define ICMP_HEADER_LEN 8
 
+static u32 icmp_reply_count = 0;
+
 /* ICMP types */
 #define ICMP_ECHO_REPLY   0
 #define ICMP_ECHO_REQUEST 8

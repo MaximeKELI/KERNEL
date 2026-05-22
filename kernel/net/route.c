@@ -140,13 +140,19 @@ int route_forward(sk_buff_t* skb, ip_addr_t dst) {
     iph->checksum = 0;
     iph->checksum = ip_checksum(iph, IP_HEADER_LEN);
     
-    /* Send via interface */
-    if (route->gateway.addr[0] != 0 || route->gateway.addr[1] != 0 ||
-        route->gateway.addr[2] != 0 || route->gateway.addr[3] != 0) {
-        /* Send to gateway */
-        return net_send_packet(route->iface, skb->data, skb->len);
-    } else {
-        /* Direct route */
-        return net_send_packet(route->iface, skb->data, skb->len);
+    ip_addr_t next_hop = dst;
+    if (route->gateway.addr[0] || route->gateway.addr[1] ||
+        route->gateway.addr[2] || route->gateway.addr[3]) {
+        next_hop = route->gateway;
     }
+
+    u8 mac[6];
+    if (arp_resolve(route->iface, next_hop, mac) < 0) {
+        skb_free(skb);
+        return -1;
+    }
+
+    int ret = eth_transmit(route->iface, ETH_P_IP, mac, skb->data, skb->len);
+    skb_free(skb);
+    return ret;
 }

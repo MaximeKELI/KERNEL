@@ -7,7 +7,6 @@
 #include "drivers/keyboard.h"
 #include "blk_mq.h"
 #include "landlock.h"
-#include "kernel_init.h"
 #include "net.h"
 #include "net_addr.h"
 #include "net_stats.h"

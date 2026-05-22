@@ -51,7 +51,7 @@ static void net_setup_default_interface(void) {
     ip_addr_parse("10.0.2.15", &default_netif.ip);
     ip_addr_parse("255.255.255.0", &default_netif.netmask);
     ip_addr_parse("10.0.2.2", &default_netif.gateway);
-    memcpy(default_netif.mac, eth->mac_address, 6);
+    ethernet_get_mac(eth, default_netif.mac);
     default_netif.up = true;
 
     ethernet_up(eth);

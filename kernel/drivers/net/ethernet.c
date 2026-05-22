@@ -188,6 +188,14 @@ ethernet_device_t* ethernet_find_device(const char* name) {
     return NULL;
 }
 
+int ethernet_get_mac(ethernet_device_t* dev, u8 mac[6]) {
+    if (!dev || !mac) {
+        return -1;
+    }
+    memcpy(mac, dev->mac_address, ETH_ALEN);
+    return 0;
+}
+
 u32 ethernet_get_device_count(void) {
     spinlock_lock(&ethernet_lock);
     u32 count = ethernet_device_count;

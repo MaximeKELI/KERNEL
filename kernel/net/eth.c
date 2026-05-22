@@ -1,6 +1,7 @@
 #include "eth.h"
 #include "ethernet.h"
 #include "net.h"
+#include "ip.h"
 #include "net_stats.h"
 #include "memory.h"
 #include "string.h"
@@ -109,8 +110,6 @@ int eth_transmit(netif_t* iface, u16 proto, const u8* dst_mac,
     }
 
     net_stats_update_tx(frame_len);
-    global_net_tx_bytes += frame_len;
-    global_net_tx_packets++;
     return 0;
 }
 
@@ -126,7 +125,5 @@ int eth_poll(netif_t* iface) {
     }
 
     net_stats_update_rx((size_t)n);
-    global_net_rx_bytes += (size_t)n;
-    global_net_rx_packets++;
     return net_process_packet(iface, buf, (size_t)n);
 }

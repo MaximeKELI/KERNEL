@@ -18,6 +18,9 @@
 #include "dhcp.h"
 #include "dns.h"
 #include "kernel_score.h"
+#include "exec.h"
+#include "appliance.h"
+#include "ai_bench.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -50,6 +53,9 @@ static void kshell_cmd_help(void) {
     printk("  dhcp       - DHCP acquire\n");
     printk("  dns NAME   - DNS A lookup\n");
     printk("  score      - kernel scorecard vs Linux\n");
+    printk("  appliance  - DHCP + ping QEMU gateway\n");
+    printk("  bench-ai   - AI vs non-AI I/O sched latency\n");
+    printk("  exec PATH  - run user ELF (e.g. nettest)\n");
 }
 
 static void kshell_cmd_mem(void) {
@@ -230,7 +236,7 @@ static void kshell_cmd_ping(const char* target) {
         printk("ping send failed\n");
         return;
     }
-    for (u32 i = 0; i < 64; i++) {
+    for (u32 i = 0; i < 256; i++) {
         net_poll();
     }
     printk("ping: %u reply(s)\n", icmp_ping_replies_received());
@@ -279,6 +285,22 @@ static void kshell_execute(const char* cmd) {
         }
     } else if (strcmp(cmd, "score") == 0) {
         kernel_score_print();
+    } else if (strcmp(cmd, "appliance") == 0) {
+        appliance_network_boot();
+    } else if (strcmp(cmd, "bench-ai") == 0) {
+        ai_sched_benchmark();
+    } else if (strncmp(cmd, "exec ", 5) == 0) {
+        if (!kernel_extended_ready()) {
+            printk("Need init-full for userland.\n");
+        } else if (exec_run_path(cmd + 5) < 0) {
+            printk("exec failed: %s (try: exec nettest)\n", cmd + 5);
+        }
+    } else if (strcmp(cmd, "nettest") == 0) {
+        if (!kernel_extended_ready()) {
+            printk("Need init-full.\n");
+        } else if (exec_run_path("/nettest") < 0) {
+            printk("nettest not found (rebuild: make iso)\n");
+        }
     } else if (strncmp(cmd, "dns ", 4) == 0) {
         ip_addr_t ip;
         if (dns_resolve_a(cmd + 4, &ip) == 0) {

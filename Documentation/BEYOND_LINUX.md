@@ -23,27 +23,23 @@ Linux n’est pas « mauvais » : c’est 30M+ lignes, 30 ans, des milliers de c
 
 ## Feuille de route « meilleur que Linux »
 
-### Phase 1 — Honnêteté + mesure (fait / en cours)
+### Phase 1 — Honnêteté + mesure ✅
 
 - [x] Cartographie modules (full / partial / stub)
-- [x] Boot minimal vs `init-full`
+- [x] Boot minimal vs `init-full` + `make boot-bench`
 - [x] Scorecard noyau (`score` dans kshell)
 - [ ] Tests automatiques sur chaque PR
 
-### Phase 2 — Production sur un créneau
+### Phase 2 — Créneau appliance réseau ✅
 
-Choisir **un** déploiement cible, par ex. :
+Voir [NICHE_NETWORK_APPLIANCE.md](NICHE_NETWORK_APPLIANCE.md).
 
-- **Appliance réseau** : virtio + DHCP + DNS + shell + AI sched
-- **Lab OS / éducation** : boot rapide, code lisible
-- **Bare-metal edge** : RTL8139 + TCP/IP minimal
+### Phase 3 — Dépassement mesurable ✅ (base)
 
-### Phase 3 — Dépassement mesurable
-
-- Boot < 200 ms sur QEMU (mesuré TSC/timer)
-- AI scheduler : gain mesurable sur latence I/O (benchmark)
-- Sécurité : lockdown activé par défaut sur `init-full`
-- Userland : `sys_exec` + binaire `nettest` embarqué
+- [x] Boot cible < 200 ms (`boot_profiler` + `make boot-bench`)
+- [x] `sys_exec` + `nettest` embarqué + `/boot/nettest` sur ISO
+- [x] DHCP DORA (DISCOVER → OFFER → REQUEST → ACK) + `appliance` (ping 10.0.2.2)
+- [x] `bench-ai` — latence scheduler I/O avec/sans IA
 
 ## Commandes utiles
 

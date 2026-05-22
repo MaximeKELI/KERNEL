@@ -40,7 +40,7 @@ void timer_init(u32 frequency) {
     /* Register IRQ handler */
     irq_register(0, timer_irq_handler, NULL);
     
-    printk("Timer: Initialized at %u Hz\n", frequency);
+    (void)frequency;
 }
 
 u64 timer_get_ticks(void) {

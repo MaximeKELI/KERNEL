@@ -1,0 +1,108 @@
+#include "exec.h"
+#include "elf.h"
+#include "memory.h"
+#include "process.h"
+#include "stdio.h"
+#include "string.h"
+#include "debug.h"
+#include "validate.h"
+
+extern char nettest_bin_start[];
+extern char nettest_bin_end[];
+
+#define PT_LOAD 1
+
+int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
+    if (!elf_data || !entry_out || elf_validate(elf_data, size) < 0) {
+        return -1;
+    }
+
+    const elf_header_t* ehdr = (const elf_header_t*)elf_data;
+    const elf_phdr_t* phdr = (const elf_phdr_t*)((const u8*)elf_data + ehdr->e_phoff);
+
+    for (u16 i = 0; i < ehdr->e_phnum; i++) {
+        if (phdr[i].p_type != PT_LOAD) {
+            continue;
+        }
+
+        u64 vaddr = phdr[i].p_vaddr;
+        size_t memsz = phdr[i].p_memsz;
+        size_t filesz = phdr[i].p_filesz;
+
+        if (vaddr < USER_LOAD_ADDR || vaddr + memsz > USER_STACK_TOP) {
+            DEBUG_ERROR("ELF segment outside user range");
+            return -1;
+        }
+
+        u64 page_start = vaddr & ~(PAGE_SIZE - 1);
+        u64 page_end = (vaddr + memsz + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
+        for (u64 pa = page_start; pa < page_end; pa += PAGE_SIZE) {
+            void* phys = pmm_alloc(1);
+            if (!phys) {
+                return -1;
+            }
+            memset(phys, 0, PAGE_SIZE);
+            if (!vmm_map_page((void*)pa, phys, PAGE_PRESENT | PAGE_WRITABLE)) {
+                return -1;
+            }
+        }
+
+        u8* dest = (u8*)vaddr;
+        const u8* src = (const u8*)elf_data + phdr[i].p_offset;
+        if (filesz > 0) {
+            memcpy(dest, src, filesz);
+        }
+        if (memsz > filesz) {
+            memset(dest + filesz, 0, memsz - filesz);
+        }
+    }
+
+    *entry_out = ehdr->e_entry;
+    return 0;
+}
+
+const void* exec_resolve_path(const char* path, size_t* size_out) {
+    if (!path || !size_out) {
+        return NULL;
+    }
+
+    if (strcmp(path, "/nettest") == 0 || strcmp(path, "/boot/nettest") == 0 ||
+        strcmp(path, "nettest") == 0) {
+        *size_out = (size_t)(nettest_bin_end - nettest_bin_start);
+        return nettest_bin_start;
+    }
+    return NULL;
+}
+
+void exec_jump_user(u64 entry) {
+    u8* stack = (u8*)(USER_STACK_TOP - USER_STACK_SIZE);
+    u64* sp = (u64*)(USER_STACK_TOP - 16);
+    sp[0] = 0;
+    sp[1] = 0;
+
+    __asm__ volatile(
+        "mov %0, %%rsp\n"
+        "jmp *%1"
+        :
+        : "r"(sp), "r"(entry)
+        : "memory");
+    __builtin_unreachable();
+}
+
+int exec_run_path(const char* path) {
+    size_t size = 0;
+    const void* blob = exec_resolve_path(path, &size);
+    if (!blob) {
+        return -1;
+    }
+
+    u64 entry = 0;
+    if (exec_load_elf(blob, size, &entry) < 0) {
+        return -1;
+    }
+
+    printk("[exec] %s entry=0x%llx (%zu bytes)\n",
+           path, (unsigned long long)entry, size);
+    exec_jump_user(entry);
+    return 0;
+}

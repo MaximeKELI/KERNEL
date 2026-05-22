@@ -70,6 +70,13 @@ void boot_profiler_report(void) {
                phases[i].name, (unsigned long long)ms);
         prev_tick = phases[i].tick;
     }
+    u64 total = boot_profiler_total_ms();
     printk("  %-20s %4llu ms (total)\n",
-           "TOTAL", (unsigned long long)boot_profiler_total_ms());
+           "TOTAL", (unsigned long long)total);
+    if (total < 200) {
+        printk("[Boot] PASS: total < 200 ms (QEMU target)\n");
+    } else {
+        printk("[Boot] WARN: total %llu ms (target < 200 ms)\n",
+               (unsigned long long)total);
+    }
 }

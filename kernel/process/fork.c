@@ -1,4 +1,5 @@
 #include "process.h"
+#include "exec.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
@@ -81,13 +82,13 @@ int exec_process(const char* path, char* const argv[]) {
         }
     }
     
-    (void)path;
     (void)argv;
-    
-    /* Would load new executable here */
-    /* For now, just return success */
-    DEBUG_INFO("Exec process: %s", path);
-    
+    (void)proc;
+
+    if (exec_run_path(path) < 0) {
+        DEBUG_ERROR("Exec failed: %s", path);
+        return -1;
+    }
     return 0;
 }
 

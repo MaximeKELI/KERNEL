@@ -15,22 +15,19 @@ struct sockaddr {
     char sa_data[14];
 };
 
-static inline u64 syscall6(u64 n, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5, u64 a6) {
+static inline u64 syscall1(u64 n, u64 a1) {
     u64 ret;
-    __asm__ volatile(
-        "syscall"
-        : "=a"(ret)
-        : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r10"(a4), "r8"(a5), "r9"(a6)
-        : "rcx", "r11", "memory");
+    __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "D"(a1) : "rcx", "r11", "memory");
     return ret;
 }
 
-static inline u64 syscall1(u64 n, u64 a1) {
-    return syscall6(n, a1, 0, 0, 0, 0, 0);
-}
-
 static inline u64 syscall3(u64 n, u64 a1, u64 a2, u64 a3) {
-    return syscall6(n, a1, a2, a3, 0, 0, 0);
+    u64 ret;
+    __asm__ volatile("syscall"
+                     : "=a"(ret)
+                     : "a"(n), "D"(a1), "S"(a2), "d"(a3)
+                     : "rcx", "r11", "memory");
+    return ret;
 }
 
 static void puts(const char* s) {

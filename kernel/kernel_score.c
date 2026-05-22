@@ -45,8 +45,9 @@ void kernel_score_print(void) {
     printk("========================================\n");
     printk("Maturity:     %u%% (%u full / %u partial / %u stub)\n",
            maturity, s.modules_full, s.modules_partial, s.modules_stub);
-    printk("Fast boot:    %llu ms (Linux typical: 2000-8000 ms)\n",
-           (unsigned long long)s.boot_minimal_ms);
+    printk("Fast boot:    %llu ms %s (target < 200 ms, Linux 2000-8000 ms)\n",
+           (unsigned long long)s.boot_minimal_ms,
+           s.boot_minimal_ms < 200 ? "[PASS]" : "[WARN]");
     if (s.boot_extended_ms > 0) {
         printk("Extended:     +%llu ms (on demand)\n",
                (unsigned long long)s.boot_extended_ms);

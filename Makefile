@@ -87,6 +87,9 @@ CFLAGS += -DRUN_TESTS
 KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 endif
 
+USER_NETTEST = $(BUILD_DIR)/user/nettest
+NETTEST_BLOB = $(BUILD_DIR)/kernel/nettest_blob.o
+
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
                      $(wildcard $(KERNEL_DIR)/syscall/*.S) \
                      $(filter-out $(KERNEL_DIR)/asm/numa.S,$(wildcard $(KERNEL_DIR)/asm/*.S))
@@ -97,13 +100,13 @@ BOOT_SOURCES = $(BOOT_DIR)/boot.asm
 KERNEL_OBJECTS = $(KERNEL_SOURCES:%.c=$(BUILD_DIR)/%.o)
 KERNEL_ASM_OBJECTS = $(KERNEL_ASM_SOURCES:%.S=$(BUILD_DIR)/%.o)
 BOOT_OBJECTS = $(BOOT_SOURCES:%.asm=$(BUILD_DIR)/%.o)
-ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS) $(KERNEL_ASM_OBJECTS)
+ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS) $(KERNEL_ASM_OBJECTS) $(NETTEST_BLOB)
 
 # Output files
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 ISO_IMAGE = $(BUILD_DIR)/kernel.iso
 
-.PHONY: all clean run run-qemu iso test docs benchmark deploy check release profile install-scripts
+.PHONY: all clean run run-qemu iso boot-bench nettest test docs benchmark deploy check release profile install-scripts
 
 all: $(KERNEL_ELF) iso
 
@@ -165,21 +168,33 @@ $(BUILD_DIR)/%.o: %.asm | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-# Assemble kernel ASM sources
+# Assemble kernel ASM sources (nettest blob built separately — needs user ELF first)
 $(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
+$(BUILD_DIR)/kernel/nettest_blob.o: $(USER_NETTEST) $(KERNEL_DIR)/nettest_blob.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $(KERNEL_DIR)/nettest_blob.S -o $@
+
+# Userland nettest (embedded + copied to ISO)
+$(USER_NETTEST): user/nettest.c user/nettest.ld user/Makefile
+	$(MAKE) -C user
+
 # Link kernel
-$(KERNEL_ELF): $(ALL_OBJECTS) linker.ld
+$(KERNEL_ELF): $(ALL_OBJECTS) $(USER_NETTEST) linker.ld
 	$(CC) $(LDFLAGS_GCC) $(ALL_OBJECTS) -o $@
 
 # Create ISO
-iso: $(KERNEL_ELF) grub.cfg
+iso: $(KERNEL_ELF) $(USER_NETTEST) grub.cfg
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)
 	cp $(KERNEL_ELF) $(ISO_BOOT_DIR)/
+	cp $(USER_NETTEST) $(ISO_BOOT_DIR)/nettest
 	cp grub.cfg $(ISO_GRUB_DIR)/
 	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
+
+boot-bench: iso
+	@bash scripts/boot_bench.sh
 
 # QEMU: prefer system package (/usr/bin), then AppImage in ~/.local/bin
 QEMU ?= $(firstword $(wildcard /usr/bin/qemu-system-x86_64) $(HOME)/.local/bin/qemu-system-x86_64)

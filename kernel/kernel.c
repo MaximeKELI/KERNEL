@@ -40,22 +40,16 @@ void kernel_main(u64 magic, u64 mb_info) {
 
     serial_init(COM1);
 
-    printk("========================================\n");
-    printk("  64-bit OS Kernel v%d.%d.%d\n",
+    printk("Kernel v%d.%d.%d [fast boot]\n",
            KERNEL_VERSION_MAJOR,
            KERNEL_VERSION_MINOR,
            KERNEL_VERSION_PATCH);
-    printk("========================================\n\n");
 
     kernel_init_minimal();
     enable_interrupts();
     boot_profiler_mark("shell");
 
-    printk("========================================\n");
-    printk("Fast boot complete. Shell ready.\n");
-    printk("  score      - maturity vs Linux (honest)\n");
-    printk("  init-full  - load all subsystems\n");
-    printk("========================================\n\n");
+    printk("Shell ready. init-full | score | appliance | exec nettest\n");
 
     kshell_init();
 

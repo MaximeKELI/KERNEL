@@ -8,6 +8,7 @@
 #include "dns.h"
 #include "net_addr.h"
 #include "uaccess.h"
+#include "exec.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -62,7 +63,7 @@ void syscall_init(void) {
     wrmsr(0xC0000081, 0x0018000800000000ULL);
     wrmsr(0xC0000082, (u64)syscall_entry);
     wrmsr(0xC0000084, 0x200);
-    printk("Syscall: Initialized (incl. sockets)\n");
+    printk("Syscall: ready\n");
 }
 
 u64 sys_exit(u64 status) {
@@ -116,8 +117,18 @@ u64 sys_fork(void) {
 }
 
 u64 sys_exec(const char* path, char* const argv[]) {
-    (void)path;
     (void)argv;
+    char kpath[256];
+    if (!path) {
+        return (u64)-1;
+    }
+    if (copy_from_user(kpath, path, sizeof(kpath) - 1) < 0) {
+        return (u64)-1;
+    }
+    kpath[sizeof(kpath) - 1] = '\0';
+    if (exec_run_path(kpath) < 0) {
+        return (u64)-1;
+    }
     return 0;
 }
 

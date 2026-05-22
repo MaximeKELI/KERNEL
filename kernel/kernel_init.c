@@ -109,29 +109,18 @@ void kernel_init_minimal(void) {
     pmm_init(512 * 1024 * 1024, 0x100000, 0x100000);
     vmm_init();
     heap_init();
-    memory_pressure_init();
 
-    printk("Interrupts...\n");
     interrupt_init();
-
-    printk("Drivers (core)...\n");
     hw_ports_init();
     keyboard_init();
     timer_init(100);
     boot_profiler_reset();
 
-    printk("Process / syscall / scheduler...\n");
     process_init();
     syscall_init();
     scheduler_init();
 
-    printk("Block / security (core)...\n");
-    block_init();
-    landlock_init();
-    seccomp_init();
-
     boot_profiler_mark("minimal_done");
-    printk("[init] fast boot done\n");
 }
 
 void kernel_init_extended(void) {
@@ -140,6 +129,11 @@ void kernel_init_extended(void) {
     }
     printk("[init] loading extended subsystems...\n");
     boot_profiler_mark("extended_start");
+
+    memory_pressure_init();
+    block_init();
+    landlock_init();
+    seccomp_init();
 
     /* Initialize VFS */
     printk("Initializing VFS...\n");
@@ -338,15 +332,7 @@ void kernel_init_extended(void) {
     kprobes_init();
     printk("Kprobes initialized.\n\n");
     
-    /* Initialize seccomp */
-    printk("Initializing seccomp...\n");
-    /* seccomp_init: already done */
-    printk("Seccomp initialized.\n\n");
-    
-    /* Initialize block layer */
-    printk("Initializing block layer...\n");
-    /* block_init: already done */
-    printk("Block layer initialized.\n\n");
+    /* seccomp / block: initialized at extended_start */
     
     /* Initialize I/O schedulers */
     printk("Initializing I/O schedulers...\n");

@@ -24,6 +24,9 @@ static bool blk_mq_enabled = false;
 static spinlock_t blk_mq_lock = SPINLOCK_INIT;
 
 void blk_mq_init(void) {
+    if (blk_mq_enabled) {
+        return;
+    }
     memset(mq_queues, 0, sizeof(mq_queues));
     mq_queue_count = 1;
     for (u32 i = 0; i < BLK_MQ_MAX_QUEUES; i++) {

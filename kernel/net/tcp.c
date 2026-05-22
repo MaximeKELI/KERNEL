@@ -150,7 +150,7 @@ void tcp_init(void) {
     
     /* Register TCP with IP layer */
     ip_register_protocol(IPPROTO_TCP, tcp_recv_packet);
-    printk("[TCP] RFC-style stack (RTO/retransmit/time-wait)\n");
+    printk("[TCP] Linux-style: RTO + slow start/CA + SACK + sliding window\n");
 }
 
 static u64 tcp_now_ms(void) {
@@ -372,10 +372,31 @@ static ssize_t tcp_send(socket_t* sock, const void* buf, size_t len) {
         return -1;
     }
     
-    /* Send data */
-    tcp_send_packet(conn, TCP_FLAG_PSH | TCP_FLAG_ACK, buf, len);
-    
-    return len;
+    spinlock_lock(&tcp_lock);
+    u32 win = tcp_cc_snd_wnd(conn);
+    if (conn->flight_size >= win) {
+        spinlock_unlock(&tcp_lock);
+        return 0;
+    }
+    size_t seg = len;
+    if (seg > TCP_MSS) {
+        seg = TCP_MSS;
+    }
+    if (conn->flight_size + seg > win) {
+        seg = win - conn->flight_size;
+    }
+    spinlock_unlock(&tcp_lock);
+
+    if (seg == 0) {
+        return 0;
+    }
+    if (tcp_send_packet(conn, TCP_FLAG_PSH | TCP_FLAG_ACK, buf, seg) < 0) {
+        return -1;
+    }
+    spinlock_lock(&tcp_lock);
+    conn->flight_size += (u32)seg;
+    spinlock_unlock(&tcp_lock);
+    return (ssize_t)seg;
 }
 
 static ssize_t tcp_recv(socket_t* sock, void* buf, size_t len) {

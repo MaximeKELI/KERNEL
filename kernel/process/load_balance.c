@@ -5,6 +5,8 @@
 #include "spinlock.h"
 #include "debug.h"
 #include "types.h"
+#include "string.h"
+#include "drivers/timer.h"
 
 /* Load balancing */
 static bool load_balance_enabled = true;

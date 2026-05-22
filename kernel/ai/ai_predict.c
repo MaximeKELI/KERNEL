@@ -53,8 +53,8 @@ void ai_predict_feed(const ai_metrics_t* m) {
     state.io_ema = ema_update(state.io_ema, io_rate);
     state.net_ema = ema_update(state.net_ema, net_rate);
 
-    state.cpu_trend = (s64)state.cpu_ema - (s64)prev_cpu;
-    state.mem_trend = (s64)state.mem_ema - (s64)prev_mem;
+    state.cpu_trend = (i64)state.cpu_ema - (i64)prev_cpu;
+    state.mem_trend = (i64)state.mem_ema - (i64)prev_mem;
 
     state.cpu_predict = state.cpu_ema + (u64)(state.cpu_trend > 0 ? state.cpu_trend : 0);
     state.mem_predict = state.mem_ema + (u64)(state.mem_trend > 0 ? state.mem_trend : 0);
@@ -91,9 +91,9 @@ u64 ai_predict_memory(void) {
     return v;
 }
 
-s64 ai_predict_cpu_trend(void) {
+i64 ai_predict_cpu_trend(void) {
     spinlock_lock(&predict_lock);
-    s64 v = state.cpu_trend;
+    i64 v = state.cpu_trend;
     spinlock_unlock(&predict_lock);
     return v;
 }

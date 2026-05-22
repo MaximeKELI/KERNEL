@@ -6,6 +6,7 @@
 #include "ai_network.h"
 #include "ai_log.h"
 #include "process.h"
+#include "scheduler.h"
 #include "cache.h"
 #include "drivers/timer.h"
 #include "debug.h"

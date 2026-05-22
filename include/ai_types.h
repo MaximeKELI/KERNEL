@@ -45,8 +45,8 @@ typedef struct {
     u64 net_ema;
     u64 cpu_predict;
     u64 mem_predict;
-    s64 cpu_trend;
-    s64 mem_trend;
+    i64 cpu_trend;
+    i64 mem_trend;
 } ai_predict_state_t;
 
 #endif /* AI_TYPES_H */

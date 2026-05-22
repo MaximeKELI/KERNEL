@@ -2,6 +2,7 @@
 #include "drivers/timer.h"
 #include "ai_policy.h"
 #include "spinlock.h"
+#include "string.h"
 
 static ai_log_entry_t ring[AI_LOG_SIZE];
 static u32 head = 0;

@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "process.h"
+#include "ai_policy.h"
 
 void ai_process_init(void);
 void ai_process_update_profiles(void);

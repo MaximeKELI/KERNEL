@@ -2,6 +2,9 @@
 #include "ai_manager.h"
 #include "ai_monitor.h"
 #include "ai_optimizer.h"
+#include "ai_policy.h"
+#include "ai_predict.h"
+#include "ai_log.h"
 #include "memory.h"
 #include "process.h"
 #include "scheduler.h"
@@ -137,6 +140,35 @@ static test_result_t test_ai_get_metrics_null(void) {
     return TEST_PASS;
 }
 
+static test_result_t test_ai_policy_modes(void) {
+    ai_policy_init();
+    ai_policy_set_mode(AI_POLICY_LATENCY);
+    TEST_ASSERT_EQ(ai_policy_get_mode(), AI_POLICY_LATENCY);
+    ai_policy_set_mode(AI_POLICY_THROUGHPUT);
+    TEST_ASSERT_EQ(ai_policy_get_mode(), AI_POLICY_THROUGHPUT);
+    return TEST_PASS;
+}
+
+static test_result_t test_ai_predict_ema(void) {
+    ai_predict_init();
+    ai_metrics_t m = { .cpu_usage = 40, .memory_usage = 50 };
+    ai_predict_feed(&m);
+    m.cpu_usage = 60;
+    ai_predict_feed(&m);
+    u64 pred = ai_predict_cpu();
+    TEST_ASSERT_TRUE(pred >= 40);
+    return TEST_PASS;
+}
+
+static test_result_t test_ai_log_ring(void) {
+    ai_log_init();
+    ai_log_record(AI_ACT_PRIO_BOOST, 1, 5);
+    TEST_ASSERT_TRUE(ai_log_count() >= 1);
+    ai_log_clear();
+    TEST_ASSERT_EQ(ai_log_count(), 0);
+    return TEST_PASS;
+}
+
 /* Register AI tests */
 void register_ai_tests(void) {
     test_register("ai", "ai_init", test_ai_init);
@@ -147,4 +179,7 @@ void register_ai_tests(void) {
     test_register("ai", "ai_get_metrics", test_ai_get_metrics);
     test_register("ai", "ai_tick", test_ai_tick);
     test_register("ai", "ai_get_metrics_null", test_ai_get_metrics_null);
+    test_register("ai", "ai_policy_modes", test_ai_policy_modes);
+    test_register("ai", "ai_predict_ema", test_ai_predict_ema);
+    test_register("ai", "ai_log_ring", test_ai_log_ring);
 }

@@ -69,7 +69,7 @@ void ai_process_apply_scheduler(const ai_policy_params_t* policy,
 
     u64 cpu_pred = ai_predict_cpu();
     u64 cpu_now = cpu_pred;
-    s64 trend = ai_predict_cpu_trend();
+    i64 trend = ai_predict_cpu_trend();
 
     for (process_t* p = process_list; p; p = p->next) {
         p->ai_class = classify_process(p, net_rx_rate);

@@ -1,6 +1,8 @@
 #include "syscall.h"
-#include "syscall_socket.h"
 #include "tcp.h"
+#include "net.h"
+
+extern socket_t* syscall_fd_get_socket(u64 fd);
 #include "net.h"
 #include "fs/vfs.h"
 

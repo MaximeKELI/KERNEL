@@ -84,4 +84,12 @@ ssize_t vfs_write(vfs_file_t* file, const void* buf, size_t count);
 /* Register filesystem */
 void vfs_register_filesystem(const char* name, vfs_fs_ops_t* fs_ops);
 
+/* FD-based API (POSIX-like) */
+int vfs_open_fd(const char* path, u64 flags);
+int vfs_close_fd(int fd);
+ssize_t vfs_read_fd(int fd, void* buf, size_t count);
+ssize_t vfs_write_fd(int fd, const void* buf, size_t count);
+ssize_t vfs_read_path(const char* path, void* buf, size_t count);
+ssize_t vfs_write_path(const char* path, const void* buf, size_t count);
+
 #endif /* VFS_H */

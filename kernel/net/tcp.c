@@ -647,11 +647,24 @@ int tcp_recv_packet(sk_buff_t* skb) {
         /* Update last activity */
         conn->last_activity = tcp_now_ms();
 
+        tcp_cc_update_peer_wnd(conn, ntohs(tcph->window));
+
         if (flags & TCP_FLAG_ACK && ack > conn->snd_una) {
+            u32 acked = ack - conn->snd_una;
+            tcp_cc_on_ack(conn, ack, acked);
             conn->snd_una = ack;
             conn->retry_count = 0;
             conn->rto_ms = TCP_INITIAL_RTO_MS;
             conn->retransmit_at = 0;
+        } else if (flags & TCP_FLAG_ACK) {
+            tcp_cc_on_ack(conn, ack, 0);
+        }
+
+        if (tcph->data_offset > 5) {
+            u32 hlen = (tcph->data_offset >> 4) * 4;
+            if (skb->len > hlen) {
+                tcp_cc_parse_sack(conn, skb->data + 20, hlen - 20);
+            }
         }
 
         if ((flags & (TCP_FLAG_SYN | TCP_FLAG_ACK)) == (TCP_FLAG_SYN | TCP_FLAG_ACK) &&

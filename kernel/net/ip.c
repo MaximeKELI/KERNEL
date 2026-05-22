@@ -5,6 +5,8 @@
 #include "arp.h"
 #include "netfilter.h"
 #include "route.h"
+#include "tcp.h"
+#include "udp.h"
 #include "rcu.h"
 #include "memory.h"
 #include "stdio.h"
@@ -108,7 +110,6 @@ bool tcp_udp_checksum_valid(const ip_header_t* iph, const void* data, size_t len
             return true;
         }
         tcph->checksum = 0;
-        received = ntohs(received);
     } else if (protocol == IPPROTO_UDP) {
         udp_header_t* udph = (udp_header_t*)data;
         received = udph->checksum;
@@ -122,11 +123,11 @@ bool tcp_udp_checksum_valid(const ip_header_t* iph, const void* data, size_t len
 
     u16 computed = tcp_udp_checksum(iph, data, len, protocol);
     if (protocol == IPPROTO_TCP) {
-        ((tcp_header_t*)data)->checksum = htons(received);
-    } else if (protocol == IPPROTO_UDP) {
-        ((udp_header_t*)data)->checksum = htons(received);
+        ((tcp_header_t*)data)->checksum = received;
+    } else {
+        ((udp_header_t*)data)->checksum = received;
     }
-    return htons(computed) == received || computed == received;
+    return computed == received;
 }
 
 /**
@@ -183,8 +184,22 @@ int ip_send_packet(ip_addr_t dst, u8 protocol, const void* data, size_t len) {
     
     iph->dst = dst;
     
-    /* Calculate checksum */
     iph->checksum = ip_checksum(iph, IP_HEADER_LEN);
+
+    if (protocol == IPPROTO_TCP || protocol == IPPROTO_UDP) {
+        void* trans = (u8*)skb->data + IP_HEADER_LEN;
+        size_t tlen = skb->len - IP_HEADER_LEN;
+        if (protocol == IPPROTO_TCP) {
+            tcp_header_t* tcph = (tcp_header_t*)trans;
+            tcph->checksum = 0;
+            tcph->checksum = tcp_udp_checksum(iph, trans, tlen, protocol);
+        } else {
+            udp_header_t* udph = (udp_header_t*)trans;
+            udph->checksum = 0;
+            u16 c = tcp_udp_checksum(iph, trans, tlen, protocol);
+            udph->checksum = c ? c : 0;
+        }
+    }
     
     if (!iface || !iface->up) {
         skb_free(skb);

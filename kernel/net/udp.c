@@ -223,6 +223,11 @@ int udp_recv_packet(sk_buff_t* skb) {
     }
     
     udp_header_t* udph = (udp_header_t*)skb->data;
+    if (skb->ip_hdr && !tcp_udp_checksum_valid(skb->ip_hdr, skb->data, skb->len, IPPROTO_UDP)) {
+        DEBUG_ERROR("Invalid UDP checksum");
+        skb_free(skb);
+        return -1;
+    }
     u16 src_port = ntohs(udph->src_port);
     u16 dst_port = ntohs(udph->dst_port);
     

@@ -442,6 +442,11 @@ int tcp_recv_packet(sk_buff_t* skb) {
     }
     
     tcp_header_t* tcph = (tcp_header_t*)skb->data;
+    if (skb->ip_hdr && !tcp_udp_checksum_valid(skb->ip_hdr, skb->data, skb->len, IPPROTO_TCP)) {
+        DEBUG_ERROR("Invalid TCP checksum");
+        skb_free(skb);
+        return -1;
+    }
     u16 src_port = ntohs(tcph->src_port);
     u16 dst_port = ntohs(tcph->dst_port);
     u32 seq = ntohl(tcph->seq_num);

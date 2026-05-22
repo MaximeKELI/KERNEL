@@ -2,6 +2,7 @@
 #include "process.h"
 #include "types.h"
 #include "memory.h"
+#include "string.h"
 #include "exec.h"
 #include "stdio.h"
 #include "string.h"

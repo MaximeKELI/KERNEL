@@ -11,6 +11,8 @@ static long syscall6(long n, long a, long b, long c, long d, long e, long f) {
         : "=a"(ret)
         : "a"(n), "D"(a), "S"(b), "d"(c), "r10"(d), "r8"(e), "r9"(f)
         : "rcx", "r11", "memory");
+    (void)e;
+    (void)f;
     return ret;
 }
 

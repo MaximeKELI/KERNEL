@@ -3,6 +3,9 @@
 
 #include "types.h"
 
+struct process;
+typedef struct process process_t;
+
 /* Signal numbers */
 #define SIGHUP    1
 #define SIGINT    2

@@ -4,9 +4,8 @@
 #include "stdio.h"
 #include "debug.h"
 #include "types.h"
+#include "slab.h"
 
-static u64 cache_reclaim_pages(u64 count);
-static u64 slab_reclaim_pages(u64 count);
 static u64 memory_compact_reclaim(u64 count);
 
 /* Reclaim pages from various sources */
@@ -23,17 +22,13 @@ u64 memory_reclaim_pages(u64 count) {
     return reclaimed;
 }
 
-static u64 cache_reclaim_pages(u64 count) {
-    (void)count;
-    return 0;
-}
-
-static u64 slab_reclaim_pages(u64 count) {
-    (void)count;
-    return 0;
-}
-
 static u64 memory_compact_reclaim(u64 count) {
-    (void)count;
+    extern int compact_memory(u32 mode);
+    if (count == 0) {
+        return 0;
+    }
+    if (compact_memory(1) == 0) {
+        return count > 4 ? 4 : count;
+    }
     return 0;
 }

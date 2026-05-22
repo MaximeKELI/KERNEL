@@ -1,5 +1,6 @@
 #include "cache.h"
 #include "memory.h"
+#include "string.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
@@ -200,6 +201,79 @@ int page_cache_sync(page_cache_t* page) {
     /* Would write to disk here */
     (void)page;
     return 0;
+}
+
+static u64 reclaim_buffer_lru(u64 max_pages) {
+    u64 reclaimed = 0;
+
+    while (buffer_lru_tail && reclaimed < max_pages) {
+        buffer_head_t* bh = buffer_lru_tail;
+        if (bh->refcount > 0) {
+            break;
+        }
+
+        if (bh->dirty) {
+            buffer_sync(bh);
+        }
+        kfree(bh->data);
+
+        if (bh->prev) {
+            bh->prev->next = NULL;
+            buffer_lru_tail = bh->prev;
+        } else {
+            buffer_lru_head = buffer_lru_tail = NULL;
+        }
+
+        memset(bh, 0, sizeof(buffer_head_t));
+        reclaimed++;
+    }
+
+    return reclaimed;
+}
+
+static u64 reclaim_page_lru(u64 max_pages) {
+    u64 reclaimed = 0;
+
+    while (page_lru_tail && reclaimed < max_pages) {
+        page_cache_t* page = page_lru_tail;
+        if (page->refcount > 0) {
+            break;
+        }
+
+        if (page->dirty) {
+            page_cache_sync(page);
+        }
+        vmm_free_pages(page->page, 1);
+
+        if (page->prev) {
+            page->prev->next = NULL;
+            page_lru_tail = page->prev;
+        } else {
+            page_lru_head = page_lru_tail = NULL;
+        }
+
+        memset(page, 0, sizeof(page_cache_t));
+        reclaimed++;
+    }
+
+    return reclaimed;
+}
+
+u64 cache_reclaim_pages(u64 max_pages) {
+    u64 reclaimed = 0;
+
+    if (max_pages == 0) {
+        return 0;
+    }
+
+    spinlock_lock(&cache_lock);
+    reclaimed += reclaim_buffer_lru(max_pages - reclaimed);
+    if (reclaimed < max_pages) {
+        reclaimed += reclaim_page_lru(max_pages - reclaimed);
+    }
+    spinlock_unlock(&cache_lock);
+
+    return reclaimed;
 }
 
 void cache_sync_all(void) {

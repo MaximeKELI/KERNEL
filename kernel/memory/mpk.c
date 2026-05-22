@@ -101,7 +101,7 @@ u32 mpk_get_prot(void* addr, u32* key) {
     }
     
     /* Would read from page table entry */
-    u32 pkru = (u32)rdmsr(0x1E4);
+    (void)(u32)rdmsr(0x1E4); /* PKRU - protection keys */
     
     if (key) {
         *key = 0; /* Would extract from PTE */

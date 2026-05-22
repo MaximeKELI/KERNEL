@@ -2,6 +2,7 @@
 #define CACHE_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* Buffer cache for block devices */
 typedef struct buffer_head {

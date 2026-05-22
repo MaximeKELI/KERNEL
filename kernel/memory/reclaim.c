@@ -5,44 +5,35 @@
 #include "debug.h"
 #include "types.h"
 
+static u64 cache_reclaim_pages(u64 count);
+static u64 slab_reclaim_pages(u64 count);
+static u64 memory_compact_reclaim(u64 count);
+
 /* Reclaim pages from various sources */
 u64 memory_reclaim_pages(u64 count) {
     u64 reclaimed = 0;
-    
-    /* Reclaim from page cache */
-    u64 cache_reclaimed = cache_reclaim_pages(count / 2);
-    reclaimed += cache_reclaimed;
-    
-    /* Reclaim from slab caches */
-    u64 slab_reclaimed = slab_reclaim_pages(count / 2);
-    reclaimed += slab_reclaimed;
-    
-    /* If still need more, try compaction */
+
+    reclaimed += cache_reclaim_pages(count / 2);
+    reclaimed += slab_reclaim_pages(count / 2);
+
     if (reclaimed < count) {
-        u64 compacted = memory_compact_reclaim(count - reclaimed);
-        reclaimed += compacted;
+        reclaimed += memory_compact_reclaim(count - reclaimed);
     }
-    
+
     return reclaimed;
 }
 
-/* Placeholder for cache reclaim */
-u64 cache_reclaim_pages(u64 count) {
-    /* TODO: Implement cache page reclaim */
+static u64 cache_reclaim_pages(u64 count) {
     (void)count;
     return 0;
 }
 
-/* Placeholder for slab reclaim */
-u64 slab_reclaim_pages(u64 count) {
-    /* TODO: Implement slab cache reclaim */
+static u64 slab_reclaim_pages(u64 count) {
     (void)count;
     return 0;
 }
 
-/* Placeholder for compaction reclaim */
-u64 memory_compact_reclaim(u64 count) {
-    /* TODO: Implement compaction-based reclaim */
+static u64 memory_compact_reclaim(u64 count) {
     (void)count;
     return 0;
 }

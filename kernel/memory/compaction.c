@@ -1,5 +1,6 @@
 #include "memory_compaction.h"
 #include "memory.h"
+#include "string.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
@@ -73,7 +74,7 @@ int compact_memory(u32 mode) {
     void* heap_end = (void*)0xC00000;
     compact_page_range(heap_start, heap_end, mode);
     
-    DEBUG_INFO("Memory compaction completed");
+    DEBUG_INFO("%s", "Memory compaction completed");
     return 0;
 }
 
@@ -94,7 +95,7 @@ void compact_on_pressure(void) {
     size_t total = pmm_get_total_pages();
     
     if (total > 0 && (free * 100 / total) < 10) {
-        DEBUG_INFO("Memory pressure detected, triggering compaction");
+        DEBUG_INFO("%s", "Memory pressure detected, triggering compaction");
         compact_memory(COMPACT_MODE_LIGHT);
     }
 }

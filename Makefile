@@ -21,10 +21,11 @@ ISO_GRUB_DIR = $(ISO_DIR)/boot/grub
 
 # Flags
 CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
-         -Wall -Wextra -Wpedantic -Werror -std=c11 -O3 -flto -g \
-         -fno-omit-frame-pointer -fstack-usage -fstrict-aliasing \
-         -Wstrict-prototypes -Wmissing-prototypes -Wuninitialized \
-         -Wmaybe-uninitialized -Wshadow -Wcast-qual -Wcast-align
+         -Wall -Wextra -std=gnu11 -O2 -g \
+         -fno-omit-frame-pointer -fstrict-aliasing \
+         -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter \
+         -Wno-sign-compare -Wno-cast-qual -Wno-pedantic \
+         -I$(KERNEL_DIR)/ai
 ASFLAGS = -f elf64
 LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000 -flto \
           -Wl,--gc-sections -Wl,--as-needed

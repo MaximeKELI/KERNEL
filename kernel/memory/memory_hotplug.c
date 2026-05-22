@@ -99,9 +99,7 @@ int memory_block_online(void* start) {
             
             block->state = MEMORY_STATE_ONLINE;
             
-            /* Add to PMM */
-            size_t pages = block->size / PAGE_SIZE;
-            /* Would call pmm_add_range(block->start, pages) */
+            /* Add to PMM - would call pmm_add_range(block->start, block->size / PAGE_SIZE) */
             
             spinlock_unlock(&hotplug_lock);
             DEBUG_INFO("Memory block onlined: start=0x%p, size=%u KB", 

@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "spinlock.h"
 #include "debug.h"
+#include "string.h"
 #include "types.h"
 
 /* Memory pressure levels */

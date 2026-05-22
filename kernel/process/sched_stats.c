@@ -4,6 +4,7 @@
 #include "spinlock.h"
 #include "debug.h"
 #include "types.h"
+#include "string.h"
 
 static bool sched_stats_enabled = false;
 static sched_stats_t stats;

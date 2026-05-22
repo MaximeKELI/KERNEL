@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "debug.h"
 #include "types.h"
+#include "string.h"
 
 #define MAX_TUNE_ENTRIES 64
 

@@ -46,7 +46,7 @@ void load_balance_update_cpu(u32 cpu_id) {
     /* Update load based on running tasks */
     load->nr_running = scheduler_get_running_count(cpu_id);
     load->load = load->nr_running * 100; /* Simplified load calculation */
-    load->last_update = 0; /* TODO: Use actual timestamp */
+    load->last_update = timer_get_ticks();
     
     spinlock_unlock(&balance_lock);
 }
@@ -74,15 +74,15 @@ bool load_balance_migrate_task(process_t* proc, u32 target_cpu) {
         return false;
     }
     
-    /* TODO: Implement actual task migration */
-    /* This would involve updating process CPU affinity */
-    
+    if (set_cpu_affinity(proc->pid, 1ULL << target_cpu) != 0) {
+        return false;
+    }
+
     spinlock_lock(&balance_lock);
     balance_operations++;
     spinlock_unlock(&balance_lock);
-    
-    DEBUG_INFO("Migrating task %u to CPU %u", proc->pid, target_cpu);
-    
+
+    DEBUG_INFO("Migrating task %u to CPU %u", (u32)proc->pid, target_cpu);
     return true;
 }
 

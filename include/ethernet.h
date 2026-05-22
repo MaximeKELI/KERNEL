@@ -38,5 +38,6 @@ void ethernet_poll_all(void);
 
 /* Copy MAC address */
 int ethernet_get_mac(ethernet_device_t* dev, u8 mac[6]);
+bool ethernet_is_hardware(ethernet_device_t* dev);
 
 #endif /* ETHERNET_H */

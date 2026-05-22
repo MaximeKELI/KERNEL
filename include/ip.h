@@ -27,6 +27,10 @@ u32 ntohl(u32 netlong);
 /* IP checksum */
 u16 ip_checksum(const void* data, size_t len);
 
+/* TCP/UDP pseudo-header checksum (data = transport hdr + payload) */
+u16 tcp_udp_checksum(const ip_header_t* iph, const void* data, size_t len, u8 protocol);
+bool tcp_udp_checksum_valid(const ip_header_t* iph, const void* data, size_t len, u8 protocol);
+
 /* IP header length */
 #define IP_HEADER_LEN 20
 

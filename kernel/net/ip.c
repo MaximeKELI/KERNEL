@@ -66,6 +66,69 @@ u16 ip_checksum(const void* data, size_t len) {
     return ~sum;
 }
 
+u16 tcp_udp_checksum(const ip_header_t* iph, const void* data, size_t len, u8 protocol) {
+    if (!iph || !data || len == 0) {
+        return 0;
+    }
+
+    u32 sum = 0;
+    for (int i = 0; i < 4; i += 2) {
+        sum += (u32)iph->src.addr[i] | ((u32)iph->src.addr[i + 1] << 8);
+    }
+    for (int i = 0; i < 4; i += 2) {
+        sum += (u32)iph->dst.addr[i] | ((u32)iph->dst.addr[i + 1] << 8);
+    }
+    sum += protocol;
+    sum += len;
+
+    const u16* words = (const u16*)data;
+    for (size_t i = 0; i < len / 2; i++) {
+        sum += words[i];
+    }
+    if (len % 2) {
+        sum += ((u8*)data)[len - 1] << 8;
+    }
+
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+    return (u16)(~sum);
+}
+
+bool tcp_udp_checksum_valid(const ip_header_t* iph, const void* data, size_t len, u8 protocol) {
+    if (!iph || !data || len < 8) {
+        return false;
+    }
+
+    u16 received = 0;
+    if (protocol == IPPROTO_TCP) {
+        tcp_header_t* tcph = (tcp_header_t*)data;
+        received = tcph->checksum;
+        if (received == 0) {
+            return true;
+        }
+        tcph->checksum = 0;
+        received = ntohs(received);
+    } else if (protocol == IPPROTO_UDP) {
+        udp_header_t* udph = (udp_header_t*)data;
+        received = udph->checksum;
+        if (received == 0) {
+            return true;
+        }
+        udph->checksum = 0;
+    } else {
+        return true;
+    }
+
+    u16 computed = tcp_udp_checksum(iph, data, len, protocol);
+    if (protocol == IPPROTO_TCP) {
+        ((tcp_header_t*)data)->checksum = htons(received);
+    } else if (protocol == IPPROTO_UDP) {
+        ((udp_header_t*)data)->checksum = htons(received);
+    }
+    return htons(computed) == received || computed == received;
+}
+
 /**
  * @brief Send an IP packet
  * @param dst Destination IP address

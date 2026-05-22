@@ -26,6 +26,10 @@
 #define SYS_CLOSEFD   19
 #define SYS_DNS       20
 #define SYS_AI_METRICS 21
+#define SYS_EPOLL_CREATE 22
+#define SYS_EPOLL_CTL    23
+#define SYS_EPOLL_WAIT   24
+#define SYS_POLL         25
 
 /* System call handler */
 u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
@@ -59,5 +63,9 @@ u64 sys_sendto(u64 fd, const void* buf, u64 len, u64 flags,
 u64 sys_socket_close(u64 fd);
 u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len);
 u64 sys_ai_metrics(void* out_info, u64 size);
+u64 sys_epoll_create(u64 size);
+u64 sys_epoll_ctl(u64 epfd, u64 op, u64 fd, void* event);
+u64 sys_epoll_wait(u64 epfd, void* events, u64 maxevents, u64 timeout);
+u64 sys_poll(void* fds, u64 nfds, u64 timeout_ms);
 
 #endif /* SYSCALL_H */

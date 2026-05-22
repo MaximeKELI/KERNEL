@@ -100,3 +100,40 @@ cgroup_t* cgroup_get_process(u64 pid) {
     
     return NULL;
 }
+
+static void cgroup_destroy_children(cgroup_t* child) {
+    while (child) {
+        cgroup_t* next = child->sibling;
+        if (child->children) {
+            cgroup_destroy_children(child->children);
+        }
+        kfree(child);
+        child = next;
+    }
+}
+
+void cgroup_destroy(cgroup_t* cg) {
+    if (!cg || cg == cgroup_root) {
+        return;
+    }
+
+    spinlock_lock(&cgroup_lock);
+
+    cgroup_t** link = &cgroup_root;
+    if (cg->parent) {
+        link = &cg->parent->children;
+    }
+
+    while (*link) {
+        if (*link == cg) {
+            *link = cg->sibling;
+            break;
+        }
+        link = &(*link)->sibling;
+    }
+
+    spinlock_unlock(&cgroup_lock);
+
+    cgroup_destroy_children(cg->children);
+    kfree(cg);
+}

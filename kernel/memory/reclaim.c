@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "types.h"
 #include "slab.h"
+#include "memory_compaction.h"
 
 static u64 memory_compact_reclaim(u64 count);
 
@@ -23,11 +24,10 @@ u64 memory_reclaim_pages(u64 count) {
 }
 
 static u64 memory_compact_reclaim(u64 count) {
-    extern int compact_memory(u32 mode);
     if (count == 0) {
         return 0;
     }
-    if (compact_memory(1) == 0) {
+    if (compact_memory(COMPACT_MODE_LIGHT) == 0) {
         return count > 4 ? 4 : count;
     }
     return 0;

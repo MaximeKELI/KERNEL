@@ -23,6 +23,10 @@
 #include "ai_bench.h"
 #include "ai_shell.h"
 #include "video_shell.h"
+#include "http_client.h"
+#include "appliance_config.h"
+#include "container.h"
+#include "ebpf.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -60,6 +64,9 @@ static void kshell_cmd_help(void) {
     printk("  ai [cmd]   - AI v4 (ai help, goal, health, advise)\n");
     printk("  exec PATH  - run user ELF (e.g. nettest)\n");
     printk("  video [cmd] - video (video help, demo, blit)\n");
+    printk("  http HOST [path] - HTTP GET (init-full)\n");
+    printk("  config     - show appliance config\n");
+    printk("  container list|create NAME - containers\n");
 }
 
 static void kshell_cmd_mem(void) {
@@ -311,6 +318,58 @@ static void kshell_execute(const char* cmd) {
             printk("Need init-full.\n");
         } else if (exec_run_path("/nettest") < 0) {
             printk("nettest not found (rebuild: make iso)\n");
+        }
+    } else if (strncmp(cmd, "http ", 5) == 0) {
+        if (!kernel_extended_ready()) {
+            printk("Need init-full\n");
+        } else {
+            char host[32] = "10.0.2.2";
+            const char* path = "/";
+            const char* rest = cmd + 5;
+            const char* sp = strchr(rest, ' ');
+            if (sp) {
+                size_t hl = (size_t)(sp - rest);
+                if (hl < sizeof(host)) {
+                    memcpy(host, rest, hl);
+                    host[hl] = '\0';
+                    path = sp + 1;
+                }
+            } else {
+                strncpy(host, rest, sizeof(host) - 1);
+            }
+            http_response_t resp;
+            if (http_get_url(host, 80, path, &resp) == 0) {
+                printk("HTTP %d (%zu bytes)\n", resp.status_code, resp.body_len);
+            } else {
+                printk("HTTP GET failed\n");
+            }
+        }
+    } else if (strcmp(cmd, "config") == 0) {
+        const appliance_config_t* c = appliance_config_get();
+        char gw[16], dns[16];
+        ip_addr_format(&c->gateway, gw, sizeof(gw));
+        ip_addr_format(&c->dns_server, dns, sizeof(dns));
+        printk("host=%s gw=%s dns=%s port=%u dhcp=%u\n",
+               c->hostname, gw, dns, c->http_port, c->dhcp_enabled ? 1u : 0u);
+    } else if (strncmp(cmd, "container ", 10) == 0) {
+        if (strcmp(cmd + 10, "list") == 0) {
+            container_t* c = container_list();
+            u32 n = 0;
+            while (c) {
+                printk("  #%llu %s %s\n",
+                       (unsigned long long)c->container_id, c->name,
+                       c->running ? "running" : "stopped");
+                c = c->next;
+                n++;
+            }
+            if (!n) {
+                printk("(no containers)\n");
+            }
+        } else if (strncmp(cmd + 10, "create ", 7) == 0) {
+            container_t* c = container_create(cmd + 17, "/");
+            printk("%s\n", c ? "container created" : "create failed");
+        } else {
+            printk("Usage: container list|create NAME\n");
         }
     } else if (strncmp(cmd, "dns ", 4) == 0) {
         ip_addr_t ip;

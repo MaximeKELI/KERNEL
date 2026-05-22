@@ -96,6 +96,12 @@
 #include "load_balance.h"
 #include "sched_domain.h"
 #include "debug.h"
+#include "appliance_config.h"
+#include "virtio_gpu.h"
+#include "ahci.h"
+#include "fb_console.h"
+#include "pc_speaker.h"
+#include "ebpf.h"
 
 static bool g_extended_ready = false;
 
@@ -132,9 +138,11 @@ void kernel_init_extended(void) {
     boot_profiler_mark("extended_start");
 
     memory_pressure_init();
+    ahci_init();
     block_init();
     landlock_init();
     seccomp_init();
+    appliance_config_init();
 
     /* Initialize VFS */
     printk("Initializing VFS...\n");
@@ -256,13 +264,18 @@ void kernel_init_extended(void) {
     /* Initialize framebuffer */
     printk("Initializing framebuffer...\n");
     framebuffer_init_multiboot(kernel_mb_info);
+    fb_console_init();
+    virtio_gpu_init();
     printk("Framebuffer initialized.\n\n");
     
     /* Initialize multimedia subsystem */
     printk("Initializing multimedia subsystem...\n");
     media_init();
     extern void video_core_setup_default(void);
+    extern void codec_raw_init(void);
     video_core_setup_default();
+    codec_raw_init();
+    pc_speaker_init();
     printk("Multimedia subsystem initialized.\n\n");
     
     /* Initialize System V IPC */
@@ -345,7 +358,12 @@ void kernel_init_extended(void) {
     /* Initialize tmpfs */
     printk("Initializing tmpfs...\n");
     tmpfs_init();
-    printk("Tmpfs initialized.\n\n");
+    tmpfs_mount("/tmp", 10 * 1024 * 1024);
+    appliance_config_save("/etc/appliance.conf");
+    appliance_config_load("/etc/appliance.conf");
+    ext2_mount("hda", "/");
+    landlock_add_rule(0, "/etc/", LANDLOCK_ACCESS_FS_READ, false);
+    printk("Tmpfs + config initialized.\n\n");
     
     /* Initialize huge pages */
     printk("Initializing huge pages...\n");
@@ -360,6 +378,7 @@ void kernel_init_extended(void) {
     /* Initialize BPF */
     printk("Initializing BPF...\n");
     bpf_init();
+    ebpf_init();
     printk("BPF initialized.\n\n");
     
     /* Initialize live patching */

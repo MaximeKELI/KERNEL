@@ -14,6 +14,7 @@
 #include "net_ports.h"
 #include "net_socket.h"
 #include "serial.h"
+#include "hw_ports.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -41,6 +42,8 @@ static void kshell_cmd_help(void) {
     printk("  netstats   - RX/TX counters\n");
     printk("  ports      - well-known TCP/UDP ports\n");
     printk("  serial     - COM1-COM4 status\n");
+    printk("  ioports    - hardware I/O port map (x86)\n");
+    printk("  ioport N   - lookup port 0xN (hex ok)\n");
 }
 
 static void kshell_cmd_mem(void) {

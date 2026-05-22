@@ -4,11 +4,11 @@
 #include "string.h"
 #include "debug.h"
 
-#define SERIAL_DATA_PORT(port)     (port)
-#define SERIAL_FIFO_PORT(port)     (port + 2)
-#define SERIAL_LINE_PORT(port)     (port + 3)
-#define SERIAL_MODEM_PORT(port)    (port + 4)
-#define SERIAL_LINE_STATUS(port)   (port + 5)
+#define SERIAL_DATA_PORT(port)     ((port) + UART_REG_RBR)
+#define SERIAL_FIFO_PORT(port)     ((port) + UART_REG_IIR_FCR)
+#define SERIAL_LINE_PORT(port)     ((port) + UART_REG_LCR)
+#define SERIAL_MODEM_PORT(port)    ((port) + UART_REG_MCR)
+#define SERIAL_LINE_STATUS(port)   ((port) + UART_REG_LSR)
 
 typedef struct {
     u16 base;

@@ -2,26 +2,7 @@
 #include "io.h"
 #include "stdio.h"
 
-#define ATA_PRIMARY_DATA       0x1F0
-#define ATA_PRIMARY_ERROR      0x1F1
-#define ATA_PRIMARY_SECTOR     0x1F2
-#define ATA_PRIMARY_LBA_LOW    0x1F3
-#define ATA_PRIMARY_LBA_MID    0x1F4
-#define ATA_PRIMARY_LBA_HIGH   0x1F5
-#define ATA_PRIMARY_DEVICE     0x1F6
-#define ATA_PRIMARY_COMMAND    0x1F7
-#define ATA_PRIMARY_STATUS     0x1F7
-#define ATA_PRIMARY_ALT_STATUS 0x3F6
-
-#define ATA_CMD_READ_SECTORS   0x20
-#define ATA_CMD_WRITE_SECTORS  0x30
-#define ATA_CMD_IDENTIFY       0xEC
-
-#define ATA_STATUS_BSY         0x80
-#define ATA_STATUS_DRDY        0x40
-#define ATA_STATUS_DF          0x20
-#define ATA_STATUS_DRQ         0x08
-#define ATA_STATUS_ERR         0x01
+#include "hw_ports.h"
 
 static void ata_wait_ready(void) {
     while (inb(ATA_PRIMARY_STATUS) & ATA_STATUS_BSY);

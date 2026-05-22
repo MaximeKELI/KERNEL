@@ -3,8 +3,7 @@
 #include "io.h"
 #include "stdio.h"
 
-#define KEYBOARD_DATA_PORT 0x60
-#define KEYBOARD_STATUS_PORT 0x64
+#include "hw_ports.h"
 
 static keyboard_event_t event_queue[256];
 static u32 queue_head = 0;
@@ -26,7 +25,7 @@ static void keyboard_irq_handler(u32 irq, void* data) {
     (void)irq;
     (void)data;
     
-    u8 scancode = inb(KEYBOARD_DATA_PORT);
+    u8 scancode = inb(KBD_DATA_PORT);
     
     if (queue_size < 256) {
         keyboard_event_t event;

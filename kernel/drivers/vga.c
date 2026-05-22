@@ -2,8 +2,9 @@
 #include "io.h"
 
 #define VGA_MEMORY 0xB8000
-#define VGA_INDEX_REGISTER 0x3D4
-#define VGA_DATA_REGISTER 0x3D5
+#include "hw_ports.h"
+#define VGA_INDEX_REGISTER VGA_CRTC_INDEX
+#define VGA_DATA_REGISTER  VGA_CRTC_DATA
 
 static u16* vga_buffer = (u16*)VGA_MEMORY;
 static u8 vga_color = VGA_COLOR_LIGHT_GREY | (VGA_COLOR_BLACK << 4);

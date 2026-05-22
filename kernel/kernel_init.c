@@ -6,6 +6,7 @@
 #include "syscall.h"
 #include "drivers/keyboard.h"
 #include "drivers/timer.h"
+#include "hw_ports.h"
 #include "drivers/ata.h"
 #include "pci.h"
 #include "fs/vfs.h"
@@ -113,6 +114,7 @@ void kernel_init_minimal(void) {
     interrupt_init();
 
     printk("Drivers (core)...\n");
+    hw_ports_init();
     keyboard_init();
     timer_init(100);
 

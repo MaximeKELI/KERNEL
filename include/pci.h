@@ -2,10 +2,7 @@
 #define PCI_H
 
 #include "types.h"
-
-/* PCI configuration space */
-#define PCI_CONFIG_ADDRESS 0xCF8
-#define PCI_CONFIG_DATA    0xCFC
+#include "hw_ports.h"
 
 /* PCI device structure */
 typedef struct pci_device {

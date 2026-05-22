@@ -27,8 +27,16 @@
 #define AI_ACT_MEM_RECLAIM    5
 #define AI_ACT_NET_BOOST      6
 #define AI_ACT_ANOMALY        7
+#define AI_ACT_POLICY_AUTO    8
+#define AI_ACT_LEARN_REWARD   9
+#define AI_ACT_VRUNTIME_TUNED 10
 
-#define AI_LOG_SIZE 32
+#define AI_LOG_SIZE 48
+#define AI_HISTORY_LEN 24
+#define AI_LEARN_ACTIONS 8
+
+#define AI_AUTO_POLICY_OFF  0
+#define AI_AUTO_POLICY_ON   1
 
 typedef struct {
     u64 tick;

@@ -40,6 +40,7 @@ typedef struct process {
     /* AI adaptive scheduler (kernel/ai) */
     u8 ai_class;
     u8 ai_boost;
+    u8 ai_score;
     u16 ai_wait_ticks;
     u16 ai_run_ticks;
     

@@ -252,11 +252,6 @@ int getpriority(u64 pid) {
     return -1;
 }
 
-int sched_setscheduler(u64 pid, int policy, int priority) {
-    (void)policy; /* For now, only CFS */
-    return setpriority(pid, priority);
-}
-
 void scheduler_get_stats(scheduler_stats_t* out_stats) {
     if (out_stats) {
         *out_stats = stats;

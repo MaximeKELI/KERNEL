@@ -112,47 +112,6 @@ process_t* process_current(void) {
     return current_process;
 }
 
-void schedule(void) {
-    if (!process_list) return;
-    
-    process_t* next = NULL;
-    
-    /* Round-robin: find next ready process */
-    if (current_process) {
-        process_t* p = current_process->next;
-        while (p != current_process) {
-            if (!p) p = process_list;
-            if (p->state == PROCESS_READY) {
-                next = p;
-                break;
-            }
-            p = p->next;
-        }
-    }
-    
-    if (!next) {
-        /* Find first ready process */
-        process_t* p = process_list;
-        while (p) {
-            if (p->state == PROCESS_READY) {
-                next = p;
-                break;
-            }
-            p = p->next;
-        }
-    }
-    
-    if (next && next != current_process) {
-        process_t* old = current_process;
-        current_process = next;
-        current_process->state = PROCESS_RUNNING;
-        if (old) {
-            old->state = PROCESS_READY;
-        }
-        context_switch(old, current_process);
-    }
-}
-
 void context_switch(process_t* from, process_t* to) {
     if (!to) return;
     

@@ -27,8 +27,8 @@ CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
          -Wno-sign-compare -Wno-cast-qual -Wno-pedantic \
          -I$(KERNEL_DIR)/ai
 ASFLAGS = -f elf64
-LDFLAGS = -T linker.ld -nostdlib -z max-page-size=0x1000 -flto \
-          -Wl,--gc-sections -Wl,--as-needed
+LDFLAGS = -T linker.ld -nostdlib -static -z max-page-size=0x1000
+LDFLAGS_GCC = -ffreestanding $(LDFLAGS) -Wl,--gc-sections
 
 # Source files
 KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
@@ -80,12 +80,11 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/audio/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/input/*.c) \
                  $(wildcard $(KERNEL_DIR)/media/*.c) \
-                 $(wildcard $(LIB_DIR)/*.c) \
-                 $(wildcard $(KERNEL_DIR)/test/tests_*.c)
+                 $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
                      $(wildcard $(KERNEL_DIR)/syscall/*.S) \
-                     $(wildcard $(KERNEL_DIR)/asm/*.S)
+                     $(filter-out $(KERNEL_DIR)/asm/numa.S,$(wildcard $(KERNEL_DIR)/asm/*.S))
 
 BOOT_SOURCES = $(BOOT_DIR)/boot.asm
 
@@ -168,7 +167,7 @@ $(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
 
 # Link kernel
 $(KERNEL_ELF): $(ALL_OBJECTS) linker.ld
-	$(LD) $(LDFLAGS) $(ALL_OBJECTS) -o $@
+	$(CC) $(LDFLAGS_GCC) $(ALL_OBJECTS) -o $@
 
 # Create ISO
 iso: $(KERNEL_ELF) grub.cfg

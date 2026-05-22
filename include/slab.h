@@ -31,6 +31,9 @@ void kmem_cache_free(slab_cache_t* cache, void* obj);
 /* Destroy cache */
 void kmem_cache_destroy(slab_cache_t* cache);
 
+/* Reclaim free slabs (returns approximate page count) */
+u64 slab_reclaim_pages(u64 max_pages);
+
 /* Per-CPU cache operations */
 void* kmem_cache_alloc_cpu(slab_cache_t* cache, u32 cpu_id);
 void kmem_cache_free_cpu(slab_cache_t* cache, void* obj, u32 cpu_id);

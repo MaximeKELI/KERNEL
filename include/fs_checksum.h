@@ -3,11 +3,8 @@
 
 #include "types.h"
 
-/* Filesystem Checksumming */
-
-/* Initialize Filesystem Checksumming */
 void fs_checksum_init(void);
-
-/* TODO: Add function declarations */
+u32 fs_checksum_crc32(const void* data, size_t len);
+u32 fs_checksum_verify(const void* data, size_t len, u32 expected);
 
 #endif /* FS_CHECKSUM_H */

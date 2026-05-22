@@ -25,6 +25,9 @@ void namespace_init(void);
 /* Create namespace */
 namespace_t* namespace_create(u64 type);
 
+/* Destroy namespace */
+void namespace_destroy(namespace_t* ns);
+
 /* Get namespace */
 namespace_t* namespace_get(u64 type);
 

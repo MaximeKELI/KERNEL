@@ -47,4 +47,7 @@ int page_cache_sync(page_cache_t* page);
 /* Sync all caches */
 void cache_sync_all(void);
 
+/* Reclaim unused cache entries (returns approximate page count) */
+u64 cache_reclaim_pages(u64 max_pages);
+
 #endif /* CACHE_H */

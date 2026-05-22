@@ -29,6 +29,9 @@ void cgroup_init(void);
 /* Create cgroup */
 cgroup_t* cgroup_create(const char* name, cgroup_t* parent);
 
+/* Destroy cgroup and children */
+void cgroup_destroy(cgroup_t* cg);
+
 /* Attach process to cgroup */
 int cgroup_attach_process(cgroup_t* cg, u64 pid);
 

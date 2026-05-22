@@ -18,4 +18,9 @@ u64 kaslr_randomize_module_base(void);
 /* Get ASLR status */
 bool kaslr_enabled(void);
 
+/* Alias used by tests */
+static inline bool kaslr_is_enabled(void) {
+    return kaslr_enabled();
+}
+
 #endif /* KASLR_H */

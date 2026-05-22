@@ -3,6 +3,12 @@
 
 #include "types.h"
 
+struct ethernet_device;
+
+typedef int (*eth_driver_tx_t)(struct ethernet_device* dev, void* data, size_t len);
+typedef int (*eth_driver_rx_t)(struct ethernet_device* dev, void* buffer, size_t buffer_size);
+typedef void (*eth_driver_poll_t)(struct ethernet_device* dev);
+
 /* Ethernet device */
 typedef struct ethernet_device ethernet_device_t;
 

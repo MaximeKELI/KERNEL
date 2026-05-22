@@ -1,6 +1,8 @@
 #include "ethernet.h"
 #include "eth.h"
 #include "pci.h"
+#include "virtio.h"
+#include "rtl8139.h"
 #include "net.h"
 #include "stdio.h"
 #include "spinlock.h"
@@ -28,6 +30,9 @@ typedef struct ethernet_device {
     u64 rx_errors;
     bool up;
     void* priv_data;
+    eth_driver_tx_t tx_fn;
+    eth_driver_rx_t rx_fn;
+    eth_driver_poll_t poll_fn;
     struct ethernet_device* next;
 } ethernet_device_t;
 

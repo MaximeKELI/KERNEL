@@ -114,6 +114,26 @@ pci_device_t* pci_find_class(u8 class_code, u8 subclass) {
     return NULL;
 }
 
+void pci_enable_device(pci_device_t* dev) {
+    if (!dev) {
+        return;
+    }
+    u32 cmd = pci_read_config(dev->bus, dev->device, dev->function, 0x04);
+    cmd |= 0x07;
+    pci_write_config(dev->bus, dev->device, dev->function, 0x04, cmd);
+}
+
+void* pci_map_bar(pci_device_t* dev, u32 bar_index) {
+    if (!dev || bar_index >= 6) {
+        return NULL;
+    }
+    u32 bar = dev->bar[bar_index];
+    if (bar & 1) {
+        return (void*)(uintptr_t)(bar & ~0x3);
+    }
+    return (void*)(uintptr_t)(bar & ~0xF);
+}
+
 void pci_register_driver(u16 vendor_id, u16 device_id, pci_driver_init_t init) {
     pci_device_t* dev = pci_find_device(vendor_id, device_id);
     if (dev && init) {

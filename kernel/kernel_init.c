@@ -102,6 +102,8 @@
 #include "fb_console.h"
 #include "pc_speaker.h"
 #include "ebpf.h"
+#include "writeback.h"
+#include "vdso.h"
 
 static bool g_extended_ready = false;
 

@@ -164,14 +164,42 @@ static int ext2_close(vfs_file_t* file) {
 
 static ssize_t ext2_read(vfs_file_t* file, void* buf, size_t count) {
     ext2_inode_t* inode = (ext2_inode_t*)file->private_data;
-    if (!inode) {
+    if (!inode || !buf) {
         return -1;
     }
-    ssize_t n = ext2_read_inode_data(inode, file->offset, buf, count);
-    if (n > 0) {
-        file->offset += (u64)n;
+    ssize_t total = 0;
+    while (count > 0) {
+        u64 pg = (file->offset / PAGE_SIZE) * PAGE_SIZE;
+        page_cache_t* pc = page_cache_get(file->inode, pg);
+        if (!pc || !pc->page) {
+            ssize_t n = ext2_read_inode_data(inode, file->offset, (u8*)buf + total, count);
+            if (n <= 0) {
+                break;
+            }
+            ext2_journal_log((u32)file->inode, (u32)(pg / PAGE_SIZE), 0);
+            total += n;
+            file->offset += (u64)n;
+            count -= (size_t)n;
+            continue;
+        }
+        size_t off = (size_t)(file->offset % PAGE_SIZE);
+        size_t avail = PAGE_SIZE - off;
+        if (avail > count) {
+            avail = count;
+        }
+        if (pc->page) {
+            ext2_read_inode_data(inode, pg, pc->page, PAGE_SIZE);
+            memcpy((u8*)buf + total, (u8*)pc->page + off, avail);
+        }
+        page_cache_put(pc);
+        total += (ssize_t)avail;
+        file->offset += avail;
+        count -= avail;
+        if (file->offset >= inode->size) {
+            break;
+        }
     }
-    return n;
+    return total > 0 ? total : -1;
 }
 
 static ssize_t ext2_write(vfs_file_t* file, const void* buf, size_t count) {

@@ -18,6 +18,7 @@
 #include "fb_console.h"
 #include "gdt.h"
 #include "epoll.h"
+#include "net.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -256,6 +257,67 @@ u64 sys_ai_metrics(void* out_info, u64 size) {
     }
     return 0;
 }
+
+u64 sys_epoll_create(u64 size) {
+    int fd = epoll_create((int)size);
+    return fd < 0 ? (u64)-1 : (u64)fd;
+}
+
+u64 sys_epoll_ctl(u64 epfd, u64 op, u64 fd, void* event) {
+    epoll_event_t ev;
+    if (event && copy_from_user(&ev, event, sizeof(ev)) < 0) {
+        return (u64)-1;
+    }
+    return epoll_ctl((int)epfd, (int)op, (int)fd, event ? &ev : NULL) == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_epoll_wait(u64 epfd, void* events, u64 maxevents, u64 timeout) {
+    if (!events || maxevents == 0) {
+        return (u64)-1;
+    }
+    epoll_event_t stack[16];
+    u64 n = maxevents > 16 ? 16 : maxevents;
+    int r = epoll_wait((int)epfd, stack, (int)n, (int)timeout);
+    if (r < 0) {
+        return (u64)-1;
+    }
+    if (copy_to_user(events, stack, (size_t)r * sizeof(epoll_event_t)) < 0) {
+        return (u64)-1;
+    }
+    return (u64)r;
+}
+
+typedef struct pollfd_u {
+    int fd;
+    short events;
+    short revents;
+} pollfd_u_t;
+
+u64 sys_poll(void* fds, u64 nfds, u64 timeout_ms) {
+    if (!fds || nfds == 0) {
+        return 0;
+    }
+    pollfd_u_t p;
+    u64 ready = 0;
+    for (u64 i = 0; i < nfds && i < 32; i++) {
+        if (copy_from_user(&p, (char*)fds + i * sizeof(pollfd_u_t), sizeof(p)) < 0) {
+            break;
+        }
+        p.revents = (short)socket_fd_poll_events(p.fd);
+        if (p.revents) {
+            ready++;
+        }
+        copy_to_user((char*)fds + i * sizeof(pollfd_u_t), &p, sizeof(p));
+    }
+    if (ready == 0 && timeout_ms > 0) {
+        for (u64 t = 0; t < timeout_ms; t++) {
+            net_poll();
+        }
+    }
+    return ready;
+}
+
+extern int socket_fd_poll_events(int fd);
 
 u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len) {
     if (!hostname || !out_ip || out_len < 4) {

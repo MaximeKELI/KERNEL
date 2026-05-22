@@ -12,6 +12,8 @@ static process_t* current_process = NULL;
 u64 next_pid = 1;
 
 void process_init(void) {
+    extern void vmm_init_user_mm(void);
+    vmm_init_user_mm();
 }
 
 process_t* process_create(void* entry_point, u64 stack_size) {

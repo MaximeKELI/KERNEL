@@ -1,5 +1,6 @@
 #include "ai_policy.h"
 #include "string.h"
+#include "stdio.h"
 
 static u32 current_mode = AI_POLICY_BALANCED;
 

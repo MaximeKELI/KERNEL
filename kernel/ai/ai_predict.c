@@ -1,4 +1,5 @@
 #include "ai_predict.h"
+#include "string.h"
 #include "spinlock.h"
 
 #define EMA_ALPHA_NUM 3

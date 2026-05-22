@@ -1,5 +1,6 @@
 #include "vga_graphics.h"
 #include "hw_ports.h"
+#include "io.h"
 #include "stdio.h"
 
 static bool gfx_on = false;

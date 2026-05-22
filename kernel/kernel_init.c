@@ -85,6 +85,7 @@
 #include "container.h"
 #include "checkpoint.h"
 #include "framebuffer.h"
+#include "kernel.h"
 #include "media.h"
 #include "memory_pressure.h"
 #include "kswapd.h"
@@ -254,8 +255,6 @@ void kernel_init_extended(void) {
     
     /* Initialize framebuffer */
     printk("Initializing framebuffer...\n");
-    extern int framebuffer_init_multiboot(u64);
-    extern u64 kernel_mb_info;
     framebuffer_init_multiboot(kernel_mb_info);
     printk("Framebuffer initialized.\n\n");
     

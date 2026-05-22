@@ -215,6 +215,11 @@ run: iso
 	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)
 	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M $(QEMU_NETDEV) -serial mon:stdio -display none -no-reboot
 
+# QEMU with VGA display (video blit visible)
+run-video: iso
+	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)
+	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M $(QEMU_NETDEV) -serial mon:stdio -vga std -no-reboot
+
 # Run in QEMU with debug (GRUB/kernel messages on serial if configured)
 run-debug: iso
 	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)

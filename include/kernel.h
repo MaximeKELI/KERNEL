@@ -8,6 +8,9 @@
 #define KERNEL_VERSION_MINOR 0
 #define KERNEL_VERSION_PATCH 0
 
+/* Multiboot info (framebuffer tag) */
+extern u64 kernel_mb_info;
+
 /* Kernel entry point */
 void kernel_main(u64 magic, u64 mb_info);
 

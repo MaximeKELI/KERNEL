@@ -79,6 +79,7 @@ void kernel_main(u64 magic, u64 mb_info) {
 
     while (true) {
         if (kernel_extended_ready()) {
+            net_poll();
             hrtimer_process();
             extern workqueue_t* system_wq;
             if (system_wq) {

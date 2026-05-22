@@ -7,6 +7,11 @@
 #include "drivers/keyboard.h"
 #include "blk_mq.h"
 #include "landlock.h"
+#include "kernel_init.h"
+#include "net.h"
+#include "net_addr.h"
+#include "net_stats.h"
+#include "icmp.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -29,6 +34,9 @@ static void kshell_cmd_help(void) {
     printk("  blk        - blk-mq stats\n");
     printk("  landlock   - landlock rules\n");
     printk("  init-full  - load remaining subsystems\n");
+    printk("  ifconfig   - show network interface\n");
+    printk("  ping IP    - ICMP echo (needs init-full)\n");
+    printk("  netstats   - RX/TX counters\n");
 }
 
 static void kshell_cmd_mem(void) {

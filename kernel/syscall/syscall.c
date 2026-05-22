@@ -184,7 +184,7 @@ u64 sys_exec(const char* path, char* const argv[]) {
     }
     kpath[sizeof(kpath) - 1] = '\0';
 
-    seccomp_set_mode_filter(NULL, 0);
+    seccomp_set_mode_strict();
 
     if (exec_run_path(kpath) < 0) {
         return (u64)-1;

@@ -1,5 +1,6 @@
 #include "ai_optimizer.h"
-#include "ai_monitor.h"
+#include "ai_manager.h"
+#include "ai_log.h"
 #include "process.h"
 #include "scheduler.h"
 #include "drivers/timer.h"

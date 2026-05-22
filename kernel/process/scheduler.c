@@ -1,4 +1,5 @@
 #include "process.h"
+#include "ai_types.h"
 #include "memory.h"
 #include "stdio.h"
 #include "interrupt.h"

@@ -15,9 +15,6 @@ void smp_init(void) {
     percpu_data[0].online = true;
     percpu_data[0].apic_id = 0;
 
-    u32 apic_id = cpu_topology_get_apic_id();
-    (void)apic_id;
-
     /* QEMU SMP=2: mark second CPU online (bring-up stub) */
     if (MAX_CPUS > 1) {
         percpu_data[1].cpu_id = 1;

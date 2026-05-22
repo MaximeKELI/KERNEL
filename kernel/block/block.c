@@ -60,14 +60,17 @@ int submit_bio(block_device_t* bdev, bio_t* bio) {
         global_io_write_ops++;
     }
     
+    u32 qid = (u32)((u64)bio->sector % blk_mq_queue_count());
+    if (blk_mq_submit(bio, qid) == 0) {
+        blk_mq_dispatch(qid);
+        return 0;
+    }
+
     spinlock_lock(&queue->lock);
     bio->next = queue->requests;
     queue->requests = bio;
     spinlock_unlock(&queue->lock);
-    
-    /* Process queue */
     blk_process_queue(queue);
-    
     return 0;
 }
 

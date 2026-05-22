@@ -3,6 +3,7 @@
 #include "io.h"
 #include "stdio.h"
 #include "ai_manager.h"
+#include "smp.h"
 
 #include "hw_ports.h"
 
@@ -18,10 +19,12 @@ static void timer_irq_handler(u32 irq, void* data) {
     
     ticks++;
     
-    /* Call AI optimization tick */
     extern bool ai_initialized;
     if (ai_initialized) {
-        ai_tick();
+        u32 cpu = smp_get_cpu_id();
+        if (cpu == 0 || (ticks % 2) == cpu % 2) {
+            ai_tick();
+        }
     }
     
     if (callback) {

@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "sched_stats.h"
 #include "process.h"
 #include "memory.h"
 #include "stdio.h"
@@ -169,8 +170,10 @@ void scheduler_init(void) {
 }
 
 void schedule(void) {
+    sched_stats_record_schedule();
+
     spinlock_lock_irq(&scheduler_lock);
-    
+
     process_t* current = process_current();
     
     if (current && current->state == PROCESS_RUNNING) {
@@ -208,6 +211,7 @@ void schedule(void) {
         stats.total_switches++;
         
         if (current) {
+            sched_stats_record_switch();
             context_switch(current, next);
         } else {
             /* First switch */

@@ -120,7 +120,10 @@ void kernel_main(u64 magic, u64 mb_info) {
     vga_init();
     vga_clear();
     vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-    
+
+    /* Serial early for QEMU/debug (printk still uses VGA primarily) */
+    serial_init(COM1);
+
     printk("========================================\n");
     printk("  64-bit OS Kernel v%d.%d.%d\n",
            KERNEL_VERSION_MAJOR,
@@ -208,6 +211,8 @@ void kernel_main(u64 magic, u64 mb_info) {
     /* Initialize advanced scheduler */
     printk("Initializing CFS scheduler...\n");
     scheduler_init();
+    sched_stats_init();
+    sched_tune_init();
     printk("CFS scheduler initialized.\n\n");
     
     /* Initialize cache system */
@@ -228,6 +233,7 @@ void kernel_main(u64 magic, u64 mb_info) {
     /* Initialize EXT2 filesystem */
     printk("Initializing EXT2 filesystem...\n");
     ext2_init();
+    fs_checksum_init();
     printk("EXT2 filesystem initialized.\n\n");
     
     /* Initialize proc filesystem */

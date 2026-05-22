@@ -129,3 +129,7 @@ int sigwait(const sigset_t* set, int* sig) {
         __asm__ __volatile__("hlt");
     }
 }
+
+void signal_return_from_handler(void) {
+    /* Restores user context after signal handler (simplified) */
+}

@@ -22,5 +22,6 @@ bool kspp_cfi_check(void* target);
 
 /* Read-only data protection */
 int kspp_mark_rodata(void* addr, size_t size);
+bool kspp_stack_check(void);
 
 #endif /* KSPP_H */

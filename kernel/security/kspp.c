@@ -40,6 +40,10 @@ void kspp_free(void* ptr) {
     kfree(ptr);
 }
 
+bool kspp_stack_check(void) {
+    return stack_canary_value == 0xDEADBEEFCAFEBABEULL;
+}
+
 void kspp_cfi_init(void) {
     DEBUG_INFO("CFI (Control Flow Integrity) initialized");
 }

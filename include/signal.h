@@ -63,4 +63,6 @@ int sigprocmask(int how, const sigset_t* set, sigset_t* oldset);
 /* Wait for signal */
 int sigwait(const sigset_t* set, int* sig);
 
+void signal_return_from_handler(void);
+
 #endif /* SIGNAL_H */

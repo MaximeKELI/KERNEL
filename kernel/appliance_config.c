@@ -1,8 +1,48 @@
 #include "appliance_config.h"
+#include "net_addr.h"
 #include "string.h"
 #include "stdio.h"
 
 static appliance_config_t g_cfg;
+
+static int parse_u8_field(const char* s, u8* out) {
+    u32 v = 0;
+    while (*s >= '0' && *s <= '9') {
+        v = v * 10 + (u32)(*s - '0');
+        s++;
+    }
+    *out = (u8)(v > 255 ? 255 : v);
+    return 0;
+}
+
+static int parse_ip(const char* s, ip_addr_t* out) {
+    if (!s || !out) {
+        return -1;
+    }
+    parse_u8_field(s, &out->addr[0]);
+    while (*s && *s != '.') {
+        s++;
+    }
+    if (*s == '.') {
+        s++;
+    }
+    parse_u8_field(s, &out->addr[1]);
+    while (*s && *s != '.') {
+        s++;
+    }
+    if (*s == '.') {
+        s++;
+    }
+    parse_u8_field(s, &out->addr[2]);
+    while (*s && *s != '.') {
+        s++;
+    }
+    if (*s == '.') {
+        s++;
+    }
+    parse_u8_field(s, &out->addr[3]);
+    return 0;
+}
 
 void appliance_config_init(void) {
     g_cfg.gateway.addr[0] = 10;
@@ -22,31 +62,16 @@ const appliance_config_t* appliance_config_get(void) {
     return &g_cfg;
 }
 
-static int parse_ip(const char* s, ip_addr_t* out) {
-    u32 a = 0, b = 0, c = 0, d = 0;
-    if (!s || !out) {
-        return -1;
-    }
-    if (sscanf(s, "%u.%u.%u.%u", &a, &b, &c, &d) != 4) {
-        return -1;
-    }
-    out->addr[0] = (u8)a;
-    out->addr[1] = (u8)b;
-    out->addr[2] = (u8)c;
-    out->addr[3] = (u8)d;
-    return 0;
-}
-
 int appliance_config_load(const char* path) {
     extern ssize_t vfs_read_path(const char* path, void* buf, size_t count);
-    char line[128];
-    ssize_t n = vfs_read_path(path, line, sizeof(line) - 1);
+    char blob[512];
+    ssize_t n = vfs_read_path(path, blob, sizeof(blob) - 1);
     if (n <= 0) {
         return -1;
     }
-    line[n] = '\0';
+    blob[n] = '\0';
 
-    char* p = line;
+    char* p = blob;
     while (*p) {
         char* e = strchr(p, '\n');
         if (e) {
@@ -59,7 +84,13 @@ int appliance_config_load(const char* path) {
         } else if (strncmp(p, "hostname=", 9) == 0) {
             strncpy(g_cfg.hostname, p + 9, sizeof(g_cfg.hostname) - 1);
         } else if (strncmp(p, "http_port=", 10) == 0) {
-            g_cfg.http_port = (u16)atoi(p + 10);
+            u32 port = 0;
+            const char* s = p + 10;
+            while (*s >= '0' && *s <= '9') {
+                port = port * 10 + (u32)(*s - '0');
+                s++;
+            }
+            g_cfg.http_port = (u16)port;
         } else if (strncmp(p, "dhcp=", 5) == 0) {
             g_cfg.dhcp_enabled = (p[5] == '1' || p[5] == 'y');
         }

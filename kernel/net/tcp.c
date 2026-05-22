@@ -638,6 +638,14 @@ static socket_t* tcp_accept(socket_t* sock, sockaddr_t* addr) {
     return new_sock;
 }
 
+bool tcp_socket_established(socket_t* sock) {
+    if (!sock) {
+        return false;
+    }
+    tcp_conn_t* conn = (tcp_conn_t*)sock->private_data;
+    return conn && conn->state == TCP_ESTABLISHED;
+}
+
 socket_ops_t tcp_ops = {
     .bind = tcp_bind,
     .listen = tcp_listen,

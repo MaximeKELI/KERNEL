@@ -181,17 +181,26 @@ iso: $(KERNEL_ELF) grub.cfg
 	cp grub.cfg $(ISO_GRUB_DIR)/
 	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
 
-# Run kernel directly in QEMU (no ISO; needs qemu-system-x86)
+# QEMU: prefer system package (/usr/bin), then AppImage in ~/.local/bin
+QEMU ?= $(firstword $(wildcard /usr/bin/qemu-system-x86_64) $(HOME)/.local/bin/qemu-system-x86_64)
+
+# Run kernel directly in QEMU (no ISO)
 run-kernel: $(KERNEL_ELF)
-	qemu-system-x86_64 -kernel $(KERNEL_ELF) -m 512M -serial stdio -display none -no-reboot
+	@test -n "$(QEMU)" || (echo "QEMU not found. Install: apt install qemu-system-x86 OR see ~/.local/bin/QEMU-AppImage"; exit 1)
+	$(QEMU) -kernel $(KERNEL_ELF) -m 512M -serial stdio -display none -no-reboot
 
-# Run in QEMU from ISO (needs qemu-system-x86 and mtools for grub-mkrescue)
+# QEMU drive: grub-mkrescue produces a hybrid ISO — boot as disk, not -cdrom
+QEMU_ISO_DRIVE = -drive file=$(ISO_IMAGE),format=raw,if=ide,index=0,media=disk
+
+# Run in QEMU from ISO (Multiboot2 via GRUB)
 run: iso
-	qemu-system-x86_64 -cdrom $(ISO_IMAGE) -m 512M -serial stdio
+	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)
+	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M -no-reboot
 
-# Run in QEMU with debug
+# Run in QEMU with debug (GRUB/kernel messages on serial if configured)
 run-debug: iso
-	qemu-system-x86_64 -cdrom $(ISO_IMAGE) -m 512M -serial stdio -d int -no-reboot
+	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)
+	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M -serial stdio -display none -no-reboot -d guest_errors
 
 # Generate documentation
 docs:

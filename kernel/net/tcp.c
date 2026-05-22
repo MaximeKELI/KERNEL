@@ -10,6 +10,7 @@
 #include "string.h"
 #include "validate.h"
 #include "drivers/timer.h"
+#include "tcp_cc.h"
 
 #define TCP_HEADER_LEN 20
 #define TCP_INITIAL_RTO_MS 1000
@@ -78,8 +79,52 @@ typedef struct tcp_conn {
     u8 last_flags;
     size_t last_len;
     u8 last_payload[1460];
+    u32 cwnd;
+    u32 ssthresh;
+    u32 peer_rwnd;
+    u32 flight_size;
+    u32 last_ack_dup;
+    u8 dup_ack_count;
     struct tcp_conn* next;
 } tcp_conn_t;
+
+void tcp_cc_set_cwnd(tcp_conn_t* conn, u32 cwnd, u32 ssthresh,
+                    u32 peer_rwnd, u32 flight, u32 last_ack, u8 dupacks) {
+    if (!conn) {
+        return;
+    }
+    conn->cwnd = cwnd;
+    conn->ssthresh = ssthresh;
+    conn->peer_rwnd = peer_rwnd;
+    conn->flight_size = flight;
+    conn->last_ack_dup = last_ack;
+    conn->dup_ack_count = dupacks;
+}
+
+void tcp_cc_get(tcp_conn_t* conn, u32* cwnd, u32* ssthresh,
+                u32* peer_rwnd, u32* flight, u32* last_ack, u8* dupacks) {
+    if (!conn) {
+        return;
+    }
+    if (cwnd) {
+        *cwnd = conn->cwnd;
+    }
+    if (ssthresh) {
+        *ssthresh = conn->ssthresh;
+    }
+    if (peer_rwnd) {
+        *peer_rwnd = conn->peer_rwnd;
+    }
+    if (flight) {
+        *flight = conn->flight_size;
+    }
+    if (last_ack) {
+        *last_ack = conn->last_ack_dup;
+    }
+    if (dupacks) {
+        *dupacks = conn->dup_ack_count;
+    }
+}
 
 static tcp_conn_t* tcp_connections = NULL;
 static spinlock_t tcp_lock = SPINLOCK_INIT;

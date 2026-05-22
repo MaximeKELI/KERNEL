@@ -192,10 +192,13 @@ run-kernel: $(KERNEL_ELF)
 # QEMU drive: grub-mkrescue produces a hybrid ISO — boot as disk, not -cdrom
 QEMU_ISO_DRIVE = -drive file=$(ISO_IMAGE),format=raw,if=ide,index=0,media=disk
 
+# QEMU user networking + virtio-net (fallback rtl8139 if virtio missing)
+QEMU_NETDEV ?= -netdev user,id=net0 -device virtio-net-pci,netdev=net0
+
 # Run in QEMU from ISO (Multiboot2 via GRUB)
 run: iso
 	@test -n "$(QEMU)" || (echo "QEMU not found"; exit 1)
-	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M -serial mon:stdio -display none -no-reboot
+	$(QEMU) $(QEMU_ISO_DRIVE) -boot order=c -m 512M $(QEMU_NETDEV) -serial mon:stdio -display none -no-reboot
 
 # Run in QEMU with debug (GRUB/kernel messages on serial if configured)
 run-debug: iso

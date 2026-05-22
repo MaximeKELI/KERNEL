@@ -15,6 +15,8 @@
 #include "net_socket.h"
 #include "serial.h"
 #include "hw_ports.h"
+#include "dhcp.h"
+#include "dns.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -44,6 +46,8 @@ static void kshell_cmd_help(void) {
     printk("  serial     - COM1-COM4 status\n");
     printk("  ioports    - hardware I/O port map (x86)\n");
     printk("  ioport N   - lookup port 0xN (hex ok)\n");
+    printk("  dhcp       - DHCP acquire\n");
+    printk("  dns NAME   - DNS A lookup\n");
 }
 
 static void kshell_cmd_mem(void) {
@@ -264,6 +268,20 @@ static void kshell_execute(const char* cmd) {
         kshell_cmd_ioports();
     } else if (strncmp(cmd, "ioport ", 7) == 0) {
         kshell_cmd_ioport_lookup(cmd + 7);
+    } else if (strcmp(cmd, "dhcp") == 0) {
+        netif_t* iface = net_default_if();
+        if (iface) {
+            net_dhcp_acquire(iface);
+        }
+    } else if (strncmp(cmd, "dns ", 4) == 0) {
+        ip_addr_t ip;
+        if (dns_resolve_a(cmd + 4, &ip) == 0) {
+            char b[16];
+            ip_addr_format(&ip, b, sizeof(b));
+            printk("DNS: %s\n", b);
+        } else {
+            printk("DNS failed\n");
+        }
     } else {
         printk("Unknown command: %s (try help)\n", cmd);
     }

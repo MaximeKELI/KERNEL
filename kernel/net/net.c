@@ -80,7 +80,9 @@ void net_init(void) {
     ethernet_init();
 
     skb_init();
+    net_ports_init();
     ip_init();
+    raw_init();
     tcp_init();
     udp_init();
     icmp_init();

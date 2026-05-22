@@ -11,6 +11,9 @@
 #include "net_addr.h"
 #include "net_stats.h"
 #include "icmp.h"
+#include "net_ports.h"
+#include "net_socket.h"
+#include "serial.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -36,6 +39,8 @@ static void kshell_cmd_help(void) {
     printk("  ifconfig   - show network interface\n");
     printk("  ping IP    - ICMP echo (needs init-full)\n");
     printk("  netstats   - RX/TX counters\n");
+    printk("  ports      - well-known TCP/UDP ports\n");
+    printk("  serial     - COM1-COM4 status\n");
 }
 
 static void kshell_cmd_mem(void) {

@@ -64,6 +64,7 @@ typedef struct socket_ops {
 /* Network interface */
 typedef struct netif {
     char name[16];
+    u32 type;
     ip_addr_t ip;
     ip_addr_t netmask;
     ip_addr_t gateway;

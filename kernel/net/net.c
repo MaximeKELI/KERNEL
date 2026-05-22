@@ -19,6 +19,9 @@
 #include "zero_copy.h"
 #include "adaptive_routing.h"
 #include "network_slicing.h"
+#include "net_ports.h"
+#include "net_socket.h"
+#include "net_raw.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
@@ -52,6 +55,7 @@ static void net_setup_default_interface(void) {
     ip_addr_parse("255.255.255.0", &default_netif.netmask);
     ip_addr_parse("10.0.2.2", &default_netif.gateway);
     ethernet_get_mac(eth, default_netif.mac);
+    default_netif.type = NETIF_TYPE_ETHERNET;
     default_netif.up = true;
 
     ethernet_up(eth);

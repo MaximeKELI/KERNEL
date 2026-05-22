@@ -87,6 +87,61 @@ static void kshell_cmd_landlock(void) {
     printk("landlock: %u active rules\n", landlock_rule_count());
 }
 
+static void kshell_cmd_ifconfig(void) {
+    netif_t* iface = net_default_if();
+    if (!iface) {
+        printk("No network interface (run init-full)\n");
+        return;
+    }
+    char ip[16], mask[16], gw[16];
+    ip_addr_format(&iface->ip, ip, sizeof(ip));
+    ip_addr_format(&iface->netmask, mask, sizeof(mask));
+    ip_addr_format(&iface->gateway, gw, sizeof(gw));
+    printk("%s: %s up=%s\n", iface->name, ip, iface->up ? "yes" : "no");
+    printk("  netmask %s gateway %s\n", mask, gw);
+    printk("  mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+           iface->mac[0], iface->mac[1], iface->mac[2],
+           iface->mac[3], iface->mac[4], iface->mac[5]);
+}
+
+static void kshell_cmd_netstats(void) {
+    net_stats_t stats;
+    net_stats_get(&stats);
+    printk("net: rx=%llu tx=%llu rx_err=%llu tx_err=%llu\n",
+           (unsigned long long)stats.rx_bytes,
+           (unsigned long long)stats.tx_bytes,
+           (unsigned long long)stats.rx_errors,
+           (unsigned long long)stats.tx_errors);
+}
+
+static void kshell_cmd_ping(const char* target) {
+    if (!kernel_extended_ready()) {
+        printk("Network not loaded. Run: init-full\n");
+        return;
+    }
+    while (*target == ' ') {
+        target++;
+    }
+    if (!*target) {
+        printk("Usage: ping A.B.C.D\n");
+        return;
+    }
+    ip_addr_t dst;
+    if (!ip_addr_parse(target, &dst)) {
+        printk("Invalid address: %s\n", target);
+        return;
+    }
+    icmp_ping_reset_stats();
+    if (icmp_ping(dst, 1, 1) < 0) {
+        printk("ping send failed\n");
+        return;
+    }
+    for (u32 i = 0; i < 64; i++) {
+        net_poll();
+    }
+    printk("ping: %u reply(s)\n", icmp_ping_replies_received());
+}
+
 static void kshell_execute(const char* cmd) {
     if (!cmd[0]) {
         return;
@@ -107,6 +162,12 @@ static void kshell_execute(const char* cmd) {
         } else {
             kernel_init_extended();
         }
+    } else if (strcmp(cmd, "ifconfig") == 0) {
+        kshell_cmd_ifconfig();
+    } else if (strcmp(cmd, "netstats") == 0) {
+        kshell_cmd_netstats();
+    } else if (strncmp(cmd, "ping ", 5) == 0) {
+        kshell_cmd_ping(cmd + 5);
     } else {
         printk("Unknown command: %s (try help)\n", cmd);
     }

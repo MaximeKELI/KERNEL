@@ -290,6 +290,7 @@ static int tcp_listen(socket_t* sock, int backlog) {
     conn->rto_ms = TCP_INITIAL_RTO_MS;
     conn->snd_una = conn->seq;
     conn->snd_nxt = conn->seq;
+    tcp_cc_init(conn);
     conn->next = tcp_connections;
     tcp_connections = conn;
     tcp_connection_count++;
@@ -347,6 +348,7 @@ static int tcp_connect(socket_t* sock, const sockaddr_t* addr) {
     conn->rto_ms = TCP_INITIAL_RTO_MS;
     conn->snd_una = conn->seq;
     conn->snd_nxt = conn->seq;
+    tcp_cc_init(conn);
     conn->next = tcp_connections;
     tcp_connections = conn;
     tcp_connection_count++;

@@ -2,12 +2,7 @@
 #define SERIAL_H
 
 #include "types.h"
-
-/* PC UART base addresses */
-#define COM1 0x3F8
-#define COM2 0x2F8
-#define COM3 0x3E8
-#define COM4 0x2E8
+#include "hw_ports.h"
 
 #define SERIAL_PORT_COUNT 4
 

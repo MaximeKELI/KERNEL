@@ -28,7 +28,7 @@ CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
          -I$(KERNEL_DIR)/ai
 ASFLAGS = -f elf64
 LDFLAGS = -T linker.ld -nostdlib -static -z max-page-size=0x1000
-LDFLAGS_GCC = -ffreestanding $(LDFLAGS) -Wl,--gc-sections
+LDFLAGS_GCC = -ffreestanding $(LDFLAGS)
 
 # Source files
 KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
@@ -73,7 +73,6 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/devicetree/*.c) \
                  $(wildcard $(KERNEL_DIR)/container/*.c) \
                  $(wildcard $(KERNEL_DIR)/checkpoint/*.c) \
-                 $(wildcard $(KERNEL_DIR)/test/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/usb/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/net/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/gpu/*.c) \
@@ -81,6 +80,11 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/input/*.c) \
                  $(wildcard $(KERNEL_DIR)/media/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
+
+ifeq ($(RUN_TESTS),1)
+CFLAGS += -DRUN_TESTS
+KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/*.c)
+endif
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
                      $(wildcard $(KERNEL_DIR)/syscall/*.S) \

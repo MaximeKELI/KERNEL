@@ -14,28 +14,6 @@
 #define MAX_ETHERNET_DEVICES 8
 #define ETH_ALEN 6  /* Ethernet address length */
 
-/* Ethernet device */
-typedef struct ethernet_device {
-    u32 id;
-    char name[16];
-    u8 mac_address[ETH_ALEN];
-    u32 io_base;
-    u32 irq;
-    u32 flags;
-    u64 tx_packets;
-    u64 rx_packets;
-    u64 tx_bytes;
-    u64 rx_bytes;
-    u64 tx_errors;
-    u64 rx_errors;
-    bool up;
-    void* priv_data;
-    eth_driver_tx_t tx_fn;
-    eth_driver_rx_t rx_fn;
-    eth_driver_poll_t poll_fn;
-    struct ethernet_device* next;
-} ethernet_device_t;
-
 static ethernet_device_t* ethernet_devices = NULL;
 static u32 ethernet_device_count = 0;
 static spinlock_t ethernet_lock = SPINLOCK_INIT;

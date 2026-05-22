@@ -15,6 +15,8 @@ typedef struct __packed {
 } eth_header_t;
 
 void eth_loopback_init(void);
+int eth_loop_enqueue(const char* ifname, const void* frame, size_t len);
+int eth_loop_dequeue(const char* ifname, void* buf, size_t buf_size);
 int eth_transmit(netif_t* iface, u16 proto, const u8* dst_mac,
                  const void* payload, size_t len);
 int eth_poll(netif_t* iface);

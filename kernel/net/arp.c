@@ -1,7 +1,8 @@
 #include "net.h"
 #include "arp.h"
 #include "ip.h"
-#include "ethernet.h"
+#include "eth.h"
+#include "net_addr.h"
 #include "skbuff.h"
 #include "memory.h"
 #include "stdio.h"
@@ -77,15 +78,10 @@ int arp_send_request(ip_addr_t target_ip, netif_t* iface) {
     memset(arph->tha, 0, 6);
     memcpy(arph->tpa, &target_ip, 4);
     
-    /* Send via Ethernet */
-    ethernet_device_t* eth_dev = ethernet_find_device(iface->name);
-    if (eth_dev) {
-        ethernet_send_packet(eth_dev, skb->data, skb->len);
-    }
-    
+    u8 bcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    int ret = eth_transmit(iface, ETH_P_ARP, bcast, skb->data, skb->len);
     skb_free(skb);
-    
-    return 0;
+    return ret;
 }
 
 int arp_recv_packet(sk_buff_t* skb, netif_t* iface) {
@@ -105,7 +101,7 @@ int arp_recv_packet(sk_buff_t* skb, netif_t* iface) {
     memcpy(&spa, arph->spa, 4);
     memcpy(&tpa, arph->tpa, 4);
     
-    if (arph->op == htons(ARP_OP_REQUEST)) {
+    if (ntohs(arph->op) == ARP_OP_REQUEST) {
         /* Check if request is for us */
         if (memcmp(&tpa, &iface->ip, sizeof(ip_addr_t)) == 0) {
             /* Send ARP reply */
@@ -115,12 +111,10 @@ int arp_recv_packet(sk_buff_t* skb, netif_t* iface) {
             memcpy(arph->sha, iface->mac, 6);
             memcpy(arph->spa, &iface->ip, 4);
             
-            ethernet_device_t* eth_dev = ethernet_find_device(iface->name);
-            if (eth_dev) {
-                ethernet_send_packet(eth_dev, skb->data, skb->len);
-            }
+            u8 bcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+            eth_transmit(iface, ETH_P_ARP, bcast, skb->data, skb->len);
         }
-    } else if (arph->op == htons(ARP_OP_REPLY)) {
+    } else if (ntohs(arph->op) == ARP_OP_REPLY) {
         /* Update ARP table */
         u32 hash = arp_hash(spa);
         
@@ -179,4 +173,48 @@ int arp_lookup(ip_addr_t ip, u8* mac) {
     spinlock_unlock(&arp_lock);
     
     return -1; /* Not found */
+}
+
+int arp_add_entry(ip_addr_t ip, const u8* mac) {
+    if (!mac) {
+        return -1;
+    }
+    u32 hash = arp_hash(ip);
+    spinlock_lock(&arp_lock);
+    arp_entry_t* entry = (arp_entry_t*)kzalloc(sizeof(arp_entry_t));
+    if (!entry) {
+        spinlock_unlock(&arp_lock);
+        return -1;
+    }
+    entry->ip = ip;
+    memcpy(entry->mac, mac, 6);
+    entry->valid = true;
+    entry->next = arp_table[hash];
+    arp_table[hash] = entry;
+    spinlock_unlock(&arp_lock);
+    return 0;
+}
+
+int arp_resolve(netif_t* iface, ip_addr_t ip, u8* mac) {
+    if (!iface || !mac) {
+        return -1;
+    }
+    if (arp_lookup(ip, mac) == 0) {
+        return 0;
+    }
+
+    ip_addr_t target = ip;
+    if (!ip_addr_same_subnet(&iface->ip, &ip, &iface->netmask)) {
+        target = iface->gateway;
+    }
+
+    if (arp_lookup(target, mac) == 0) {
+        return 0;
+    }
+
+    arp_send_request(target, iface);
+
+    static const u8 bcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    memcpy(mac, bcast, 6);
+    return 0;
 }

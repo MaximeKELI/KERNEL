@@ -1,7 +1,9 @@
 #include "net.h"
 #include "ip.h"
 #include "skbuff.h"
-#include "ethernet.h"
+#include "eth.h"
+#include "arp.h"
+#include "netfilter.h"
 #include "route.h"
 #include "rcu.h"
 #include "memory.h"
@@ -121,14 +123,30 @@ int ip_send_packet(ip_addr_t dst, u8 protocol, const void* data, size_t len) {
     /* Calculate checksum */
     iph->checksum = ip_checksum(iph, IP_HEADER_LEN);
     
-    /* Send via network interface */
-    if (iface) {
-        ethernet_send_packet(ethernet_find_device(iface->name), skb->data, skb->len);
+    if (!iface || !iface->up) {
+        skb_free(skb);
+        return -1;
     }
-    
+
+    u32 verdict = netfilter_hook(NF_INET_LOCAL_OUT, skb, iface, iface);
+    if (verdict == NF_DROP) {
+        skb_free(skb);
+        return -1;
+    }
+
+    u8 dst_mac[6];
+    if (arp_resolve(iface, dst, dst_mac) < 0) {
+        skb_free(skb);
+        return -1;
+    }
+
+    int ret = eth_transmit(iface, ETH_P_IP, dst_mac, skb->data, skb->len);
+
+    verdict = netfilter_hook(NF_INET_POST_ROUTING, skb, iface, iface);
+    (void)verdict;
+
     skb_free(skb);
-    
-    return 0;
+    return ret;
 }
 
 int ip_recv_packet(sk_buff_t* skb) {
@@ -169,8 +187,18 @@ int ip_recv_packet(sk_buff_t* skb) {
         }
     }
     
+    u32 verdict = netfilter_hook(NF_INET_PRE_ROUTING, skb, iface, NULL);
+    if (verdict == NF_DROP) {
+        skb_free(skb);
+        return -1;
+    }
+
     if (!for_us) {
-        /* Forward packet */
+        verdict = netfilter_hook(NF_INET_FORWARD, skb, iface, NULL);
+        if (verdict == NF_DROP) {
+            skb_free(skb);
+            return -1;
+        }
         extern int route_forward(sk_buff_t* skb, ip_addr_t dst);
         int ret = route_forward(skb, iph->dst);
         if (ret < 0) {

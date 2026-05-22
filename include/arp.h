@@ -17,4 +17,10 @@ int arp_recv_packet(sk_buff_t* skb, netif_t* iface);
 /* Lookup MAC address */
 int arp_lookup(ip_addr_t ip, u8* mac);
 
+/* Resolve MAC (lookup, gateway ARP, or broadcast) */
+int arp_resolve(netif_t* iface, ip_addr_t ip, u8* mac);
+
+/* Seed static ARP entry (e.g. gateway) */
+int arp_add_entry(ip_addr_t ip, const u8* mac);
+
 #endif /* ARP_H */

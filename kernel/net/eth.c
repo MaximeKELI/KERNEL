@@ -27,7 +27,7 @@ void eth_loopback_init(void) {
     memset(loop_queue, 0, sizeof(loop_queue));
 }
 
-static int eth_loop_enqueue(const char* ifname, const void* frame, size_t len) {
+int eth_loop_enqueue(const char* ifname, const void* frame, size_t len) {
     if (!ifname || !frame || len == 0 || len > ETH_FRAME_MAX) {
         return -1;
     }
@@ -50,7 +50,7 @@ static int eth_loop_enqueue(const char* ifname, const void* frame, size_t len) {
     return 0;
 }
 
-static int eth_loop_dequeue(const char* ifname, void* buf, size_t buf_size) {
+int eth_loop_dequeue(const char* ifname, void* buf, size_t buf_size) {
     if (!ifname || !buf || buf_size == 0) {
         return -1;
     }

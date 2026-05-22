@@ -154,3 +154,39 @@ void kmem_cache_free_cpu(slab_cache_t* cache, void* obj, u32 cpu_id) {
     (void)cpu_id;
     kmem_cache_free(cache, obj);
 }
+
+u64 slab_reclaim_pages(u64 max_pages) {
+    u64 reclaimed = 0;
+
+    if (max_pages == 0) {
+        return 0;
+    }
+
+    spinlock_lock(&slab_lock);
+
+    for (slab_cache_t* cache = cache_list; cache && reclaimed < max_pages; cache = cache->next) {
+        spinlock_lock(&cache->lock);
+
+        slab_t** prev = (slab_t**)&cache->slabs;
+        slab_t* slab = (slab_t*)cache->slabs;
+
+        while (slab && reclaimed < max_pages) {
+            if (slab->free_count != cache->objects_per_slab) {
+                prev = &slab->next;
+                slab = slab->next;
+                continue;
+            }
+
+            *prev = slab->next;
+            vmm_free_pages(slab, 1);
+            cache->total_objects -= cache->objects_per_slab;
+            reclaimed++;
+            slab = *prev;
+        }
+
+        spinlock_unlock(&cache->lock);
+    }
+
+    spinlock_unlock(&slab_lock);
+    return reclaimed;
+}

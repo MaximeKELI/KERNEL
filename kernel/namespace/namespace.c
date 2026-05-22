@@ -94,3 +94,23 @@ int setns(int fd, int nstype) {
     (void)nstype;
     return 0;
 }
+
+void namespace_destroy(namespace_t* ns) {
+    if (!ns) {
+        return;
+    }
+
+    spinlock_lock(&namespace_lock);
+
+    namespace_t** link = &namespace_list;
+    while (*link) {
+        if (*link == ns) {
+            *link = ns->next;
+            break;
+        }
+        link = &(*link)->next;
+    }
+
+    spinlock_unlock(&namespace_lock);
+    kfree(ns);
+}

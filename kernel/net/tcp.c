@@ -783,6 +783,37 @@ static socket_t* tcp_accept(socket_t* sock, sockaddr_t* addr) {
     return new_sock;
 }
 
+int tcp_socket_poll_events(socket_t* sock) {
+    int ev = 0;
+    if (!sock) {
+        return 0;
+    }
+    tcp_conn_t* conn = (tcp_conn_t*)sock->private_data;
+    if (!conn) {
+        return 0;
+    }
+    spinlock_lock(&tcp_lock);
+    if (conn->state == TCP_ESTABLISHED) {
+        size_t avail = 0;
+        if (conn->recv_tail >= conn->recv_head) {
+            avail = conn->recv_tail - conn->recv_head;
+        } else if (conn->recv_buffer) {
+            avail = conn->recv_size - conn->recv_head + conn->recv_tail;
+        }
+        if (avail > 0) {
+            ev |= 0x001;
+        }
+        if (conn->flight_size < tcp_cc_snd_wnd(conn)) {
+            ev |= 0x004;
+        }
+    }
+    if (conn->accept_queue) {
+        ev |= 0x001;
+    }
+    spinlock_unlock(&tcp_lock);
+    return ev;
+}
+
 bool tcp_socket_established(socket_t* sock) {
     if (!sock) {
         return false;

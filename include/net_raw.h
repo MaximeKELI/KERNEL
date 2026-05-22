@@ -2,6 +2,7 @@
 #define NET_RAW_H
 
 #include "net.h"
+#include "skbuff.h"
 
 extern socket_ops_t raw_ops;
 

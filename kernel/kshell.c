@@ -123,7 +123,7 @@ static void kshell_cmd_ports(void) {
            NET_PORT_PRIVILEGED_MAX, NET_PORT_USER_MIN, NET_PORT_USER_MAX,
            NET_PORT_DYNAMIC_MIN, NET_PORT_DYNAMIC_MAX);
     printk("Services:\n");
-    u16 list[] = {PORT_SSH, PORT_DNS, PORT_HTTP, PORT_HTTPS, PORT_DNS,
+    u16 list[] = {PORT_SSH, PORT_NAMESERVER, PORT_HTTP, PORT_HTTPS,
                   PORT_NTP, PORT_MQTT, PORT_MYSQL, PORT_POSTGRES, PORT_REDIS};
     for (u32 i = 0; i < sizeof(list) / sizeof(list[0]); i++) {
         const char* svc = net_port_service_name(list[i]);
@@ -205,6 +205,10 @@ static void kshell_execute(const char* cmd) {
         kshell_cmd_netstats();
     } else if (strncmp(cmd, "ping ", 5) == 0) {
         kshell_cmd_ping(cmd + 5);
+    } else if (strcmp(cmd, "ports") == 0) {
+        kshell_cmd_ports();
+    } else if (strcmp(cmd, "serial") == 0) {
+        kshell_cmd_serial();
     } else {
         printk("Unknown command: %s (try help)\n", cmd);
     }

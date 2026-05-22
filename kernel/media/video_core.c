@@ -88,6 +88,15 @@ void video_core_setup_default(void) {
         video_device_set_mode(dev, 0);
     }
     video_device_start(dev);
+    {
+        video_mode_t* mode = &dev->modes[dev->current_mode];
+        video_buffer_t* b0 = video_buffer_create(dev, mode->width, mode->height, mode->bpp);
+        video_buffer_t* b1 = video_buffer_create(dev, mode->width, mode->height, mode->bpp);
+        if (b0 && b1) {
+            printk("[Video Core] double-buffer: 2 surfaces %ux%u\n",
+                   mode->width, mode->height);
+        }
+    }
     printk("[Video Core] Primary device ready\n");
 }
 

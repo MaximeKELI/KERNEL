@@ -353,16 +353,17 @@ static void kshell_execute(const char* cmd) {
                c->hostname, gw, dns, c->http_port, c->dhcp_enabled ? 1u : 0u);
     } else if (strncmp(cmd, "container ", 10) == 0) {
         if (strcmp(cmd + 10, "list") == 0) {
-            container_t* c = container_list();
+            container_t* list = NULL;
             u32 n = 0;
-            while (c) {
-                printk("  #%llu %s %s\n",
-                       (unsigned long long)c->container_id, c->name,
-                       c->running ? "running" : "stopped");
-                c = c->next;
-                n++;
-            }
-            if (!n) {
+            if (container_list(&list, &n) == 0 && n > 0) {
+                for (u32 i = 0; i < n; i++) {
+                    printk("  #%llu %s %s\n",
+                           (unsigned long long)list[i].container_id,
+                           list[i].name,
+                           list[i].running ? "running" : "stopped");
+                }
+                kfree(list);
+            } else {
                 printk("(no containers)\n");
             }
         } else if (strncmp(cmd + 10, "create ", 7) == 0) {

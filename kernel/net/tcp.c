@@ -566,7 +566,10 @@ int tcp_recv_packet(sk_buff_t* skb) {
     
     if (conn) {
         /* Update last activity */
-        conn->last_activity = 0; /* TODO: Use actual timestamp */
+        conn->last_activity = tcp_now_ms();
+        conn->rto_ms = TCP_INITIAL_RTO_MS;
+        conn->snd_una = conn->seq;
+        conn->snd_nxt = conn->seq;
         
         if (flags & TCP_FLAG_SYN && conn->state == TCP_SYN_SENT) {
             conn->state = TCP_ESTABLISHED;

@@ -44,6 +44,7 @@ u64 sys_exec(const char* path, char* const argv[]);
 u64 sys_wait(u64 pid);
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags);
 u64 sys_munmap(void* addr, u64 length);
+u64 sys_sigreturn(void);
 
 void syscall_socket_init(void);
 u64 sys_socket(u64 domain, u64 type, u64 protocol);

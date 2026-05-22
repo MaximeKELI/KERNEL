@@ -9,8 +9,12 @@
 #include "types.h"
 #include "string.h"
 #include "validate.h"
+#include "drivers/timer.h"
 
 #define TCP_HEADER_LEN 20
+#define TCP_INITIAL_RTO_MS 1000
+#define TCP_MAX_RETRIES 12
+#define TCP_MSL_MS 60000
 #define MAX_TCP_CONNECTIONS 1024
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DEFAULT_TIMEOUT_MS 30000  /* 30 seconds */
@@ -65,6 +69,14 @@ typedef struct tcp_conn {
     tcp_accept_entry_t* accept_queue;  /* Accept queue for listen sockets */
     u32 accept_backlog;     /* Current accept queue size */
     u32 max_backlog;        /* Maximum accept queue size */
+    u32 snd_una;            /* oldest unacked seq */
+    u32 snd_nxt;            /* next seq to send */
+    u32 rto_ms;
+    u64 retransmit_at;
+    u8 retry_count;
+    u8 last_flags;
+    size_t last_len;
+    u8 last_payload[1460];
     struct tcp_conn* next;
 } tcp_conn_t;
 

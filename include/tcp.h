@@ -33,5 +33,6 @@ int tcp_recv_packet(sk_buff_t* skb);
 /* TCP socket operations */
 extern socket_ops_t tcp_ops;
 bool tcp_socket_established(socket_t* sock);
+void tcp_timer_tick(void);
 
 #endif /* TCP_H */

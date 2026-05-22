@@ -97,7 +97,7 @@ static test_result_t test_krealloc(void) {
 }
 
 static test_result_t test_slab_allocator(void) {
-    slab_cache_t* cache = kmem_cache_create("test_cache", 64, 0);
+    slab_cache_t* cache = kmem_cache_create("test_cache", 64);
     TEST_ASSERT_NOT_NULL(cache);
     
     void* obj1 = kmem_cache_alloc(cache);

@@ -27,6 +27,8 @@ process_t* process_create(void* entry_point, u64 stack_size) {
     /* Initialize refcount */
     proc->refcount.count = 1;
     spinlock_init(&proc->refcount.lock);
+    spinlock_init(&proc->lock);
+    proc->private_data = NULL;
     
     /* Check for overflow in page calculation */
     size_t pages_needed;

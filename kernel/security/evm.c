@@ -45,11 +45,11 @@ int evm_calc_hash(const char* path, const void* data, size_t size, evm_hash_t* h
     }
     
     /* Get extended attributes */
-    char xattr_list[4096];
-    ssize_t xattr_size = xattr_list(path, xattr_list, sizeof(xattr_list));
+    char xattr_names[4096];
+    ssize_t xattr_size = xattr_list(path, xattr_names, sizeof(xattr_names));
     
     /* Compute EVM hash */
-    evm_compute_hash(path, data, size, xattr_list, (size_t)xattr_size, 
+    evm_compute_hash(path, data, size, xattr_names, (size_t)xattr_size, 
                      hash->hash, &hash->hash_size);
     
     DEBUG_INFO("EVM hash calculated: path=%s", path);

@@ -1,9 +1,11 @@
 #include "seccomp.h"
+#include "syscall.h"
 #include "process.h"
 #include "memory.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "string.h"
 
 static seccomp_filter_t* seccomp_filters = NULL;
 static spinlock_t seccomp_lock = SPINLOCK_INIT;

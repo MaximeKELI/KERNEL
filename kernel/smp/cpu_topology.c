@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "validate.h"
 #include "io.h"
+#include "string.h"
 
 #define MAX_CPUS 64
 
@@ -37,8 +38,8 @@ static void cpu_topology_detect(u32 cpu_id) {
         cpuid(4, &eax, &ebx, &ecx, &edx);
         if ((eax & 0x1F) == 0) break; /* No more cache levels */
         
-        u32 cache_size = ((ebx >> 22) + 1) * ((ebx & 0x7FF) + 1) * 
-                         ((ebx >> 12) & 0x3FF) + 1) * (ecx + 1);
+        u32 cache_size = ((ebx >> 22) + 1) * ((ebx & 0x7FF) + 1) *
+                         (((ebx >> 12) & 0x3FF) + 1) * (ecx + 1);
         topo->cache_sizes[topo->cache_levels++] = cache_size;
     }
 }

@@ -7,7 +7,7 @@
 
 static u32 secure_boot_state = SECURE_BOOT_DISABLED;
 static bool boot_locked = false;
-static spinlock_t secure_boot_lock = SPINLOCK_INIT;
+static spinlock_t secure_boot_spinlock = SPINLOCK_INIT;
 
 /* Simple signature verification (would use real crypto) */
 static bool verify_signature(void* data, size_t size, const u8* signature) {
@@ -78,10 +78,10 @@ u32 secure_boot_get_state(void) {
 }
 
 int secure_boot_lock(void) {
-    spinlock_lock(&secure_boot_lock);
+    spinlock_lock(&secure_boot_spinlock);
     boot_locked = true;
     secure_boot_state = SECURE_BOOT_LOCKED;
-    spinlock_unlock(&secure_boot_lock);
+    spinlock_unlock(&secure_boot_spinlock);
     
     DEBUG_INFO("Secure boot locked - no unsigned code can be loaded");
     return 0;

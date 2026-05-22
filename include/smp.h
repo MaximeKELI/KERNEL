@@ -23,6 +23,9 @@ void smp_init(void);
 /* Get current CPU ID */
 u32 smp_get_cpu_id(void);
 
+/* Number of online CPUs */
+u32 smp_get_cpu_count(void);
+
 /* Get per-CPU data */
 percpu_t* smp_get_percpu(u32 cpu_id);
 

@@ -22,7 +22,7 @@ static void ima_hash(const void* data, size_t size, u8* hash, u32* hash_size) {
     else if (ima_hash_algo == IMA_HASH_SHA512) algo_size = 64;
     
     /* Would compute actual hash */
-    secure_random_bytes(hash, algo_size);
+    secure_random_get_bytes(hash, algo_size);
     
     *hash_size = algo_size;
     

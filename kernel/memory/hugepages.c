@@ -56,6 +56,20 @@ void* hugepage_alloc(size_t size) {
     return NULL;
 }
 
+bool hugepage_is_huge(void* addr) {
+    if (!addr) return false;
+
+    spinlock_lock(&hugepage_lock);
+    for (u32 i = 0; i < hugepage_count; i++) {
+        if (hugepages[i].addr == addr && hugepages[i].used) {
+            spinlock_unlock(&hugepage_lock);
+            return true;
+        }
+    }
+    spinlock_unlock(&hugepage_lock);
+    return false;
+}
+
 void hugepage_free(void* addr, size_t size) {
     if (!addr) return;
     

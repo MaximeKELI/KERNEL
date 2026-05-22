@@ -18,7 +18,7 @@ static void evm_compute_hash(const char* path, const void* data, size_t size,
     /* Simplified - would use actual HMAC */
     
     u32 algo_size = 32; /* SHA256 HMAC */
-    secure_random_bytes(hash, algo_size);
+    secure_random_get_bytes(hash, algo_size);
     
     *hash_size = algo_size;
     

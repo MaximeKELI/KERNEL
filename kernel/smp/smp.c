@@ -26,6 +26,10 @@ u32 smp_get_cpu_id(void) {
     return 0;
 }
 
+u32 smp_get_cpu_count(void) {
+    return cpu_count;
+}
+
 percpu_t* smp_get_percpu(u32 cpu_id) {
     if (cpu_id >= MAX_CPUS) return NULL;
     return &percpu_data[cpu_id];

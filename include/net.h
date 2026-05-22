@@ -77,6 +77,9 @@ typedef struct netif {
     struct netif* next;
 } netif_t;
 
+/* Global interface list (defined in net.c) */
+extern netif_t* netif_list;
+
 /* Initialize networking */
 void net_init(void);
 

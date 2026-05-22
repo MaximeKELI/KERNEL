@@ -30,7 +30,7 @@ u64 global_net_rx_bytes = 0;
 u64 global_net_tx_packets = 0;
 u64 global_net_rx_packets = 0;
 
-static netif_t* netif_list = NULL;
+netif_t* netif_list = NULL;
 static socket_t* socket_list = NULL;
 static spinlock_t net_lock = SPINLOCK_INIT;
 

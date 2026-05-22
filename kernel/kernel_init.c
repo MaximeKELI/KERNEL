@@ -149,6 +149,9 @@ void kernel_init_extended(void) {
     /* Initialize VFS */
     printk("Initializing VFS...\n");
     vfs_init();
+    vmm_init_user_mm();
+    vdso_init();
+    writeback_init();
     printk("VFS initialized.\n\n");
     
     /* Initialize process manager */

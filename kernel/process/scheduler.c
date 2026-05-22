@@ -6,6 +6,7 @@
 #include "refcount.h"
 #include "validate.h"
 #include "overflow.h"
+#include "memory.h"
 
 process_t* process_list = NULL;
 static process_t* current_process = NULL;
@@ -63,7 +64,7 @@ process_t* process_create(void* entry_point, u64 stack_size) {
     proc->rbp = proc->rsp;
     proc->rip = (u64)entry_point;
     proc->rflags = 0x202;  /* Interrupts enabled */
-    proc->cr3 = 0;  /* Use current page table */
+    proc->cr3 = vmm_get_cr3();
     proc->priority = 0;
     proc->time_slice = 100;
     proc->runtime = 0;

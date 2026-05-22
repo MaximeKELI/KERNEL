@@ -79,6 +79,7 @@ KERNEL_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/audio/*.c) \
                  $(wildcard $(KERNEL_DIR)/drivers/input/*.c) \
                  $(wildcard $(KERNEL_DIR)/media/*.c) \
+                 $(wildcard $(KERNEL_DIR)/vdso/*.c) \
                  $(wildcard $(LIB_DIR)/*.c)
 
 KERNEL_SOURCES += $(KERNEL_DIR)/test/test.c
@@ -88,7 +89,9 @@ KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 endif
 
 USER_NETTEST = $(BUILD_DIR)/user/nettest
+USER_SH = $(BUILD_DIR)/user/sh
 NETTEST_BLOB = $(BUILD_DIR)/kernel/nettest_blob.o
+SH_BLOB = $(BUILD_DIR)/kernel/sh_blob.o
 
 KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/interrupt/*.S) \
                      $(wildcard $(KERNEL_DIR)/syscall/*.S) \

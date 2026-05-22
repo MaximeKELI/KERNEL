@@ -5,6 +5,7 @@
 #include "tcp.h"
 #include "string.h"
 #include "stdio.h"
+#include "ip.h"
 #include "debug.h"
 
 static int http_wait_established(socket_t* sock, u32 polls) {

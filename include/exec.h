@@ -19,4 +19,7 @@ int exec_run_path(const char* path);
 /* Jump to already-loaded user entry */
 void exec_jump_user(u64 entry) __attribute__((noreturn));
 
+/* Enter ring 3 via iretq (CS=0x23, SS=0x2b) */
+void exec_iretq_user(u64 rip, u64 rsp, u64 rflags) __attribute__((noreturn));
+
 #endif /* EXEC_H */

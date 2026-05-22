@@ -142,6 +142,54 @@ static void kshell_cmd_ports(void) {
            net_sock_type_name(SOCK_SEQPACKET), net_sock_type_name(SOCK_PACKET));
 }
 
+static void kshell_cmd_ioports(void) {
+    printk("Hardware I/O ports (%u regions):\n", hw_port_registry_count());
+    hw_port_list_category(HW_PORT_CAT_UNKNOWN);
+}
+
+static u16 kshell_parse_hex_port(const char* s) {
+    u32 val = 0;
+    if (!s || !*s) {
+        return 0;
+    }
+    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
+        s += 2;
+    }
+    while (*s) {
+        char c = *s++;
+        u8 digit = 0;
+        if (c >= '0' && c <= '9') {
+            digit = (u8)(c - '0');
+        } else if (c >= 'a' && c <= 'f') {
+            digit = (u8)(c - 'a' + 10);
+        } else if (c >= 'A' && c <= 'F') {
+            digit = (u8)(c - 'A' + 10);
+        } else {
+            break;
+        }
+        val = (val << 4) | digit;
+        if (val > 0xFFFF) {
+            return 0;
+        }
+    }
+    return (u16)val;
+}
+
+static void kshell_cmd_ioport_lookup(const char* arg) {
+    while (*arg == ' ') {
+        arg++;
+    }
+    u16 port = kshell_parse_hex_port(arg);
+    if (port == 0 && (arg[0] != '0' || (arg[1] != 'x' && arg[1] != 'X'))) {
+        printk("Usage: ioport 0xNN\n");
+        return;
+    }
+    const char* name = hw_port_lookup_name(port);
+    printk("0x%04X: %s [%s]\n", port,
+           name ? name : "(unknown)",
+           hw_port_category_name(hw_port_category(port)));
+}
+
 static void kshell_cmd_serial(void) {
     for (u32 i = 0; i < SERIAL_PORT_COUNT; i++) {
         u16 base = serial_port_by_name(
@@ -212,6 +260,10 @@ static void kshell_execute(const char* cmd) {
         kshell_cmd_ports();
     } else if (strcmp(cmd, "serial") == 0) {
         kshell_cmd_serial();
+    } else if (strcmp(cmd, "ioports") == 0) {
+        kshell_cmd_ioports();
+    } else if (strncmp(cmd, "ioport ", 7) == 0) {
+        kshell_cmd_ioport_lookup(cmd + 7);
     } else {
         printk("Unknown command: %s (try help)\n", cmd);
     }

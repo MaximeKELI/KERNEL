@@ -118,6 +118,39 @@ static void kshell_cmd_netstats(void) {
            (unsigned long long)stats.tx_errors);
 }
 
+static void kshell_cmd_ports(void) {
+    printk("Port ranges: priv 1-%u user %u-%u dyn %u-%u\n",
+           NET_PORT_PRIVILEGED_MAX, NET_PORT_USER_MIN, NET_PORT_USER_MAX,
+           NET_PORT_DYNAMIC_MIN, NET_PORT_DYNAMIC_MAX);
+    printk("Services:\n");
+    u16 list[] = {PORT_SSH, PORT_DNS, PORT_HTTP, PORT_HTTPS, PORT_DNS,
+                  PORT_NTP, PORT_MQTT, PORT_MYSQL, PORT_POSTGRES, PORT_REDIS};
+    for (u32 i = 0; i < sizeof(list) / sizeof(list[0]); i++) {
+        const char* svc = net_port_service_name(list[i]);
+        if (svc) {
+            printk("  %5u %-12s (%s)\n", list[i], svc,
+                   net_port_classify(list[i]) == NET_PORT_TYPE_PRIVILEGED ?
+                   "priv" : "user");
+        }
+    }
+    printk("Socket types: %s %s %s %s %s %s\n",
+           net_sock_type_name(SOCK_STREAM), net_sock_type_name(SOCK_DGRAM),
+           net_sock_type_name(SOCK_RAW), net_sock_type_name(SOCK_RDM),
+           net_sock_type_name(SOCK_SEQPACKET), net_sock_type_name(SOCK_PACKET));
+}
+
+static void kshell_cmd_serial(void) {
+    for (u32 i = 0; i < SERIAL_PORT_COUNT; i++) {
+        u16 base = serial_port_by_name(
+            (i == 0) ? "COM1" : (i == 1) ? "COM2" : (i == 2) ? "COM3" : "COM4");
+        const char* name = serial_port_name(base);
+        printk("  %s 0x%04x  %s%s\n", name ? name : "?", base,
+               serial_port_is_init(base) ? "up" : "down",
+               (serial_console_enabled && serial_console_port == base) ?
+               " (console)" : "");
+    }
+}
+
 static void kshell_cmd_ping(const char* target) {
     if (!kernel_extended_ready()) {
         printk("Network not loaded. Run: init-full\n");

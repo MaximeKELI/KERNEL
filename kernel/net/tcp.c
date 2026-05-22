@@ -298,7 +298,10 @@ static int tcp_connect(socket_t* sock, const sockaddr_t* addr) {
     conn->recv_head = 0;
     conn->recv_tail = 0;
     conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
-    conn->last_activity = 0; /* TODO: Use actual timestamp */
+    conn->last_activity = tcp_now_ms();
+    conn->rto_ms = TCP_INITIAL_RTO_MS;
+    conn->snd_una = conn->seq;
+    conn->snd_nxt = conn->seq;
     conn->next = tcp_connections;
     tcp_connections = conn;
     tcp_connection_count++;
@@ -309,7 +312,6 @@ static int tcp_connect(socket_t* sock, const sockaddr_t* addr) {
     
     spinlock_unlock(&tcp_lock);
     
-    /* Send SYN */
     tcp_send_packet(conn, TCP_FLAG_SYN, NULL, 0);
     
     return 0;
@@ -547,7 +549,10 @@ int tcp_recv_packet(sk_buff_t* skb) {
                     new_conn->recv_head = 0;
                     new_conn->recv_tail = 0;
                     new_conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
-                    new_conn->last_activity = 0; /* TODO: Use actual timestamp */
+                    new_conn->last_activity = tcp_now_ms();
+                    new_conn->rto_ms = TCP_INITIAL_RTO_MS;
+                    new_conn->snd_una = new_conn->seq;
+                    new_conn->snd_nxt = new_conn->seq;
                     new_conn->next = tcp_connections;
                     tcp_connections = new_conn;
                     tcp_connection_count++;
@@ -573,11 +578,20 @@ int tcp_recv_packet(sk_buff_t* skb) {
     if (conn) {
         /* Update last activity */
         conn->last_activity = tcp_now_ms();
-        conn->rto_ms = TCP_INITIAL_RTO_MS;
-        conn->snd_una = conn->seq;
-        conn->snd_nxt = conn->seq;
-        
-        if (flags & TCP_FLAG_SYN && conn->state == TCP_SYN_SENT) {
+
+        if (flags & TCP_FLAG_ACK && ack > conn->snd_una) {
+            conn->snd_una = ack;
+            conn->retry_count = 0;
+            conn->rto_ms = TCP_INITIAL_RTO_MS;
+            conn->retransmit_at = 0;
+        }
+
+        if ((flags & (TCP_FLAG_SYN | TCP_FLAG_ACK)) == (TCP_FLAG_SYN | TCP_FLAG_ACK) &&
+            conn->state == TCP_SYN_SENT) {
+            conn->state = TCP_ESTABLISHED;
+            conn->ack = seq + 1;
+            tcp_send_packet(conn, TCP_FLAG_ACK, NULL, 0);
+        } else if (flags & TCP_FLAG_SYN && conn->state == TCP_SYN_SENT) {
             conn->state = TCP_ESTABLISHED;
             conn->ack = seq + 1;
             tcp_send_packet(conn, TCP_FLAG_ACK, NULL, 0);
@@ -588,7 +602,7 @@ int tcp_recv_packet(sk_buff_t* skb) {
                 conn->state = TCP_CLOSE_WAIT;
                 tcp_send_packet(conn, TCP_FLAG_FIN | TCP_FLAG_ACK, NULL, 0);
             }
-        } else if (flags & TCP_FLAG_ACK && (flags & TCP_FLAG_PSH)) {
+        } else if (flags & TCP_FLAG_ACK && skb->len > TCP_HEADER_LEN) {
             /* Data packet */
             skb_pull(skb, TCP_HEADER_LEN);
             
@@ -694,6 +708,36 @@ bool tcp_socket_established(socket_t* sock) {
     }
     tcp_conn_t* conn = (tcp_conn_t*)sock->private_data;
     return conn && conn->state == TCP_ESTABLISHED;
+}
+
+void tcp_timer_tick(void) {
+    u64 now = tcp_now_ms();
+    spinlock_lock(&tcp_lock);
+    tcp_conn_t* conn = tcp_connections;
+    while (conn) {
+        if (conn->retransmit_at && now >= conn->retransmit_at &&
+            conn->state != TCP_CLOSED && conn->state != TCP_TIME_WAIT) {
+            if (conn->retry_count >= TCP_MAX_RETRIES) {
+                conn->state = TCP_CLOSED;
+                tcp_send_packet(conn, TCP_FLAG_RST, NULL, 0);
+            } else {
+                conn->retry_count++;
+                conn->rto_ms = conn->rto_ms * 2;
+                if (conn->rto_ms > 60000) {
+                    conn->rto_ms = 60000;
+                }
+                tcp_retransmit_last(conn);
+                tcp_arm_retransmit(conn);
+            }
+        }
+        if (conn->timeout_ms && conn->last_activity &&
+            now > conn->last_activity + conn->timeout_ms) {
+            conn->state = TCP_TIME_WAIT;
+            conn->retransmit_at = now + TCP_MSL_MS;
+        }
+        conn = conn->next;
+    }
+    spinlock_unlock(&tcp_lock);
 }
 
 socket_ops_t tcp_ops = {

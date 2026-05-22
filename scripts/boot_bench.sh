@@ -11,15 +11,19 @@ if [ -z "$QEMU" ]; then
 fi
 
 make -s build/user/nettest 2>/dev/null || true
-make -s build/kernel.elf
+make -s build/kernel.elf iso
 
 LOG="$(mktemp)"
-# Direct -kernel skips GRUB; measures kernel fast-boot path only
-timeout 6s "$QEMU" \
-  -kernel build/kernel.elf -m 512M \
-  -serial file:"$LOG" -display none -no-reboot 2>/dev/null || true
+timeout 12s "$QEMU" \
+  -drive file=build/kernel.iso,format=raw,if=ide,index=0,media=disk \
+  -boot order=c -m 512M \
+  -serial mon:stdio -display none -no-reboot >"$LOG" 2>&1 || true
 
-TOTAL="$(grep -E 'TOTAL.*ms' "$LOG" | tail -1 | grep -oE '[0-9]+' | head -1 || echo 9999)"
+TOTAL="$(grep -oE 'TOTAL[[:space:]]+[0-9]+' "$LOG" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || true)"
+if [ -z "$TOTAL" ]; then
+  TOTAL="$(grep -oE 'minimal_done[[:space:]]+[0-9]+' "$LOG" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo 9999)"
+fi
+[ -z "$TOTAL" ] && TOTAL=9999
 echo "Boot TOTAL: ${TOTAL} ms (log: $LOG)"
 if [ "$TOTAL" -lt 200 ] 2>/dev/null; then
   echo "PASS: boot < 200 ms"

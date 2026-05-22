@@ -36,6 +36,12 @@ typedef struct process {
     u64 priority;
     u64 time_slice;
     u64 runtime;
+
+    /* AI adaptive scheduler (kernel/ai) */
+    u8 ai_class;
+    u8 ai_boost;
+    u16 ai_wait_ticks;
+    u16 ai_run_ticks;
     
     /* User/Group IDs */
     u32 uid;

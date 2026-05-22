@@ -12,5 +12,6 @@ int tmpfs_mount(const char* mountpoint, size_t size);
 
 /* Get filesystem operations */
 vfs_fs_ops_t* tmpfs_get_fs_ops(void);
+vfs_ops_t* tmpfs_get_file_ops(void);
 
 #endif /* TMPFS_H */

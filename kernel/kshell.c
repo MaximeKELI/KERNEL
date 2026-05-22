@@ -22,6 +22,7 @@
 #include "appliance.h"
 #include "ai_bench.h"
 #include "ai_shell.h"
+#include "video_shell.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -58,6 +59,7 @@ static void kshell_cmd_help(void) {
     printk("  bench-ai   - AI scheduler benchmark\n");
     printk("  ai [cmd]   - AI v4 (ai help, goal, health, advise)\n");
     printk("  exec PATH  - run user ELF (e.g. nettest)\n");
+    printk("  video [cmd] - video (video help, demo, blit)\n");
 }
 
 static void kshell_cmd_mem(void) {
@@ -294,6 +296,10 @@ static void kshell_execute(const char* cmd) {
     } else if (strncmp(cmd, "ai", 2) == 0 && (cmd[2] == '\0' || cmd[2] == ' ')) {
         const char* args = (cmd[2] == ' ') ? cmd + 3 : "";
         ai_shell_command(args);
+    } else if (strncmp(cmd, "video", 5) == 0 &&
+               (cmd[5] == '\0' || cmd[5] == ' ')) {
+        const char* args = (cmd[5] == ' ') ? cmd + 6 : "";
+        video_shell_command(args);
     } else if (strncmp(cmd, "exec ", 5) == 0) {
         if (!kernel_extended_ready()) {
             printk("Need init-full for userland.\n");

@@ -254,12 +254,16 @@ void kernel_init_extended(void) {
     
     /* Initialize framebuffer */
     printk("Initializing framebuffer...\n");
-    framebuffer_init(VESA_MODE_1024x768_8);
+    extern int framebuffer_init_multiboot(u64);
+    extern u64 kernel_mb_info;
+    framebuffer_init_multiboot(kernel_mb_info);
     printk("Framebuffer initialized.\n\n");
     
     /* Initialize multimedia subsystem */
     printk("Initializing multimedia subsystem...\n");
     media_init();
+    extern void video_core_setup_default(void);
+    video_core_setup_default();
     printk("Multimedia subsystem initialized.\n\n");
     
     /* Initialize System V IPC */

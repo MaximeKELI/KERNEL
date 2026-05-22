@@ -20,6 +20,7 @@ typedef struct video_buffer video_buffer_t;
 
 /* Initialize video core */
 void video_core_init(void);
+void video_core_setup_default(void);
 
 /* Create/destroy video device */
 video_device_t* video_device_create(const char* name, drm_device_t* drm_dev);
@@ -44,6 +45,7 @@ int video_device_stop(video_device_t* dev);
 /* Get video device properties */
 u32 video_get_width(video_device_t* dev);
 u32 video_get_height(video_device_t* dev);
+u32 video_get_current_mode(video_device_t* dev);
 
 /* Find video device */
 video_device_t* video_find_device(const char* name);

@@ -15,6 +15,9 @@
 #include "audit.h"
 #include "debug.h"
 #include "test.h"
+#include "multiboot2_fb.h"
+
+u64 kernel_mb_info = 0;
 
 void panic(const char* message) {
     disable_interrupts();
@@ -31,8 +34,8 @@ void halt(void) {
 }
 
 void kernel_main(u64 magic, u64 mb_info) {
+    kernel_mb_info = mb_info;
     (void)magic;
-    (void)mb_info;
 
     vga_init();
     vga_clear();

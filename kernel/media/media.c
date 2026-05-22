@@ -14,6 +14,8 @@ void media_init(void) {
     /* Initialize all media subsystems */
     audio_core_init();
     video_core_init();
+    extern void video_output_init(void);
+    video_output_init();
     codec_init();
     av_sync_init();
     streaming_init();

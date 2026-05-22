@@ -64,6 +64,33 @@ void video_core_init(void) {
     printk("[Video Core] Video core subsystem initialized\n");
 }
 
+void video_core_setup_default(void) {
+    extern void drm_init(void);
+    drm_init();
+
+    drm_device_t* drm = drm_find_device("card0");
+    if (!drm) {
+        drm = drm_alloc_device();
+    }
+
+    video_device_t* dev = video_find_device("primary");
+    if (!dev && drm) {
+        dev = video_device_create("primary", drm);
+    }
+    if (!dev) {
+        return;
+    }
+
+    if (dev->num_modes == 0) {
+        video_device_add_mode(dev, 320, 200, 60, 32);
+        video_device_add_mode(dev, 640, 480, 60, 32);
+        video_device_add_mode(dev, 1024, 768, 60, 32);
+        video_device_set_mode(dev, 0);
+    }
+    video_device_start(dev);
+    printk("[Video Core] Primary device ready\n");
+}
+
 video_device_t* video_device_create(const char* name, drm_device_t* drm_dev) {
     VALIDATE_PTR_RET(name, NULL);
     VALIDATE_PTR_RET(drm_dev, NULL);
@@ -364,4 +391,9 @@ u32 video_get_height(video_device_t* dev) {
         return dev->modes[dev->current_mode].height;
     }
     return 0;
+}
+
+u32 video_get_current_mode(video_device_t* dev) {
+    VALIDATE_PTR_RET(dev, 0);
+    return dev->current_mode;
 }

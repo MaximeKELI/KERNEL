@@ -99,4 +99,10 @@ int net_recv_packet(netif_t* iface, void* data, size_t* len);
 /* Process received packet (full stack) */
 int net_process_packet(netif_t* iface, void* data, size_t len);
 
+/* Poll RX queues (loopback / driver) */
+void net_poll(void);
+
+/* Default interface */
+netif_t* net_default_if(void);
+
 #endif /* NET_H */

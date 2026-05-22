@@ -2,6 +2,7 @@
 #define SECCOMP_H
 
 #include "types.h"
+#include "process.h"
 
 /* Seccomp modes */
 #define SECCOMP_MODE_DISABLED 0

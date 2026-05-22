@@ -28,6 +28,20 @@ typedef struct {
     u8 addr[4];
 } ip_addr_t;
 
+/* IP header (declared here to avoid circular includes with skbuff.h) */
+typedef struct __packed {
+    u8 version_ihl;
+    u8 tos;
+    u16 total_length;
+    u16 id;
+    u16 flags_fragment;
+    u8 ttl;
+    u8 protocol;
+    u16 checksum;
+    ip_addr_t src;
+    ip_addr_t dst;
+} ip_header_t;
+
 /* Socket structure */
 typedef struct socket {
     u32 domain;

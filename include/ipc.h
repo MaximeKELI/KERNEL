@@ -2,6 +2,7 @@
 #define IPC_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* IPC types */
 #define IPC_PIPE       1
@@ -32,6 +33,7 @@ typedef struct shm {
 typedef struct sem {
     i32 value;
     u32 waiters;
+    u64 key;
     spinlock_t lock;
 } sem_t;
 

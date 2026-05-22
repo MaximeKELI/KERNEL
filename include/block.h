@@ -2,6 +2,7 @@
 #define BLOCK_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* Block I/O request */
 typedef struct bio {

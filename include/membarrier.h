@@ -16,10 +16,7 @@
 /* Membarrier system call */
 int membarrier(i32 cmd, i32 flags);
 
-/* Memory barrier operations */
-void mb(void);
-void rmb(void);
-void wmb(void);
+/* Memory barrier operations (mb/rmb/wmb are inline in io.h) */
 void smp_mb(void);
 void smp_rmb(void);
 void smp_wmb(void);

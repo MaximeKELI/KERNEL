@@ -14,16 +14,16 @@
 /* Timerfd timer types */
 #define TFD_TIMER_ABSTIME 0x00000001
 
-/* Timerfd structure */
-typedef struct itimerspec {
-    struct timespec it_interval;  /* Interval */
-    struct timespec it_value;     /* Initial expiration */
-} itimerspec_t;
-
 typedef struct timespec {
     i64 tv_sec;   /* Seconds */
     i64 tv_nsec;  /* Nanoseconds */
 } timespec_t;
+
+/* Timerfd structure */
+typedef struct itimerspec {
+    timespec_t it_interval;
+    timespec_t it_value;
+} itimerspec_t;
 
 /* Create timerfd */
 i32 timerfd_create(i32 clockid, i32 flags);

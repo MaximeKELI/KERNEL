@@ -9,6 +9,7 @@ typedef struct checkpoint_image {
     u64 timestamp;
     u64 size;
     void* data;
+    struct checkpoint_image* next;
 } checkpoint_image_t;
 
 /* Initialize checkpoint/restore */

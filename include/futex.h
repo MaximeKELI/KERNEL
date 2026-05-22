@@ -2,6 +2,8 @@
 #define FUTEX_H
 
 #include "types.h"
+#include "spinlock.h"
+#include "timerfd.h"
 
 /* Futex operations */
 #define FUTEX_WAIT        0
@@ -29,6 +31,7 @@ typedef struct futex_word {
     volatile u32 value;
     spinlock_t lock;
     struct futex_wait_queue* waiters;
+    struct futex_word* next;
 } futex_word_t;
 
 /* Futex system call */

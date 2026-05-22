@@ -1,4 +1,5 @@
 #include "procfs.h"
+#include "kernel.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"

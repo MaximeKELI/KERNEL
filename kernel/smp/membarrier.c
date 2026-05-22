@@ -2,7 +2,6 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
-#include "io.h"
 #include "smp.h"
 
 static u32 membarrier_supported = 0;

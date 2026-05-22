@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "refcount.h"
+#include "spinlock.h"
 
 /* Process states */
 typedef enum {
@@ -42,6 +43,12 @@ typedef struct process {
     
     /* File descriptors */
     void* files;
+
+    /* Per-process lock (PI mutex, etc.) */
+    spinlock_t lock;
+
+    /* Opaque per-process data (namespaces, cgroups, ...) */
+    void* private_data;
     
     /* Next in list */
     struct process* next;

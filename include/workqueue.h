@@ -2,6 +2,7 @@
 #define WORKQUEUE_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* Work item */
 typedef struct work {

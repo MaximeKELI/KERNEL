@@ -8,14 +8,13 @@
 static u64 rcu_gp_ctr = 1;
 static spinlock_t rcu_lock = SPINLOCK_INIT;
 
-/* RCU callback */
-typedef struct rcu_callback {
+typedef struct rcu_cb_entry {
     void* ptr;
     rcu_callback_t func;
-    struct rcu_callback* next;
-} rcu_callback_t;
+    struct rcu_cb_entry* next;
+} rcu_cb_entry_t;
 
-static rcu_callback_t* callback_list = NULL;
+static rcu_cb_entry_t* callback_list = NULL;
 
 void rcu_init(void) {
     DEBUG_INFO("RCU system initialized");
@@ -39,12 +38,12 @@ void synchronize_rcu(void) {
     /* Would wait for grace period */
     
     /* Process callbacks */
-    rcu_callback_t* cb = callback_list;
+    rcu_cb_entry_t* cb = callback_list;
     callback_list = NULL;
     spinlock_unlock(&rcu_lock);
     
     while (cb) {
-        rcu_callback_t* next = cb->next;
+        rcu_cb_entry_t* next = cb->next;
         if (cb->func) {
             cb->func(cb->ptr);
         }
@@ -54,7 +53,7 @@ void synchronize_rcu(void) {
 }
 
 void call_rcu(void* ptr, rcu_callback_t func) {
-    rcu_callback_t* cb = (rcu_callback_t*)kmalloc(sizeof(rcu_callback_t));
+    rcu_cb_entry_t* cb = (rcu_cb_entry_t*)kmalloc(sizeof(rcu_cb_entry_t));
     if (!cb) return;
     
     cb->ptr = ptr;

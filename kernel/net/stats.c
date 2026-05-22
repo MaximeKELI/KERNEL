@@ -4,20 +4,7 @@
 #include "spinlock.h"
 #include "debug.h"
 #include "types.h"
-
-/* Network statistics */
-typedef struct net_stats {
-    u64 rx_packets;
-    u64 tx_packets;
-    u64 rx_bytes;
-    u64 tx_bytes;
-    u64 rx_errors;
-    u64 tx_errors;
-    u64 rx_dropped;
-    u64 tx_dropped;
-    u64 collisions;
-    u64 multicast;
-} net_stats_t;
+#include "string.h"
 
 static net_stats_t global_stats = {0};
 static spinlock_t stats_lock = SPINLOCK_INIT;

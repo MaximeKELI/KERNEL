@@ -34,9 +34,6 @@ int setpriority(u64 pid, int priority);
 /* Get process priority */
 int getpriority(u64 pid);
 
-/* Set scheduler policy */
-int sched_setscheduler(u64 pid, int policy, int priority);
-
 /* Get scheduler statistics */
 void scheduler_get_stats(scheduler_stats_t* stats);
 

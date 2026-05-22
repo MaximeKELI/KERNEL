@@ -136,7 +136,7 @@ static int udp_bind(socket_t* sock, const sockaddr_t* addr) {
     return 0;
 }
 
-static ssize_t udp_send(socket_t* sock, const void* buf, size_t len, 
+ssize_t udp_send(socket_t* sock, const void* buf, size_t len, 
                         ip_addr_t dst_addr, u16 dst_port) {
     if (!sock || !buf || len == 0) {
         return -1;
@@ -169,7 +169,7 @@ static ssize_t udp_send(socket_t* sock, const void* buf, size_t len,
     return ret == 0 ? len : -1;
 }
 
-static ssize_t udp_recv(socket_t* sock, void* buf, size_t len,
+ssize_t udp_recv(socket_t* sock, void* buf, size_t len,
                         ip_addr_t* src_addr, u16* src_port) {
     if (!sock || !buf || len == 0) {
         return -1;

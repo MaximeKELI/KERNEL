@@ -2,6 +2,7 @@
 #define EPOLL_H
 
 #include "types.h"
+#include "spinlock.h"
 
 /* Epoll events */
 #define EPOLLIN  0x001

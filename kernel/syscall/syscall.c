@@ -20,6 +20,8 @@
 #include "epoll.h"
 #include "net.h"
 
+extern int socket_fd_poll_events(int fd);
+
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
 static syscall_func_t syscall_table[] = {
@@ -316,8 +318,6 @@ u64 sys_poll(void* fds, u64 nfds, u64 timeout_ms) {
     }
     return ready;
 }
-
-extern int socket_fd_poll_events(int fd);
 
 u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len) {
     if (!hostname || !out_ip || out_len < 4) {

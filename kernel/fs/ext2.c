@@ -292,7 +292,8 @@ static vfs_fs_ops_t ext2_fs_ops = {
 };
 
 int ext2_init(void) {
-    DEBUG_INFO("EXT2 driver initialized");
+    ext2_journal_init();
+    DEBUG_INFO("EXT2 + page cache + journal");
     return 0;
 }
 

@@ -28,10 +28,6 @@ static int fd_alloc(socket_t* sock) {
     return -1;
 }
 
-socket_t* syscall_fd_get_socket(u64 fd) {
-    return fd_get(fd);
-}
-
 static socket_t* fd_get(u64 fd) {
     if (fd >= MAX_FDS) {
         return NULL;
@@ -40,6 +36,10 @@ static socket_t* fd_get(u64 fd) {
         return NULL;
     }
     return fd_table[fd].sock;
+}
+
+socket_t* syscall_fd_get_socket(u64 fd) {
+    return fd_get(fd);
 }
 
 static void fd_free(u64 fd) {

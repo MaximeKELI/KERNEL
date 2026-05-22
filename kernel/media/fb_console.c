@@ -1,6 +1,5 @@
 #include "fb_console.h"
 #include "framebuffer.h"
-#include "font8x8.h"
 #include "string.h"
 
 #define FB_CON_COLS 80
@@ -16,7 +15,7 @@ void fb_console_init(void) {
 
 void fb_console_putchar(char c) {
     framebuffer_t* fb = framebuffer_get();
-    if (!fb || !fb->buffer) {
+    if (!fb || !fb->enabled) {
         return;
     }
 
@@ -29,11 +28,7 @@ void fb_console_putchar(char c) {
         return;
     }
 
-    u32 px = con_x * 8;
-    u32 py = con_y * 8;
-    if (px + 8 < fb->width && py + 8 < fb->height) {
-        font8x8_draw_char(fb->buffer, fb->width, fb->height, px, py, (u8)c, 0x00FFFFFF, 0x00000000);
-    }
+    framebuffer_draw_char(con_x * 8, con_y * 8, c, FB_COLOR_WHITE, FB_COLOR_BLACK);
     con_x++;
     if (con_x >= FB_CON_COLS) {
         con_x = 0;

@@ -42,7 +42,8 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
                 return -1;
             }
             memset(phys, 0, PAGE_SIZE);
-            if (!vmm_map_page((void*)pa, phys, PAGE_PRESENT | PAGE_WRITABLE)) {
+            if (!vmm_map_page((void*)pa, phys,
+                              PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER)) {
                 return -1;
             }
         }
@@ -61,6 +62,8 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
     return 0;
 }
 
+static u8 exec_file_buf[256 * 1024];
+
 const void* exec_resolve_path(const char* path, size_t* size_out) {
     if (!path || !size_out) {
         return NULL;
@@ -70,6 +73,14 @@ const void* exec_resolve_path(const char* path, size_t* size_out) {
         strcmp(path, "nettest") == 0) {
         *size_out = (size_t)(nettest_bin_end - nettest_bin_start);
         return nettest_bin_start;
+    }
+
+    extern ssize_t vfs_read_path(const char* path, void* buf, size_t count);
+    ssize_t n = vfs_read_path(path, exec_file_buf, sizeof(exec_file_buf));
+    if (n > 64 && exec_file_buf[0] == 0x7F && exec_file_buf[1] == 'E' &&
+        exec_file_buf[2] == 'L' && exec_file_buf[3] == 'F') {
+        *size_out = (size_t)n;
+        return exec_file_buf;
     }
     return NULL;
 }

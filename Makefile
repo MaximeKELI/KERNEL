@@ -180,8 +180,12 @@ $(BUILD_DIR)/kernel/nettest_blob.o: $(USER_NETTEST) $(KERNEL_DIR)/nettest_blob.S
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $(KERNEL_DIR)/nettest_blob.S -o $@
 
-# Userland nettest (embedded + copied to ISO)
-$(USER_NETTEST): user/nettest.c user/nettest.ld user/Makefile
+$(BUILD_DIR)/kernel/sh_blob.o: $(USER_SH) $(KERNEL_DIR)/sh_blob.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $(KERNEL_DIR)/sh_blob.S -o $@
+
+# Userland (embedded + copied to ISO)
+$(USER_NETTEST) $(USER_SH): user/Makefile
 	$(MAKE) -C user
 
 # Link kernel
@@ -193,6 +197,7 @@ iso: $(KERNEL_ELF) $(USER_NETTEST) grub.cfg
 	mkdir -p $(ISO_BOOT_DIR) $(ISO_GRUB_DIR)
 	cp $(KERNEL_ELF) $(ISO_BOOT_DIR)/
 	cp $(USER_NETTEST) $(ISO_BOOT_DIR)/nettest
+	cp $(USER_SH) $(ISO_BOOT_DIR)/sh
 	cp grub.cfg $(ISO_GRUB_DIR)/
 	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
 

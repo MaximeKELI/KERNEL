@@ -10,6 +10,8 @@
 
 extern char nettest_bin_start[];
 extern char nettest_bin_end[];
+extern char sh_bin_start[];
+extern char sh_bin_end[];
 
 #define PT_LOAD 1
 
@@ -79,6 +81,11 @@ const void* exec_resolve_path(const char* path, size_t* size_out) {
         strcmp(path, "nettest") == 0) {
         *size_out = (size_t)(nettest_bin_end - nettest_bin_start);
         return nettest_bin_start;
+    }
+    if (strcmp(path, "/sh") == 0 || strcmp(path, "/boot/sh") == 0 ||
+        strcmp(path, "sh") == 0) {
+        *size_out = (size_t)(sh_bin_end - sh_bin_start);
+        return sh_bin_start;
     }
 
     extern ssize_t vfs_read_path(const char* path, void* buf, size_t count);

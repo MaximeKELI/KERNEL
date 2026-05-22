@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "net.h"
+#include "skbuff.h"
 
 void dhcp_init(void);
 int net_dhcp_acquire(netif_t* iface);

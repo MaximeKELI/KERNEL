@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "net.h"
+#include "skbuff.h"
 
 void dns_init(void);
 int dns_resolve_a(const char* hostname, ip_addr_t* out);

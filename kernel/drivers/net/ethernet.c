@@ -231,6 +231,10 @@ int ethernet_get_mac(ethernet_device_t* dev, u8 mac[6]) {
     return 0;
 }
 
+bool ethernet_is_hardware(ethernet_device_t* dev) {
+    return dev && dev->tx_fn != NULL;
+}
+
 u32 ethernet_get_device_count(void) {
     spinlock_lock(&ethernet_lock);
     u32 count = ethernet_device_count;

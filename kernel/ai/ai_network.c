@@ -1,5 +1,6 @@
 #include "ai_network.h"
 #include "ai_log.h"
+#include "ai_learn.h"
 #include "process.h"
 #include "scheduler.h"
 
@@ -20,6 +21,7 @@ void ai_optimize_network(const ai_policy_params_t* policy, u64 net_rx_rate) {
             p->ai_boost = 4;
             boosted++;
             ai_log_record(AI_ACT_NET_BOOST, (u32)p->pid, (u32)net_rx_rate);
+            ai_learn_on_action(AI_ACT_NET_BOOST);
         }
     }
     if (boosted > 0) {

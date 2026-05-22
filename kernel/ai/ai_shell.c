@@ -6,6 +6,9 @@
 #include "ai_process.h"
 #include "ai_optimizer.h"
 #include "ai_bench.h"
+#include "ai_controller.h"
+#include "ai_learn.h"
+#include "ai_history.h"
 #include "kernel_init.h"
 #include "stdio.h"
 #include "string.h"
@@ -19,6 +22,9 @@ static const char* act_name(u8 a) {
     case AI_ACT_MEM_RECLAIM: return "mem";
     case AI_ACT_NET_BOOST: return "net";
     case AI_ACT_ANOMALY: return "anomaly";
+    case AI_ACT_POLICY_AUTO: return "auto-pol";
+    case AI_ACT_LEARN_REWARD: return "learn+";
+    case AI_ACT_VRUNTIME_TUNED: return "vruntime";
     default: return "?";
     }
 }
@@ -36,7 +42,9 @@ static void ai_cmd_status(void) {
 
     printk("\n=== AI Subsystem ===\n");
     printk("Enabled:    %s\n", ai_is_enabled() ? "yes" : "no");
-    printk("Policy:     %s\n", ai_policy_mode_name(ai_policy_get_mode()));
+    printk("Policy:     %s (auto: %s)\n",
+           ai_policy_mode_name(ai_policy_get_mode()),
+           ai_controller_auto_enabled() ? "on" : "off");
     printk("Decisions:  %llu total, %u in log\n",
            (unsigned long long)ai_log_total_decisions(),
            ai_log_count());
@@ -65,6 +73,10 @@ static void ai_cmd_status(void) {
     printk("Thresholds: CPU %llu%% MEM %llu%%\n",
            (unsigned long long)ai_get_cpu_threshold(),
            (unsigned long long)ai_get_memory_threshold());
+    printk("Predict:    io_ema %llu net_ema %llu\n",
+           (unsigned long long)pred.io_ema,
+           (unsigned long long)pred.net_ema);
+    ai_learn_print_stats();
     printk("\n");
 }
 
@@ -90,13 +102,24 @@ static void ai_cmd_log(void) {
 static void ai_cmd_policy(const char* name) {
     if (!name || !name[0]) {
         printk("Policy: %s\n", ai_policy_mode_name(ai_policy_get_mode()));
-        printk("Modes: balanced | latency | throughput | powersave\n");
+        printk("Modes: balanced | latency | throughput | powersave | auto | manual\n");
+        return;
+    }
+    if (strcmp(name, "auto") == 0) {
+        ai_controller_set_auto(true);
+        printk("AI auto-policy enabled\n");
+        return;
+    }
+    if (strcmp(name, "manual") == 0) {
+        ai_controller_set_auto(false);
+        printk("AI auto-policy disabled (manual)\n");
         return;
     }
     for (u32 m = 0; m < AI_POLICY_MAX; m++) {
         if (strcmp(name, ai_policy_mode_name(m)) == 0) {
             ai_policy_set_mode(m);
-            printk("AI policy -> %s\n", ai_policy_mode_name(m));
+            ai_controller_set_auto(false);
+            printk("AI policy -> %s (manual)\n", ai_policy_mode_name(m));
             return;
         }
     }
@@ -163,16 +186,28 @@ void ai_shell_command(const char* args) {
         printk("AI log cleared\n");
     } else if (strncmp(args, "tune ", 5) == 0) {
         ai_cmd_tune(args + 5);
+    } else if (strcmp(args, "history") == 0) {
+        ai_history_print();
+    } else if (strcmp(args, "learn") == 0) {
+        ai_learn_print_stats();
+    } else if (strcmp(args, "ps") == 0) {
+        ai_process_print_table();
+    } else if (strcmp(args, "reset-learn") == 0) {
+        ai_learn_reset();
+        printk("AI learn weights reset\n");
     } else if (strcmp(args, "help") == 0) {
         printk("AI commands:\n");
         printk("  ai              - status\n");
         printk("  ai metrics      - full metrics\n");
-        printk("  ai policy NAME  - balanced|latency|throughput|powersave\n");
+        printk("  ai policy NAME  - mode or auto|manual\n");
+        printk("  ai history      - metric sparklines\n");
+        printk("  ai ps           - processes + AI class/score\n");
+        printk("  ai learn        - reinforcement weights\n");
         printk("  ai log          - decision history\n");
         printk("  ai bench        - scheduler benchmark\n");
         printk("  ai on|off       - enable/disable\n");
         printk("  ai tune cpu N   - CPU threshold\n");
-        printk("  ai tune mem N   - memory threshold\n");
+        printk("  ai reset-learn  - reset learn weights\n");
         printk("  ai clear        - clear log\n");
     } else {
         printk("Unknown: ai %s (try: ai help)\n", args);

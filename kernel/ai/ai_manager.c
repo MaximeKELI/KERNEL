@@ -6,6 +6,9 @@
 #include "ai_process.h"
 #include "ai_network.h"
 #include "ai_log.h"
+#include "ai_controller.h"
+#include "ai_learn.h"
+#include "ai_history.h"
 #include "ai_sysfs.h"
 #include "stdio.h"
 #include "spinlock.h"
@@ -25,6 +28,9 @@ void ai_init(void) {
     ai_policy_init();
     ai_predict_init();
     ai_log_init();
+    ai_learn_init();
+    ai_history_init();
+    ai_controller_init();
     ai_process_init();
     ai_monitor_init();
     ai_optimizer_init();
@@ -34,7 +40,7 @@ void ai_init(void) {
     ai_tick_phase = 0;
     spinlock_unlock(&ai_init_lock);
 
-    printk("[AI] Adaptive Intelligence v2 (policy/predict/process/log)\n");
+    printk("[AI] Adaptive Intelligence v3 (auto/learn/history/CFS)\n");
 }
 
 void ai_tick(void) {
@@ -46,7 +52,15 @@ void ai_tick(void) {
 
     ai_metrics_t metrics;
     ai_monitor_get_metrics(&metrics);
+    ai_learn_tick(&metrics);
     ai_predict_feed(&metrics);
+
+    ai_predict_state_t pred;
+    ai_predict_get(&pred);
+    ai_history_push(metrics.cpu_usage, metrics.memory_usage,
+                    pred.net_ema, pred.io_ema);
+
+    ai_controller_tick(&metrics, &pred);
     ai_process_update_profiles();
 
     ai_tick_phase++;

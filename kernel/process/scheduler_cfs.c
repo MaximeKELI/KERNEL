@@ -1,4 +1,6 @@
 #include "scheduler.h"
+#include "ai_types.h"
+#include "ai_learn.h"
 #include "sched_stats.h"
 #include "process.h"
 #include "memory.h"
@@ -153,7 +155,26 @@ u64 calc_vruntime(process_t* proc) {
     } else if (nice > 0) {
         weight = weight >> nice;
     }
-    
+
+    /* AI vruntime bias: favor I/O and network waiters */
+    switch (proc->ai_class) {
+    case AI_CLASS_IO:
+    case AI_CLASS_NET:
+        weight += weight / 4 + (ai_learn_weight(AI_ACT_PRIO_BOOST) / 64);
+        break;
+    case AI_CLASS_CPU:
+        if (weight > 256) {
+            weight -= weight / 8;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if (weight < 64) {
+        weight = 64;
+    }
+
     return proc->runtime * 1024 / weight;
 }
 

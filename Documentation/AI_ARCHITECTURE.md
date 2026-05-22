@@ -1,4 +1,4 @@
-# Architecture IA du noyau (v2)
+# Architecture IA du noyau (v3)
 
 Sous-système **heuristique et mesurable** — pas de ML lourd : moyennes mobiles (EMA), classification de processus, politiques prédéfinies, journal des décisions.
 
@@ -16,6 +16,9 @@ Sous-système **heuristique et mesurable** — pas de ML lourd : moyennes mobile
 | `ai_log` | Anneau 32 décisions (audit / debug) |
 | `ai_shell` | Interface kshell |
 | `ai_sysfs` | Interface sysfs (config) |
+| `ai_controller` | Auto-policy (net→latency, idle→powersave) |
+| `ai_learn` | Poids adaptatifs par type d'action (renforcement léger) |
+| `ai_history` | Anneau 24 échantillons + sparklines kshell |
 | `ai_bench` | Benchmark scheduler on/off |
 
 ## Tick timer (100 Hz)

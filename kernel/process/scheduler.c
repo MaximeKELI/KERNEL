@@ -67,6 +67,7 @@ process_t* process_create(void* entry_point, u64 stack_size) {
     proc->runtime = 0;
     proc->ai_class = AI_CLASS_IDLE;
     proc->ai_boost = 0;
+    proc->ai_score = 0;
     proc->ai_wait_ticks = 0;
     proc->ai_run_ticks = 0;
     proc->files = NULL;

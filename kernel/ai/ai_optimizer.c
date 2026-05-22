@@ -5,6 +5,7 @@
 #include "ai_process.h"
 #include "ai_network.h"
 #include "ai_log.h"
+#include "ai_learn.h"
 #include "process.h"
 #include "scheduler.h"
 #include "cache.h"
@@ -89,6 +90,7 @@ void ai_optimize_memory(void) {
         if (now - last_memory_cleanup > 1000) {
             cache_sync_all();
             ai_log_record(AI_ACT_MEM_RECLAIM, 0, (u32)metrics.memory_usage);
+            ai_learn_on_action(AI_ACT_MEM_RECLAIM);
             last_memory_cleanup = now;
         }
     }
@@ -110,6 +112,7 @@ void ai_detect_anomalies(void) {
             if (hog && hog->priority < PRIO_MAX) {
                 hog->priority++;
                 ai_log_record(AI_ACT_PRIO_DEMOTE, (u32)hog->pid, (u32)hog->priority);
+                ai_learn_on_action(AI_ACT_PRIO_DEMOTE);
             }
             high_cpu_ticks = 0;
         }

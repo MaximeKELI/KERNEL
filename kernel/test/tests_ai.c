@@ -5,6 +5,9 @@
 #include "ai_policy.h"
 #include "ai_predict.h"
 #include "ai_log.h"
+#include "ai_controller.h"
+#include "ai_learn.h"
+#include "ai_history.h"
 #include "memory.h"
 #include "process.h"
 #include "scheduler.h"
@@ -169,6 +172,23 @@ static test_result_t test_ai_log_ring(void) {
     return TEST_PASS;
 }
 
+static test_result_t test_ai_controller_auto(void) {
+    ai_controller_init();
+    ai_controller_set_auto(true);
+    TEST_ASSERT_TRUE(ai_controller_auto_enabled());
+    ai_controller_set_auto(false);
+    TEST_ASSERT_TRUE(!ai_controller_auto_enabled());
+    return TEST_PASS;
+}
+
+static test_result_t test_ai_history_push(void) {
+    ai_history_init();
+    for (u32 i = 0; i < 5; i++) {
+        ai_history_push(10 + i, 20 + i, 100, 50);
+    }
+    return TEST_PASS;
+}
+
 /* Register AI tests */
 void register_ai_tests(void) {
     test_register("ai", "ai_init", test_ai_init);
@@ -182,4 +202,6 @@ void register_ai_tests(void) {
     test_register("ai", "ai_policy_modes", test_ai_policy_modes);
     test_register("ai", "ai_predict_ema", test_ai_predict_ema);
     test_register("ai", "ai_log_ring", test_ai_log_ring);
+    test_register("ai", "ai_controller_auto", test_ai_controller_auto);
+    test_register("ai", "ai_history_push", test_ai_history_push);
 }

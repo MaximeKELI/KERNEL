@@ -21,6 +21,7 @@
 #include "exec.h"
 #include "appliance.h"
 #include "ai_bench.h"
+#include "ai_shell.h"
 #include "types.h"
 
 #define KSHELL_LINE_MAX 128
@@ -54,7 +55,8 @@ static void kshell_cmd_help(void) {
     printk("  dns NAME   - DNS A lookup\n");
     printk("  score      - kernel scorecard vs Linux\n");
     printk("  appliance  - DHCP + ping QEMU gateway\n");
-    printk("  bench-ai   - AI vs non-AI I/O sched latency\n");
+    printk("  bench-ai   - AI scheduler benchmark\n");
+    printk("  ai [cmd]   - AI subsystem (ai help)\n");
     printk("  exec PATH  - run user ELF (e.g. nettest)\n");
 }
 
@@ -289,6 +291,9 @@ static void kshell_execute(const char* cmd) {
         appliance_network_boot();
     } else if (strcmp(cmd, "bench-ai") == 0) {
         ai_sched_benchmark();
+    } else if (strncmp(cmd, "ai", 2) == 0 && (cmd[2] == '\0' || cmd[2] == ' ')) {
+        const char* args = (cmd[2] == ' ') ? cmd + 3 : "";
+        ai_shell_command(args);
     } else if (strncmp(cmd, "exec ", 5) == 0) {
         if (!kernel_extended_ready()) {
             printk("Need init-full for userland.\n");

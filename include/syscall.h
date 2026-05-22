@@ -17,7 +17,7 @@
 #define SYS_SIGRETURN 10
 
 /* System call handler */
-void syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
+u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
 
 /* Initialize syscall subsystem */
 void syscall_init(void);

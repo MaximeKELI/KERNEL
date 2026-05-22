@@ -22,6 +22,7 @@
 #include "net_ports.h"
 #include "net_socket.h"
 #include "net_raw.h"
+#include "dhcp.h"
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
@@ -73,6 +74,10 @@ static void net_setup_default_interface(void) {
     char ipbuf[16];
     ip_addr_format(&default_netif.ip, ipbuf, sizeof(ipbuf));
     printk("[Net] Interface %s up, IP %s\n", default_netif.name, ipbuf);
+
+    if (eth && eth->tx_fn) {
+        net_dhcp_acquire(&default_netif);
+    }
 }
 
 void net_init(void) {
@@ -81,6 +86,8 @@ void net_init(void) {
 
     skb_init();
     net_ports_init();
+    dhcp_init();
+    dns_init();
     ip_init();
     raw_init();
     tcp_init();

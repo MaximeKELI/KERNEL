@@ -52,7 +52,7 @@ bool memory_bandwidth_allow(u64 bytes, bool is_write) {
     return (total + bytes) <= BW_LIMIT_BYTES_PER_TICK;
 }
 
-void memory_bandwidth_get_stats(u64* read_bytes, u64* write_bytes) {
+void memory_bandwidth_ctrl_get_stats(u64* read_bytes, u64* write_bytes) {
     spinlock_lock(&bandwidth_ctrl_lock);
     if (read_bytes) {
         *read_bytes = bytes_read;

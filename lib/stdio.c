@@ -1,10 +1,14 @@
 #include "stdio.h"
 #include "string.h"
 #include "drivers/vga.h"
+#include "serial.h"
 #include <stdarg.h>
 
 /* Simple printf implementation */
 static void printk_putchar(char c) {
+    if (serial_console_enabled) {
+        serial_putchar(serial_console_port, c);
+    }
     vga_putchar(c);
 }
 

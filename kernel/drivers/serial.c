@@ -9,6 +9,9 @@
 #define SERIAL_MODEM_PORT(port)    (port + 4)
 #define SERIAL_LINE_STATUS(port)   (port + 5)
 
+bool serial_console_enabled = false;
+u16 serial_console_port = COM1;
+
 void serial_init(u16 port) {
     /* Disable interrupts */
     outb(port + 1, 0x00);
@@ -29,6 +32,8 @@ void serial_init(u16 port) {
     /* IRQs enabled, RTS/DSR set */
     outb(SERIAL_MODEM_PORT(port), 0x0B);
     
+    serial_console_port = port;
+    serial_console_enabled = true;
     DEBUG_INFO("Serial port 0x%x initialized", port);
 }
 

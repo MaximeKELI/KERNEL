@@ -16,6 +16,7 @@
 #include "signal.h"
 #include "kspp.h"
 #include "fb_console.h"
+#include "gdt.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -82,13 +83,15 @@ u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64
 
 void syscall_init(void) {
     extern void syscall_entry(void);
+    gdt_init_user_segments();
     syscall_socket_init();
     u64 efer = rdmsr(0xC0000080);
     wrmsr(0xC0000080, efer | (1 << 0));
-    wrmsr(0xC0000081, 0x0018000800000000ULL);
+    /* STAR: kernel CS @ 63:48, user CS @ 47:32 (SYSRET SS = user CS + 8) */
+    wrmsr(0xC0000081, ((u64)GDT_KERNEL_CODE << 48) | ((u64)GDT_USER_CODE << 32));
     wrmsr(0xC0000082, (u64)syscall_entry);
     wrmsr(0xC0000084, 0x200);
-    printk("Syscall: ready\n");
+    printk("Syscall: SYSCALL/SYSRET ring0/ring3\n");
 }
 
 u64 sys_exit(u64 status) {

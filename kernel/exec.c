@@ -6,6 +6,7 @@
 #include "string.h"
 #include "debug.h"
 #include "validate.h"
+#include "gdt.h"
 
 extern char nettest_bin_start[];
 extern char nettest_bin_end[];
@@ -28,10 +29,16 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
         u64 vaddr = phdr[i].p_vaddr;
         size_t memsz = phdr[i].p_memsz;
         size_t filesz = phdr[i].p_filesz;
+        u64 flags = phdr[i].p_flags;
 
         if (vaddr < USER_LOAD_ADDR || vaddr + memsz > USER_STACK_TOP) {
             DEBUG_ERROR("ELF segment outside user range");
             return -1;
+        }
+
+        u64 page_flags = PAGE_PRESENT | PAGE_USER;
+        if (flags & 0x2) {
+            page_flags |= PAGE_WRITABLE;
         }
 
         u64 page_start = vaddr & ~(PAGE_SIZE - 1);
@@ -42,8 +49,7 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
                 return -1;
             }
             memset(phys, 0, PAGE_SIZE);
-            if (!vmm_map_page((void*)pa, phys,
-                              PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER)) {
+            if (!vmm_map_page((void*)pa, phys, page_flags)) {
                 return -1;
             }
         }
@@ -86,18 +92,10 @@ const void* exec_resolve_path(const char* path, size_t* size_out) {
 }
 
 void exec_jump_user(u64 entry) {
-    u8* stack = (u8*)(USER_STACK_TOP - USER_STACK_SIZE);
-    u64* sp = (u64*)(USER_STACK_TOP - 16);
-    sp[0] = 0;
-    sp[1] = 0;
-
-    __asm__ volatile(
-        "mov %0, %%rsp\n"
-        "jmp *%1"
-        :
-        : "r"(sp), "r"(entry)
-        : "memory");
-    __builtin_unreachable();
+    gdt_init_user_segments();
+    u64 stack = USER_STACK_TOP - 16;
+    u64 rflags = 0x202;
+    exec_iretq_user(entry, stack, rflags);
 }
 
 int exec_run_path(const char* path) {
@@ -112,7 +110,7 @@ int exec_run_path(const char* path) {
         return -1;
     }
 
-    printk("[exec] %s entry=0x%llx (%zu bytes)\n",
+    printk("[exec] %s ring3 entry=0x%llx (%zu bytes)\n",
            path, (unsigned long long)entry, size);
     exec_jump_user(entry);
     return 0;

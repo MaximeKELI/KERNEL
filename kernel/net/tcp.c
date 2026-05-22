@@ -74,6 +74,7 @@ typedef struct tcp_conn {
     u32 rto_ms;
     u64 retransmit_at;
     u8 retry_count;
+    u32 last_xmit_seq;
     u8 last_flags;
     size_t last_len;
     u8 last_payload[1460];
@@ -118,13 +119,15 @@ static void tcp_arm_retransmit(tcp_conn_t* conn) {
     conn->retransmit_at = tcp_now_ms() + conn->rto_ms;
 }
 
+static int tcp_xmit(tcp_conn_t* conn, u8 flags, const void* data, size_t len, bool rtx);
+
 static int tcp_retransmit_last(tcp_conn_t* conn) {
     if (!conn) {
         return -1;
     }
-    return tcp_send_packet(conn, conn->last_flags,
-                           conn->last_len ? conn->last_payload : NULL,
-                           conn->last_len);
+    return tcp_xmit(conn, conn->last_flags,
+                    conn->last_len ? conn->last_payload : NULL,
+                    conn->last_len, true);
 }
 
 static tcp_conn_t* tcp_find_connection(ip_addr_t local_addr, u16 local_port,
@@ -238,7 +241,10 @@ static int tcp_listen(socket_t* sock, int backlog) {
     conn->accept_backlog = 0;
     conn->max_backlog = backlog;
     conn->timeout_ms = TCP_DEFAULT_TIMEOUT_MS;
-    conn->last_activity = 0; /* TODO: Use actual timestamp */
+    conn->last_activity = tcp_now_ms();
+    conn->rto_ms = TCP_INITIAL_RTO_MS;
+    conn->snd_una = conn->seq;
+    conn->snd_nxt = conn->seq;
     conn->next = tcp_connections;
     tcp_connections = conn;
     tcp_connection_count++;
@@ -413,56 +419,56 @@ static int tcp_close(socket_t* sock) {
  * Updates sequence numbers automatically.
  */
 int tcp_send_packet(tcp_conn_t* conn, u8 flags, const void* data, size_t len) {
+    return tcp_xmit(conn, flags, data, len, false);
+}
+
+static int tcp_xmit(tcp_conn_t* conn, u8 flags, const void* data, size_t len, bool rtx) {
     if (!conn) {
         return -1;
     }
-    
-    /* Allocate socket buffer */
+
     sk_buff_t* skb = skb_alloc(len + TCP_HEADER_LEN);
     if (!skb) {
         return -1;
     }
-    
+
     skb_reserve(skb, TCP_HEADER_LEN);
     if (data && len > 0) {
         memcpy(skb_put(skb, len), data, len);
     }
-    
-    /* Build TCP header */
+
+    u32 seq = rtx ? conn->last_xmit_seq : conn->seq;
     tcp_header_t* tcph = (tcp_header_t*)skb_push(skb, TCP_HEADER_LEN);
     tcph->src_port = htons(conn->local_port);
     tcph->dst_port = htons(conn->remote_port);
-    tcph->seq_num = htonl(conn->seq);
+    tcph->seq_num = htonl(seq);
     tcph->ack_num = htonl(conn->ack);
     tcph->data_offset = (TCP_HEADER_LEN / 4) << 4;
     tcph->flags = flags;
     tcph->window = htons(conn->send_window);
     tcph->checksum = 0;
     tcph->urgent = 0;
-    
-    /* Update sequence number */
-    conn->last_flags = flags;
-    conn->last_len = len;
-    if (data && len > 0 && len <= sizeof(conn->last_payload)) {
-        memcpy(conn->last_payload, data, len);
-    }
 
-    if (len > 0 || (flags & TCP_FLAG_SYN) || (flags & TCP_FLAG_FIN)) {
-        u32 seq_inc = (u32)len;
-        if (flags & TCP_FLAG_SYN || flags & TCP_FLAG_FIN) {
-            seq_inc++;
+    if (!rtx) {
+        conn->last_flags = flags;
+        conn->last_len = len;
+        conn->last_xmit_seq = conn->seq;
+        if (data && len > 0 && len <= sizeof(conn->last_payload)) {
+            memcpy(conn->last_payload, data, len);
         }
-        conn->seq += seq_inc;
-        conn->snd_nxt = conn->seq;
+        if (len > 0 || (flags & TCP_FLAG_SYN) || (flags & TCP_FLAG_FIN)) {
+            u32 seq_inc = (u32)len;
+            if (flags & TCP_FLAG_SYN || flags & TCP_FLAG_FIN) {
+                seq_inc++;
+            }
+            conn->seq += seq_inc;
+            conn->snd_nxt = conn->seq;
+        }
+        tcp_arm_retransmit(conn);
     }
 
-    tcp_arm_retransmit(conn);
-
-    /* Send via IP layer */
     int ret = ip_send_packet(conn->remote_addr, IPPROTO_TCP, skb->data, skb->len);
-    
     skb_free(skb);
-    
     return ret;
 }
 

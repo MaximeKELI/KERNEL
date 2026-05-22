@@ -1,5 +1,6 @@
 #include "ai_controller.h"
 #include "ai_policy.h"
+#include "ai_goals.h"
 #include "ai_log.h"
 #include "drivers/timer.h"
 
@@ -22,7 +23,7 @@ void ai_controller_set_auto(bool on) {
 }
 
 void ai_controller_tick(const ai_metrics_t* m, const ai_predict_state_t* pred) {
-    if (!auto_enabled || !m || !pred) {
+    if (!auto_enabled || !m || !pred || ai_goals_get() != AI_GOAL_NONE) {
         return;
     }
 

@@ -9,6 +9,11 @@
 #include "ai_controller.h"
 #include "ai_learn.h"
 #include "ai_history.h"
+#include "ai_goals.h"
+#include "ai_alert.h"
+#include "ai_advisor.h"
+#include "ai_snapshot.h"
+#include "ai_daemon.h"
 #include "ai_sysfs.h"
 #include "stdio.h"
 #include "spinlock.h"
@@ -31,6 +36,11 @@ void ai_init(void) {
     ai_learn_init();
     ai_history_init();
     ai_controller_init();
+    ai_goals_init();
+    ai_alert_init();
+    ai_advisor_init();
+    ai_snapshot_init();
+    ai_daemon_init();
     ai_process_init();
     ai_monitor_init();
     ai_optimizer_init();
@@ -40,7 +50,7 @@ void ai_init(void) {
     ai_tick_phase = 0;
     spinlock_unlock(&ai_init_lock);
 
-    printk("[AI] Adaptive Intelligence v3 (auto/learn/history/CFS)\n");
+    printk("[AI] Adaptive Intelligence v4 (goals/health/alerts/user)\n");
 }
 
 void ai_tick(void) {
@@ -59,6 +69,8 @@ void ai_tick(void) {
     ai_predict_get(&pred);
     ai_history_push(metrics.cpu_usage, metrics.memory_usage,
                     pred.net_ema, pred.io_ema);
+
+    ai_fill_user_info(NULL);
 
     ai_controller_tick(&metrics, &pred);
     ai_process_update_profiles();
@@ -83,6 +95,8 @@ void ai_tick(void) {
     if ((ai_tick_phase % 50) == 0) {
         ai_detect_anomalies();
     }
+
+    ai_daemon_tick(ai_tick_phase);
 }
 
 void ai_get_metrics(ai_metrics_t* metrics) {

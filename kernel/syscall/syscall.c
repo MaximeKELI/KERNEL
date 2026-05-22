@@ -9,6 +9,7 @@
 #include "net_addr.h"
 #include "uaccess.h"
 #include "exec.h"
+#include "ai_manager.h"
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -34,6 +35,7 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_sendto,
     (syscall_func_t)sys_socket_close,
     (syscall_func_t)sys_dns_resolve,
+    (syscall_func_t)sys_ai_metrics,
 };
 
 u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5) {
@@ -148,6 +150,21 @@ u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
 u64 sys_munmap(void* addr, u64 length) {
     (void)addr;
     (void)length;
+    return 0;
+}
+
+u64 sys_ai_metrics(void* out_info, u64 size) {
+    if (!out_info || size < sizeof(ai_user_info_t)) {
+        return (u64)-1;
+    }
+    if (!ai_initialized) {
+        return (u64)-1;
+    }
+    ai_user_info_t info;
+    ai_fill_user_info(&info);
+    if (copy_to_user(out_info, &info, sizeof(info)) < 0) {
+        return (u64)-1;
+    }
     return 0;
 }
 

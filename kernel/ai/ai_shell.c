@@ -9,6 +9,10 @@
 #include "ai_controller.h"
 #include "ai_learn.h"
 #include "ai_history.h"
+#include "ai_goals.h"
+#include "ai_alert.h"
+#include "ai_advisor.h"
+#include "ai_snapshot.h"
 #include "kernel_init.h"
 #include "stdio.h"
 #include "string.h"
@@ -25,6 +29,8 @@ static const char* act_name(u8 a) {
     case AI_ACT_POLICY_AUTO: return "auto-pol";
     case AI_ACT_LEARN_REWARD: return "learn+";
     case AI_ACT_VRUNTIME_TUNED: return "vruntime";
+    case AI_ACT_ALERT: return "alert";
+    case AI_ACT_GOAL_APPLY: return "goal";
     default: return "?";
     }
 }
@@ -40,7 +46,9 @@ static void ai_cmd_status(void) {
     ai_predict_state_t pred;
     ai_predict_get(&pred);
 
-    printk("\n=== AI Subsystem ===\n");
+    printk("\n=== AI Subsystem v4 ===\n");
+    printk("Health:     %u/100\n", ai_health_score());
+    printk("Goal:       %s\n", ai_goals_name(ai_goals_get()));
     printk("Enabled:    %s\n", ai_is_enabled() ? "yes" : "no");
     printk("Policy:     %s (auto: %s)\n",
            ai_policy_mode_name(ai_policy_get_mode()),
@@ -195,6 +203,41 @@ void ai_shell_command(const char* args) {
     } else if (strcmp(args, "reset-learn") == 0) {
         ai_learn_reset();
         printk("AI learn weights reset\n");
+    } else if (strcmp(args, "health") == 0) {
+        printk("AI health score: %u/100\n", ai_health_score());
+    } else if (strcmp(args, "advise") == 0) {
+        ai_advisor_print();
+    } else if (strcmp(args, "alerts") == 0) {
+        ai_alert_print_recent();
+    } else if (strncmp(args, "goal ", 5) == 0) {
+        const char* g = args + 5;
+        if (strcmp(g, "none") == 0) {
+            ai_goals_set(AI_GOAL_NONE);
+            ai_controller_set_auto(true);
+            printk("Goal cleared, auto-policy on\n");
+        } else if (strcmp(g, "latency") == 0) {
+            ai_goals_set(AI_GOAL_LATENCY);
+            ai_goals_apply();
+            printk("Goal: latency\n");
+        } else if (strcmp(g, "throughput") == 0) {
+            ai_goals_set(AI_GOAL_THROUGHPUT);
+            ai_goals_apply();
+            printk("Goal: throughput\n");
+        } else if (strcmp(g, "power") == 0) {
+            ai_goals_set(AI_GOAL_POWER);
+            ai_goals_apply();
+            printk("Goal: power\n");
+        } else if (strcmp(g, "stability") == 0) {
+            ai_goals_set(AI_GOAL_STABILITY);
+            ai_goals_apply();
+            printk("Goal: stability\n");
+        } else {
+            printk("Goals: none|latency|throughput|power|stability\n");
+        }
+    } else if (strcmp(args, "snapshot") == 0) {
+        ai_snapshot_capture();
+    } else if (strcmp(args, "compare") == 0) {
+        ai_snapshot_compare();
     } else if (strcmp(args, "help") == 0) {
         printk("AI commands:\n");
         printk("  ai              - status\n");
@@ -207,6 +250,12 @@ void ai_shell_command(const char* args) {
         printk("  ai bench        - scheduler benchmark\n");
         printk("  ai on|off       - enable/disable\n");
         printk("  ai tune cpu N   - CPU threshold\n");
+        printk("  ai health       - health score 0-100\n");
+        printk("  ai goal NAME    - latency|throughput|power|stability|none\n");
+        printk("  ai advise       - recommendations\n");
+        printk("  ai alerts       - last alert\n");
+        printk("  ai snapshot     - save baseline\n");
+        printk("  ai compare      - delta vs snapshot\n");
         printk("  ai reset-learn  - reset learn weights\n");
         printk("  ai clear        - clear log\n");
     } else {

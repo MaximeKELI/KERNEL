@@ -5,7 +5,10 @@ typedef long i64;
 #define SYS_WRITE  1
 #define SYS_SOCKET 11
 #define SYS_SENDTO 18
-#define SYS_DNS    20
+#define SYS_DNS        20
+#define SYS_AI_METRICS 21
+
+#define AI_USER_MAGIC 0x41494D31U
 
 #define AF_INET 2
 #define SOCK_DGRAM 2
@@ -13,6 +16,23 @@ typedef long i64;
 struct sockaddr {
     unsigned short sa_family;
     char sa_data[14];
+};
+
+struct ai_user_info {
+    unsigned int magic;
+    unsigned int version;
+    unsigned int cpu_usage;
+    unsigned int memory_usage;
+    unsigned int cpu_predict;
+    unsigned int mem_predict;
+    unsigned int health_score;
+    unsigned int policy_mode;
+    unsigned int goal_mode;
+    unsigned int process_count;
+    unsigned int decisions_total;
+    unsigned int io_class_count;
+    unsigned int net_class_count;
+    unsigned int reserved[2];
 };
 
 static inline u64 syscall1(u64 n, u64 a1) {
@@ -64,6 +84,23 @@ void _start(void) {
         }
     } else {
         puts("dns failed\n");
+    }
+
+    struct ai_user_info ai;
+    i64 ar = (i64)syscall3(SYS_AI_METRICS, (u64)&ai, (u64)sizeof(ai), 0);
+    if (ar == 0 && ai.magic == AI_USER_MAGIC) {
+        puts("AI health=");
+        char hbuf[8];
+        unsigned h = ai.health_score;
+        hbuf[0] = '0' + (h / 100) % 10;
+        hbuf[1] = '0' + (h / 10) % 10;
+        hbuf[2] = '0' + h % 10;
+        hbuf[3] = '/';
+        hbuf[4] = '1';
+        hbuf[5] = '0';
+        hbuf[6] = '0';
+        hbuf[7] = '\n';
+        syscall3(SYS_WRITE, 1, (u64)hbuf, 8);
     }
 
     for (;;) {

@@ -56,7 +56,7 @@ static void kshell_cmd_help(void) {
     printk("  score      - kernel scorecard vs Linux\n");
     printk("  appliance  - DHCP + ping QEMU gateway\n");
     printk("  bench-ai   - AI scheduler benchmark\n");
-    printk("  ai [cmd]   - AI v3 (ai help, ai ps, ai history)\n");
+    printk("  ai [cmd]   - AI v4 (ai help, goal, health, advise)\n");
     printk("  exec PATH  - run user ELF (e.g. nettest)\n");
 }
 

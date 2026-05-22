@@ -55,7 +55,11 @@ void kernel_score_print(void) {
     printk("Network:      %s%s\n",
            s.network_ready ? "up" : "minimal only",
            s.hardware_nic ? " [real NIC]" : " [loopback]");
-    printk("AI scheduler: %s\n", s.ai_active ? "active" : "off (init-full)");
+    printk("AI scheduler: %s", s.ai_active ? "active" : "off (init-full)");
+    if (s.ai_active) {
+        printk(" health %u/100", ai_health_score());
+    }
+    printk("\n");
     printk("----------------------------------------\n");
     printk("Where we aim to beat Linux:\n");
     printk("  - Boot latency (modular init)\n");

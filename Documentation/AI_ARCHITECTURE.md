@@ -1,4 +1,4 @@
-# Architecture IA du noyau (v3)
+# Architecture IA du noyau (v4)
 
 Sous-système **heuristique et mesurable** — pas de ML lourd : moyennes mobiles (EMA), classification de processus, politiques prédéfinies, journal des décisions.
 
@@ -20,6 +20,16 @@ Sous-système **heuristique et mesurable** — pas de ML lourd : moyennes mobile
 | `ai_learn` | Poids adaptatifs par type d'action (renforcement léger) |
 | `ai_history` | Anneau 24 échantillons + sparklines kshell |
 | `ai_bench` | Benchmark scheduler on/off |
+| `ai_goals` | Objectifs utilisateur (latency/throughput/power) |
+| `ai_alert` | Alertes seuils (CPU/RAM/net/pred) |
+| `ai_advisor` | Recommandations texte |
+| `ai_snapshot` | Baseline + comparaison |
+| `ai_health` | Score santé 0–100 |
+| `ai_daemon` | Passage profond toutes les 100 ticks |
+
+## Syscall userland
+
+`SYS_AI_METRICS` (21) remplit `ai_user_info_t` (magic `0x41494D31`).
 
 ## Tick timer (100 Hz)
 
@@ -53,25 +63,27 @@ Selon la politique active :
 | `throughput` | Timeslices larges si idle |
 | `powersave` | Moins d’interventions IA |
 
-## v3 — nouveautés
+## v4 — nouveautés
 
-- **Auto-policy** : bascule automatique selon EMA (net→latency, idle→powersave)
-- **Apprentissage** : poids par action, reward/penalty au tick suivant
-- **CFS hook** : `calc_vruntime()` favorise IO/NET
-- **Score** : `ai_score` 0–100 par processus
-- **Historique** : `ai history` (sparklines ASCII)
+- **Health score** 0–100 (affiché dans `score` et `ai`)
+- **Goals** : `ai goal latency` force l’optimisation réseau
+- **Alerts** : messages `[AI ALERT]` sur seuils critiques
+- **Advisor** : `ai advise` recommandations contextuelles
+- **Snapshot** : `ai snapshot` puis `ai compare` pour mesurer l’effet d’une charge
+- **SYS_AI_METRICS** : userland lit l’état IA (`nettest` affiche health)
 
 ## kshell
 
 ```text
 init-full
-ai                  # statut + learn weights
-ai policy auto      # politique automatique
-ai policy latency   # forcer manuel
-ai history          # sparklines cpu/mem/net/io
-ai ps               # PID, class, score, boost
-ai learn            # poids renforcement
-ai log / ai bench
+ai                  # statut v4 + health
+ai goal latency     # objectif appliance réseau
+ai advise           # conseils
+ai snapshot
+appliance           # charge réseau
+ai compare          # delta
+ai alerts
+exec nettest        # health via syscall
 ```
 
 ## Différenciation vs Linux CFS

@@ -5,6 +5,7 @@
 #include "ai_log.h"
 #include "ai_process.h"
 #include "ai_types.h"
+#include "string.h"
 
 static u32 cached_health = 100;
 

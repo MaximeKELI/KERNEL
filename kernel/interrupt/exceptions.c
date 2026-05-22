@@ -36,11 +36,13 @@ void exception_handler(u32 vector, u64 error_code) {
            name, vector, (u32)error_code);
     
     if (vector == 14) {
-        /* Page fault */
         u64 cr2;
-        __asm__ __volatile__("mov %%cr2, %0" : "=r"(cr2));
-        printk("Page fault at address: 0x%p\n", (void*)cr2);
-        printk("Error code: 0x%x\n", (u32)error_code);
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
+        extern int cow_handle_page_fault(u64 cr2, u64 error_code);
+        if (cow_handle_page_fault(cr2, error_code) == 0) {
+            return;
+        }
+        printk("Page fault at address: 0x%p (err=0x%x)\n", (void*)cr2, (u32)error_code);
     }
     
     /* Dump registers */

@@ -51,8 +51,14 @@ process_t* fork_process(void) {
     child->rsp = (u64)child->stack_base + ((u64)parent->rsp - (u64)parent->stack_base);
     child->rbp = (u64)child->stack_base + ((u64)parent->rbp - (u64)parent->stack_base);
     
-    /* Copy page directory (simplified - would need proper copy-on-write) */
-    child->cr3 = parent->cr3;
+    if (parent->cr3 == 0) {
+        parent->cr3 = vmm_get_cr3();
+    }
+    child->cr3 = vmm_fork_clone();
+    if (child->cr3 == 0) {
+        kfree(child);
+        return NULL;
+    }
     
     /* Add to process list */
     extern process_t* process_list;

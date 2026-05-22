@@ -19,6 +19,13 @@ void vmm_free_pages(void* virt, size_t pages);
 bool vmm_is_mapped(void* virt);
 void* vmm_get_phys(void* virt);
 
+/* Per-process address spaces (Linux mm) */
+void vmm_init_user_mm(void);
+u64 vmm_get_cr3(void);
+void vmm_switch_mm(u64 cr3);
+u64 vmm_fork_clone(void);
+int vmm_cow_fault(void* virt, u64 error);
+
 /* Page flags */
 #define PAGE_PRESENT  (1 << 0)
 #define PAGE_WRITABLE (1 << 1)

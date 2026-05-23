@@ -2,6 +2,8 @@
 #include "stdio.h"
 #include "drivers/timer.h"
 
+extern void ext2_journal_commit(void);
+
 static u64 last_writeback_tick = 0;
 #define WRITEBACK_INTERVAL_MS 5000
 
@@ -17,4 +19,5 @@ void writeback_tick(void) {
     }
     last_writeback_tick = now;
     cache_sync_all();
+    ext2_journal_commit();
 }

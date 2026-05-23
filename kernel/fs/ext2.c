@@ -20,9 +20,17 @@ static u32 block_size = EXT2_BLOCK_SIZE;
 static void* block_buffer = NULL;
 static bool ext2_is_mounted = false;
 
+static int ext2_read_block(u32 block_num, void* buffer);
+static int ext2_write_block(u32 block_num, const void* buffer);
+
 static int ext2_read_block(u32 block_num, void* buffer) {
     u64 lba = (u64)block_num * (block_size / 512);
     return ata_read_sectors(lba, block_size / 512, buffer);
+}
+
+static int ext2_write_block(u32 block_num, const void* buffer) {
+    u64 lba = (u64)block_num * (block_size / 512);
+    return ata_write_sectors(lba, block_size / 512, buffer);
 }
 
 static int ext2_read_inode(u32 ino, ext2_inode_t* inode) {
@@ -307,4 +315,27 @@ vfs_fs_ops_t* ext2_get_fs_ops(void) {
 
 vfs_ops_t* ext2_get_file_ops(void) {
     return &ext2_file_ops;
+}
+
+int ext2_writeback_page(u64 ino, u64 file_offset, const void* page_data) {
+    if (!page_data || !superblock) {
+        return -1;
+    }
+    ext2_inode_t inode;
+    if (ext2_read_inode((u32)ino, &inode) < 0) {
+        return -1;
+    }
+    ext2_journal_log((u32)ino, (u32)(file_offset / block_size), 2);
+
+    u32 b = (u32)(file_offset / block_size);
+    if (b >= 12) {
+        return -1;
+    }
+    if (inode.block[b] == 0) {
+        inode.block[b] = b + 100;
+    }
+    if (ext2_write_block(inode.block[b], page_data) < 0) {
+        return -1;
+    }
+    return 0;
 }

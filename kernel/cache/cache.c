@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
+#include "ext2.h"
 
 #define MAX_BUFFERS 256
 #define MAX_PAGES 512
@@ -196,11 +197,14 @@ void page_cache_mark_dirty(page_cache_t* page) {
 }
 
 int page_cache_sync(page_cache_t* page) {
-    if (!page || !page->dirty) return 0;
-    
-    /* Would write to disk here */
-    (void)page;
-    return 0;
+    if (!page || !page->dirty || !page->page) {
+        return 0;
+    }
+    int r = ext2_writeback_page(page->ino, page->offset, page->page);
+    if (r == 0) {
+        page->dirty = false;
+    }
+    return r;
 }
 
 static u64 reclaim_buffer_lru(u64 max_pages) {

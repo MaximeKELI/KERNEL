@@ -15,12 +15,13 @@
 ## C — FS
 - **Page cache** : `ext2_read` via `page_cache_get(ino, offset)`
 - **Journal** : `ext2_journal_log/commit` (metadata)
-- **Writeback** : `writeback_tick()` → `cache_sync_all()` toutes les 5s
+- **Writeback** : `page_cache_sync` → `ext2_writeback_page` + `ata_write_sectors`, commit journal
 
 ## D — Userland
-- **vdso** : page `0xFFFFC0000000` (ticks)
-- **sh** : shell minimal ABI Linux (`exec nettest`)
-- **ISO** : `/boot/sh`, `/boot/nettest`
+- **vdso** : `vdso_map_user()` à l’exec, base `0xFFFFC0000000`
+- **Syscalls 26–27** : `getpid`, `clock_gettime`
+- **sh / nettest** : getpid, TCP+connect+epoll
+- **ABI** : `include/abi/linux_syscall.h` (mapping doc vs `K_SYS_*`)
 
 ## Commandes
 
@@ -28,6 +29,9 @@
 make iso
 make run
 init-full
+phases
+fork-test
 exec sh
-epoll via nettest (syscalls 22+)
+exec nettest
+./scripts/run_phases.sh
 ```

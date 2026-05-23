@@ -60,9 +60,10 @@ static inline u64 syscall3(u64 n, u64 a1, u64 a2, u64 a3) {
 
 static inline u64 syscall4(u64 n, u64 a1, u64 a2, u64 a3, u64 a4) {
     u64 ret;
+    register u64 r10 __asm__("r10") = a4;
     __asm__ volatile("syscall"
                      : "=a"(ret)
-                     : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r10"(a4)
+                     : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r"(r10)
                      : "rcx", "r11", "memory");
     return ret;
 }

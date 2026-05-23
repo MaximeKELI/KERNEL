@@ -4,6 +4,7 @@
 #include "drivers/timer.h"
 #include "exec.h"
 #include "process.h"
+#include "string.h"
 
 #define VDSO_BASE 0xFFFFC0000000ULL
 #define VDSO_SIZE PAGE_SIZE

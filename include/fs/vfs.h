@@ -92,4 +92,7 @@ ssize_t vfs_write_fd(int fd, const void* buf, size_t count);
 ssize_t vfs_read_path(const char* path, void* buf, size_t count);
 ssize_t vfs_write_path(const char* path, const void* buf, size_t count);
 
+/* Poll: EPOLLIN if fd is open and readable */
+int vfs_fd_poll_events(int fd);
+
 #endif /* VFS_H */

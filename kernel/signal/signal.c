@@ -75,11 +75,11 @@ int sigprocmask(int how, const sigset_t* set, sigset_t* oldset) {
     process_t* proc = process_current();
     if (!proc) return -1;
     
-    signal_info_t* sig_info = (signal_info_t*)proc->files;
+    signal_info_t* sig_info = (signal_info_t*)proc->private_data;
     if (!sig_info) {
         sig_info = (signal_info_t*)kzalloc(sizeof(signal_info_t));
         if (!sig_info) return -1;
-        proc->files = sig_info;
+        proc->private_data = sig_info;
     }
     
     if (oldset) {
@@ -111,7 +111,7 @@ int sigwait(const sigset_t* set, int* sig) {
     process_t* proc = process_current();
     if (!proc) return -1;
     
-    signal_info_t* sig_info = (signal_info_t*)proc->files;
+    signal_info_t* sig_info = (signal_info_t*)proc->private_data;
     if (!sig_info) return -1;
     
     /* Wait for signal */

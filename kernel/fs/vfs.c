@@ -5,6 +5,7 @@
 #include "validate.h"
 #include "tmpfs.h"
 #include "ext2.h"
+#include "epoll.h"
 
 #define VFS_MAX_FD 256
 #define VFS_MAX_BACKENDS 8
@@ -225,4 +226,18 @@ void vfs_register_filesystem(const char* name, vfs_fs_ops_t* fs_ops) {
     VALIDATE_STRING(name, 256);
     VALIDATE_PTR_VOID(fs_ops);
     vfs_mount(name, "/", fs_ops);
+}
+
+int vfs_fd_poll_events(int fd) {
+    if (fd < 0 || fd >= (int)VFS_MAX_FD || !fd_table[fd].in_use) {
+        return 0;
+    }
+    vfs_file_t* f = fd_table[fd].file;
+    if (!f) {
+        return 0;
+    }
+    if (f->offset < f->size || f->size > 0) {
+        return EPOLLIN;
+    }
+    return 0;
 }

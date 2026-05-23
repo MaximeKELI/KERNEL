@@ -114,5 +114,6 @@ int ext2_mount(const char* device, const char* mountpoint);
 /* Get filesystem operations */
 vfs_fs_ops_t* ext2_get_fs_ops(void);
 vfs_ops_t* ext2_get_file_ops(void);
+int ext2_writeback_page(u64 ino, u64 file_offset, const void* page_data);
 
 #endif /* EXT2_H */

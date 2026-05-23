@@ -125,6 +125,32 @@ void _start(void) {
         syscall3(SYS_WRITE, 1, (u64)hbuf, 8);
     }
 
+    u64 tcp = syscall3(SYS_SOCKET, AF_INET, SOCK_STREAM, 0);
+    if ((i64)tcp >= 0) {
+        struct sockaddr gw;
+        gw.sa_family = AF_INET;
+        gw.sa_data[0] = 10;
+        gw.sa_data[1] = 0;
+        gw.sa_data[2] = 2;
+        gw.sa_data[3] = 2;
+        gw.sa_data[4] = 0;
+        gw.sa_data[5] = 0x17;
+        if ((i64)syscall3(SYS_CONNECT, tcp, (u64)&gw, 16) == 0) {
+            puts("tcp connect OK\n");
+        }
+        int ep = (int)syscall1(SYS_EPOLL_CREATE, 8);
+        if (ep >= 0) {
+            struct epoll_event ev;
+            ev.events = EPOLLIN;
+            ev.data = tcp;
+            if ((i64)syscall3(SYS_EPOLL_CTL, (u64)ep, EPOLL_CTL_ADD, tcp) == 0) {
+                struct epoll_event out[4];
+                (void)syscall3(SYS_EPOLL_WAIT, (u64)ep, (u64)out, 4);
+                puts("epoll OK\n");
+            }
+        }
+    }
+
     for (;;) {
         __asm__ volatile("hlt");
     }

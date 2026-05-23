@@ -31,8 +31,31 @@ static int streq(const char* a, const char* b) {
     return *a == *b;
 }
 
+static void print_dec(unsigned v) {
+    char buf[12];
+    int i = 0;
+    if (v == 0) {
+        print("0");
+        return;
+    }
+    while (v > 0 && i < 10) {
+        buf[i++] = '0' + (v % 10);
+        v /= 10;
+    }
+    while (i > 0) {
+        char c = buf[--i];
+        syscall3(SYS_WRITE, 1, (long)&c, 1);
+    }
+}
+
 void _start(void) {
     print("sh: kernel shell (Linux ABI)\n");
+    long pid = syscall3(SYS_GETPID, 0, 0, 0);
+    if (pid > 0) {
+        print("pid=");
+        print_dec((unsigned)pid);
+        print("\n");
+    }
     print("sh> ");
     char buf[64];
     long n = syscall3(SYS_READ, 0, (long)buf, 63);

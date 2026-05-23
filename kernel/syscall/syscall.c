@@ -19,6 +19,8 @@
 #include "gdt.h"
 #include "epoll.h"
 #include "net.h"
+#include "vdso.h"
+#include "drivers/timer.h"
 
 extern int socket_fd_poll_events(int fd);
 
@@ -51,6 +53,8 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_epoll_ctl,
     (syscall_func_t)sys_epoll_wait,
     (syscall_func_t)sys_poll,
+    (syscall_func_t)sys_getpid,
+    (syscall_func_t)sys_clock_gettime,
 };
 
 static char audit_buf[64];
@@ -79,6 +83,15 @@ u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64
     }
 
     u64 ret = func(arg1, arg2, arg3, arg4, arg5);
+
+    if (proc && proc->fork_child_ret) {
+        proc->fork_child_ret = 0;
+        ret = 0;
+    }
+
+    if (proc) {
+        signal_deliver_pending(proc);
+    }
 
     if (syscall_num == SYS_OPEN || syscall_num == SYS_EXEC) {
         snprintf(audit_buf, sizeof(audit_buf), "syscall %llu ret=%llu",
@@ -172,16 +185,36 @@ u64 sys_fork(void) {
     if (!parent) {
         return (u64)-1;
     }
-    u64 parent_pid = parent->pid;
     process_t* child = fork_process();
     if (!child) {
         return (u64)-1;
     }
-    process_t* cur = process_current();
-    if (cur && cur->pid != parent_pid && cur->parent_pid == parent_pid) {
-        return 0;
-    }
     return child->pid;
+}
+
+u64 sys_getpid(void) {
+    process_t* proc = process_current();
+    return proc ? proc->pid : (u64)-1;
+}
+
+typedef struct timespec_user {
+    i64 tv_sec;
+    i64 tv_nsec;
+} timespec_user_t;
+
+u64 sys_clock_gettime(u64 clk_id, void* tp) {
+    (void)clk_id;
+    if (!tp) {
+        return (u64)-1;
+    }
+    timespec_user_t ts;
+    u64 ticks = timer_get_ticks();
+    ts.tv_sec = (i64)(ticks / 1000);
+    ts.tv_nsec = (i64)((ticks % 1000) * 1000000);
+    if (copy_to_user(tp, &ts, sizeof(ts)) < 0) {
+        return (u64)-1;
+    }
+    return 0;
 }
 
 u64 sys_exec(const char* path, char* const argv[]) {

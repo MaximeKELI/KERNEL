@@ -30,6 +30,8 @@
 #define SYS_EPOLL_CTL    23
 #define SYS_EPOLL_WAIT   24
 #define SYS_POLL         25
+#define SYS_GETPID       26
+#define SYS_CLOCK_GETTIME 27
 
 /* System call handler */
 u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
@@ -67,5 +69,7 @@ u64 sys_epoll_create(u64 size);
 u64 sys_epoll_ctl(u64 epfd, u64 op, u64 fd, void* event);
 u64 sys_epoll_wait(u64 epfd, void* events, u64 maxevents, u64 timeout);
 u64 sys_poll(void* fds, u64 nfds, u64 timeout_ms);
+u64 sys_getpid(void);
+u64 sys_clock_gettime(u64 clk_id, void* tp);
 
 #endif /* SYSCALL_H */

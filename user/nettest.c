@@ -58,8 +58,13 @@ static inline u64 syscall3(u64 n, u64 a1, u64 a2, u64 a3) {
     return ret;
 }
 
-static inline u64 syscall1(u64 n, u64 a1) {
-    return syscall3(n, a1, 0, 0);
+static inline u64 syscall4(u64 n, u64 a1, u64 a2, u64 a3, u64 a4) {
+    u64 ret;
+    __asm__ volatile("syscall"
+                     : "=a"(ret)
+                     : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r10"(a4)
+                     : "rcx", "r11", "memory");
+    return ret;
 }
 
 struct epoll_event {
@@ -143,7 +148,7 @@ void _start(void) {
             struct epoll_event ev;
             ev.events = EPOLLIN;
             ev.data = tcp;
-            if ((i64)syscall3(SYS_EPOLL_CTL, (u64)ep, EPOLL_CTL_ADD, tcp) == 0) {
+            if ((i64)syscall4(SYS_EPOLL_CTL, (u64)ep, EPOLL_CTL_ADD, tcp, (u64)&ev) == 0) {
                 struct epoll_event out[4];
                 (void)syscall3(SYS_EPOLL_WAIT, (u64)ep, (u64)out, 4);
                 puts("epoll OK\n");

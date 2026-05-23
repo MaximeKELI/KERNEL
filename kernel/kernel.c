@@ -66,12 +66,14 @@ void kernel_main(u64 magic, u64 mb_info) {
     extern void register_network_tests(void);
     extern void register_ai_tests(void);
     extern void register_roadmap_tests(void);
+    extern void register_phases_abcd_tests(void);
     register_memory_tests();
     register_scheduler_tests();
     register_all_tests();
     register_network_tests();
     register_ai_tests();
     register_roadmap_tests();
+    register_phases_abcd_tests();
     printk("Running kernel tests...\n");
     int test_result = test_run_all();
     if (test_result != 0) {

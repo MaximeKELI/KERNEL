@@ -28,6 +28,8 @@
 #include "container.h"
 #include "ebpf.h"
 #include "types.h"
+#include "vdso.h"
+#include "signal.h"
 
 #define KSHELL_LINE_MAX 128
 
@@ -67,6 +69,27 @@ static void kshell_cmd_help(void) {
     printk("  http HOST [path] - HTTP GET (init-full)\n");
     printk("  config     - show appliance config\n");
     printk("  container list|create NAME - containers\n");
+    printk("  phases     - A–D parity status\n");
+    printk("  fork-test  - kernel fork (COW/CR3)\n");
+}
+
+static void kshell_cmd_phases(void) {
+    printk("Phase A: TCP CC/SACK, epoll/poll, nettest TCP+epoll\n");
+    printk("Phase B: CR3/COW fork, signals, fork_child ret 0\n");
+    printk("Phase C: page cache writeback -> ext2 + journal\n");
+    printk("Phase D: vdso 0x%llx, sh/nettest, getpid/clock (26-27)\n",
+           (unsigned long long)vdso_user_base());
+}
+
+static void kshell_cmd_fork_test(void) {
+    process_t* child = fork_process();
+    if (!child) {
+        printk("fork-test: failed\n");
+        return;
+    }
+    printk("fork-test: child pid=%llu (parent=%llu)\n",
+           (unsigned long long)child->pid,
+           (unsigned long long)process_current()->pid);
 }
 
 static void kshell_cmd_mem(void) {
@@ -371,6 +394,14 @@ static void kshell_execute(const char* cmd) {
             printk("%s\n", c ? "container created" : "create failed");
         } else {
             printk("Usage: container list|create NAME\n");
+        }
+    } else if (strcmp(cmd, "phases") == 0) {
+        kshell_cmd_phases();
+    } else if (strcmp(cmd, "fork-test") == 0) {
+        if (!kernel_extended_ready()) {
+            printk("Need init-full.\n");
+        } else {
+            kshell_cmd_fork_test();
         }
     } else if (strncmp(cmd, "dns ", 4) == 0) {
         ip_addr_t ip;

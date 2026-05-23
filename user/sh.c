@@ -3,6 +3,7 @@
 #define SYS_READ  2
 #define SYS_EXIT  0
 #define SYS_EXEC  6
+#define SYS_GETPID 26
 
 static long syscall3(long n, long a, long b, long c) {
     long ret;

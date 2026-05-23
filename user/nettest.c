@@ -4,14 +4,22 @@ typedef long i64;
 
 #define SYS_WRITE  1
 #define SYS_SOCKET 11
+#define SYS_CONNECT 13
 #define SYS_SENDTO 18
 #define SYS_DNS        20
 #define SYS_AI_METRICS 21
+#define SYS_EPOLL_CREATE 22
+#define SYS_EPOLL_CTL    23
+#define SYS_EPOLL_WAIT   24
+#define SYS_GETPID       26
 
 #define AI_USER_MAGIC 0x41494D31U
 
 #define AF_INET 2
 #define SOCK_DGRAM 2
+#define SOCK_STREAM 1
+#define EPOLLIN 0x001
+#define EPOLL_CTL_ADD 1
 
 struct sockaddr {
     unsigned short sa_family;
@@ -50,6 +58,15 @@ static inline u64 syscall3(u64 n, u64 a1, u64 a2, u64 a3) {
     return ret;
 }
 
+static inline u64 syscall1(u64 n, u64 a1) {
+    return syscall3(n, a1, 0, 0);
+}
+
+struct epoll_event {
+    unsigned events;
+    unsigned long data;
+};
+
 static void puts(const char* s) {
     u64 len = 0;
     while (s[len]) {
@@ -60,6 +77,11 @@ static void puts(const char* s) {
 
 void _start(void) {
     puts("nettest: userland syscalls OK\n");
+
+    u64 pid = syscall1(SYS_GETPID, 0);
+    if ((i64)pid > 0) {
+        puts("getpid OK\n");
+    }
 
     u64 fd = syscall3(SYS_SOCKET, AF_INET, SOCK_DGRAM, 0);
     if ((i64)fd < 0) {

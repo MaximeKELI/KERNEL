@@ -38,7 +38,7 @@ int kill(u64 pid, int sig) {
     while (proc) {
         if (proc->pid == pid) {
             /* Add signal to pending */
-            signal_info_t* sig_info = (signal_info_t*)proc->files; /* Reuse files pointer */
+            signal_info_t* sig_info = (signal_info_t*)proc->private_data;
             if (sig_info) {
                 sig_info->pending.sig[sig / 64] |= (1ULL << (sig % 64));
             }
@@ -58,11 +58,11 @@ sighandler_t signal(int sig, sighandler_t handler) {
     process_t* proc = process_current();
     if (!proc) return SIG_ERR;
     
-    signal_info_t* sig_info = (signal_info_t*)proc->files;
+    signal_info_t* sig_info = (signal_info_t*)proc->private_data;
     if (!sig_info) {
         sig_info = (signal_info_t*)kzalloc(sizeof(signal_info_t));
         if (!sig_info) return SIG_ERR;
-        proc->files = sig_info;
+        proc->private_data = sig_info;
     }
     
     sighandler_t old = sig_info->actions[sig].handler;

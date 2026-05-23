@@ -54,8 +54,11 @@ typedef struct process {
     /* Per-process lock (PI mutex, etc.) */
     spinlock_t lock;
 
-    /* Opaque per-process data (namespaces, cgroups, ...) */
+    /* Opaque per-process data (signals, namespaces, ...) */
     void* private_data;
+
+    /* Child returns 0 from SYS_FORK once */
+    u8 fork_child_ret;
     
     /* Next in list */
     struct process* next;

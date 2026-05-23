@@ -1,7 +1,9 @@
+#include "vdso.h"
 #include "memory.h"
 #include "stdio.h"
 #include "drivers/timer.h"
 #include "exec.h"
+#include "process.h"
 
 #define VDSO_BASE 0xFFFFC0000000ULL
 #define VDSO_SIZE PAGE_SIZE
@@ -33,4 +35,32 @@ void vdso_update(void) {
 
 u64 vdso_user_base(void) {
     return VDSO_BASE;
+}
+
+int vdso_map_user(void) {
+    process_t* proc = process_current();
+    if (!proc) {
+        return -1;
+    }
+    if (proc->cr3 == 0) {
+        proc->cr3 = vmm_get_cr3();
+    }
+    u64 old = vmm_get_cr3();
+    vmm_switch_mm(proc->cr3);
+
+    void* phys = pmm_alloc(1);
+    if (!phys) {
+        vmm_switch_mm(old);
+        return -1;
+    }
+    memset(phys, 0, PAGE_SIZE);
+    if (!vmm_map_page((void*)VDSO_BASE, phys, PAGE_PRESENT | PAGE_USER)) {
+        pmm_free(phys, 1);
+        vmm_switch_mm(old);
+        return -1;
+    }
+    vdso_page = (vdso_data_t*)VDSO_BASE;
+    vdso_page->ticks = timer_get_ticks();
+    vmm_switch_mm(old);
+    return 0;
 }

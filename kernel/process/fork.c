@@ -68,7 +68,8 @@ process_t* fork_process(void) {
     /* Assign PID */
     extern u64 next_pid;
     child->pid = next_pid++;
-    
+    child->fork_child_ret = 1;
+
     DEBUG_INFO("Forked process: parent=%u, child=%u", parent->pid, child->pid);
     
     return child;

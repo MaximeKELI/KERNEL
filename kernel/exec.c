@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "validate.h"
 #include "gdt.h"
+#include "vdso.h"
 
 extern char nettest_bin_start[];
 extern char nettest_bin_end[];
@@ -116,6 +117,8 @@ int exec_run_path(const char* path) {
     if (exec_load_elf(blob, size, &entry) < 0) {
         return -1;
     }
+
+    vdso_map_user();
 
     printk("[exec] %s ring3 entry=0x%llx (%zu bytes)\n",
            path, (unsigned long long)entry, size);

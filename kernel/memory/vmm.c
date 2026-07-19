@@ -10,6 +10,18 @@ typedef struct {
 
 static page_table_t* pml4 = NULL;
 
+/*
+ * The page tables are always walked from the ACTIVE address space (current CR3),
+ * not a cached boot pointer — otherwise map/unmap would silently edit the boot
+ * PML4 even after a process switched to its own CR3. All kernel threads share
+ * the boot CR3, so this is identical to the old behaviour for them.
+ */
+static inline page_table_t* current_pml4(void) {
+    u64 cr3;
+    __asm__ __volatile__("mov %%cr3, %0" : "=r"(cr3));
+    return (page_table_t*)(cr3 & ~0xFFFULL);
+}
+
 /* Get page table entry */
 static u64* get_pte(void* virt) {
     u64 addr = (u64)virt;
@@ -17,7 +29,8 @@ static u64* get_pte(void* virt) {
     u64 pdpt_idx = (addr >> 30) & 0x1FF;
     u64 pd_idx = (addr >> 21) & 0x1FF;
     u64 pt_idx = (addr >> 12) & 0x1FF;
-    
+
+    page_table_t* pml4 = current_pml4();
     if (!pml4) return NULL;
     
     u64 pml4_entry = pml4->entries[pml4_idx];
@@ -52,7 +65,8 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
     u64 pdpt_idx = (addr >> 30) & 0x1FF;
     u64 pd_idx = (addr >> 21) & 0x1FF;
     u64 pt_idx = (addr >> 12) & 0x1FF;
-    
+
+    page_table_t* pml4 = current_pml4();
     if (!pml4) return NULL;
 
     /*

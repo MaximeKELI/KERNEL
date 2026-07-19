@@ -11,8 +11,9 @@ typedef struct __attribute__((packed)) {
  * GDT layout (64-bit):
  * 0 null | 1 kernel code 0x08 | 2 kernel data 0x10
  * 3 user data 0x1B | 4 user code 0x23 | 5 user data2 0x2B (SYSRET SS = CS+8)
+ * 6 unused | 7-8 TSS descriptor 0x38 (16-byte system segment)
  */
-static u64 gdt[7];
+static u64 gdt[9];
 static gdt_ptr_t gdt_desc;
 static bool gdt_user_ready = false;
 
@@ -39,4 +40,22 @@ void gdt_load(void) {
     } else {
         __asm__ volatile("lgdt %0" : : "m"(gdt_desc) : "memory");
     }
+}
+
+void gdt_install_tss(u64 base, u32 limit) {
+    /*
+     * 64-bit TSS (available) system descriptor, type = 0x9, present, DPL 0.
+     * It spans two 8-byte GDT slots: the low half is the classic segment
+     * descriptor, the high half carries base bits 63:32.
+     */
+    u64 low = 0;
+    low |= (u64)(limit & 0xFFFFu);
+    low |= (base & 0xFFFFull) << 16;
+    low |= ((base >> 16) & 0xFFull) << 32;
+    low |= (u64)0x89ull << 40;                       /* P=1, DPL=0, type=9 (TSS avail) */
+    low |= (u64)((limit >> 16) & 0xFu) << 48;        /* limit 19:16, flags=0 */
+    low |= ((base >> 24) & 0xFFull) << 56;
+
+    gdt[7] = low;
+    gdt[8] = (base >> 32) & 0xFFFFFFFFull;
 }

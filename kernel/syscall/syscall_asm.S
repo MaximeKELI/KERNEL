@@ -56,8 +56,14 @@ syscall_entry:
 
     ; 15 pushes above leave rsp at (16-aligned top - 120), i.e. rsp%16 == 8.
     ; The SysV ABI requires rsp%16 == 0 at the call site, else 16-byte-aligned
-    ; stack spills (movaps) inside the C handler #GP. Re-align, restore after.
-    sub rsp, 8
+    ; stack spills (movaps) inside the C handler #GP.
+    ;
+    ; `push rsp` here does double duty: it re-aligns the stack (one push =>
+    ; rsp%16 == 0) AND passes the address of the saved-register block (the value
+    ; of rsp before the push, which points at the pushes above) as the 7th
+    ; argument to syscall_handler (arg7 lives at [rsp] at the call site). fork()
+    ; reads it to clone the caller's exact user context.
+    push rsp
     call syscall_handler
     add rsp, 8
     ; rax = return value (kept across the restores below)

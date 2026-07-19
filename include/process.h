@@ -94,6 +94,13 @@ typedef struct process {
     /* Child returns 0 from SYS_FORK once */
     u8 fork_child_ret;
 
+    /*
+     * Pointer to the caller's saved-register block (syscall_frame_t) on the
+     * kernel stack for the syscall currently executing. Set on every syscall
+     * entry; fork() clones it to build the child's ring-3 resume frame.
+     */
+    void* syscall_regs;
+
     /* Task lifecycle: blocking / sleep / exit */
     struct process* wait_next;  /* link when blocked on a wait queue or sleeper list */
     wait_queue_t exit_wq;       /* tasks blocked in thread_join() on this task */

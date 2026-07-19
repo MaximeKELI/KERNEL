@@ -35,6 +35,7 @@ CFLAGS = -m64 -ffreestanding -fno-stack-protector -fno-pic -mno-red-zone \
          -fno-omit-frame-pointer -fstrict-aliasing \
          -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter \
          -Wno-sign-compare -Wno-cast-qual -Wno-pedantic \
+         -MMD -MP \
          -I$(KERNEL_DIR)/ai
 ASFLAGS = -f elf64
 LDFLAGS = -T linker.ld -nostdlib -static -z max-page-size=0x1000
@@ -114,6 +115,11 @@ KERNEL_OBJECTS = $(KERNEL_SOURCES:%.c=$(BUILD_DIR)/%.o)
 KERNEL_ASM_OBJECTS = $(KERNEL_ASM_SOURCES:%.S=$(BUILD_DIR)/%.o)
 BOOT_OBJECTS = $(BOOT_SOURCES:%.asm=$(BUILD_DIR)/%.o)
 ALL_OBJECTS = $(BOOT_OBJECTS) $(KERNEL_OBJECTS) $(KERNEL_ASM_OBJECTS) $(NETTEST_BLOB) $(SH_BLOB)
+
+# Header dependency files emitted by -MMD; pull them in so touching a header
+# recompiles every object that includes it (prevents stale-ABI crashes).
+KERNEL_DEPS = $(KERNEL_OBJECTS:.o=.d)
+-include $(KERNEL_DEPS)
 
 # Output files
 KERNEL_ELF = $(BUILD_DIR)/kernel.elf

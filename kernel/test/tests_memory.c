@@ -1,5 +1,6 @@
 #include "test.h"
 #include "memory.h"
+#include "mm.h"
 #include "string.h"
 
 /* Test PMM allocation */
@@ -213,6 +214,115 @@ static test_result_t test_heap_above_kernel(void) {
     return TEST_PASS;
 }
 
+/* Test VMA bookkeeping: insert, find, and munmap-style split of the middle. */
+static test_result_t test_mm_vma_ops(void) {
+    mm_struct_t* mm = mm_create();
+    TEST_ASSERT_NOT_NULL(mm);
+
+    mm_insert_vma(mm, 0x10000, 0x20000, VM_READ | VM_WRITE);
+    TEST_ASSERT_NOT_NULL(mm_find_vma(mm, 0x10000));
+    TEST_ASSERT_NOT_NULL(mm_find_vma(mm, 0x1F000));
+    TEST_ASSERT(mm_find_vma(mm, 0x20000) == NULL);   /* end is exclusive */
+
+    /* Punch a hole in the middle -> split into two VMAs. */
+    mm_remove_range(mm, 0x14000, 0x16000);
+    TEST_ASSERT_NOT_NULL(mm_find_vma(mm, 0x13000));
+    TEST_ASSERT(mm_find_vma(mm, 0x15000) == NULL);   /* hole */
+    TEST_ASSERT_NOT_NULL(mm_find_vma(mm, 0x17000));
+
+    mm_destroy(mm);
+    return TEST_PASS;
+}
+
+/* Test brk() growth/shrink bookkeeping and range enforcement. */
+static test_result_t test_mm_brk(void) {
+    mm_struct_t* mm = mm_create();
+    TEST_ASSERT_NOT_NULL(mm);
+
+    TEST_ASSERT_EQ(mm_brk(mm, 0), USER_BRK_BASE);              /* query */
+    TEST_ASSERT_EQ(mm_brk(mm, USER_BRK_BASE + 0x4000), USER_BRK_BASE + 0x4000);
+    vma_t* heap = mm_find_vma(mm, USER_BRK_BASE);
+    TEST_ASSERT_NOT_NULL(heap);
+    TEST_ASSERT(heap->end >= USER_BRK_BASE + 0x4000);
+
+    TEST_ASSERT_EQ(mm_brk(mm, USER_BRK_BASE + 0x1000), USER_BRK_BASE + 0x1000); /* shrink */
+    TEST_ASSERT_EQ(mm_brk(mm, USER_BRK_MAX + 0x1000), USER_BRK_BASE + 0x1000);  /* refuse */
+
+    mm_destroy(mm);
+    return TEST_PASS;
+}
+
+/* Test mprotect() splitting a VMA and flipping write permission. */
+static test_result_t test_mm_mprotect(void) {
+    mm_struct_t* mm = mm_create();
+    TEST_ASSERT_NOT_NULL(mm);
+
+    mm_insert_vma(mm, 0x30000, 0x33000, VM_READ | VM_WRITE);
+    TEST_ASSERT_EQ(mm_protect_range(mm, 0x30000, 0x31000, VM_READ), 0);
+
+    vma_t* ro = mm_find_vma(mm, 0x30000);
+    vma_t* rw = mm_find_vma(mm, 0x31000);
+    TEST_ASSERT_NOT_NULL(ro);
+    TEST_ASSERT_NOT_NULL(rw);
+    TEST_ASSERT((ro->vm_flags & VM_WRITE) == 0);   /* first page now read-only */
+    TEST_ASSERT((rw->vm_flags & VM_WRITE) != 0);   /* rest still writable */
+
+    mm_destroy(mm);
+    return TEST_PASS;
+}
+
+/* Test the fault dispatcher: anonymous demand-zero, out-of-VMA rejection, and
+ * stack growth. Runs in a private address space at a high, unshared VA. */
+static test_result_t test_mm_demand_and_stack(void) {
+    const u64 VA = 0x100000000000ULL;         /* anon region */
+    const u64 SBASE = 0x100000200000ULL;      /* stack VMA base */
+    u64 fl = irq_save_off();
+    u64 save = vmm_get_cr3();
+    u64 as = vmm_create_user_space();
+    mm_struct_t* mm = mm_create();
+    int ok = (as && mm);
+    u64 v0 = 1, v1 = 1;
+    int oob = 0, grew = 0, mapped_below = 0;
+    u64 grown_start = 0;
+
+    if (ok) {
+        vmm_switch_mm(as);
+
+        /* Anonymous demand-zero over two pages. */
+        mm_insert_vma(mm, VA, VA + 0x2000, VM_READ | VM_WRITE | VM_ANON);
+        ok = (mm_fault(mm, VA, 0x2) == 0);        /* write fault, not present */
+        if (ok) {
+            v0 = *(volatile u64*)VA;              /* must read as zero */
+            *(volatile u64*)VA = 0xC0FFEE;
+            v1 = *(volatile u64*)VA;
+        }
+        /* A fault with no backing VMA must be rejected (no crash: direct call). */
+        oob = (mm_fault(mm, VA + 0x800000, 0x2) == -1);
+
+        /* Stack growth: fault one page below a GROWSDOWN VMA. */
+        mm_insert_vma(mm, SBASE, SBASE + 0x2000,
+                      VM_READ | VM_WRITE | VM_ANON | VM_GROWSDOWN);
+        grew = (mm_fault(mm, SBASE - 0x1000, 0x2) == 0);
+        vma_t* s = mm_find_vma(mm, SBASE - 0x1000);
+        grown_start = s ? s->start : 0;
+        mapped_below = vmm_is_mapped((void*)(SBASE - 0x1000));
+    }
+
+    vmm_switch_mm(save);
+    if (as) vmm_destroy_user_space(as);
+    if (mm) mm_destroy(mm);
+    irq_restore(fl);
+
+    TEST_ASSERT(ok);
+    TEST_ASSERT_EQ(v0, 0ULL);              /* demand-zero */
+    TEST_ASSERT_EQ(v1, 0xC0FFEEULL);       /* writable */
+    TEST_ASSERT(oob);                      /* out-of-VMA rejected */
+    TEST_ASSERT(grew);
+    TEST_ASSERT_EQ(grown_start, SBASE - 0x1000);
+    TEST_ASSERT(mapped_below);
+    return TEST_PASS;
+}
+
 /* Register memory tests */
 void register_memory_tests(void) {
     test_register("memory", "pmm_alloc", test_pmm_alloc);
@@ -220,6 +330,10 @@ void register_memory_tests(void) {
     test_register("memory", "heap_above_kernel", test_heap_above_kernel);
     test_register("memory", "vmm_isolation", test_vmm_isolation);
     test_register("memory", "vmm_cow_fork", test_vmm_cow_fork);
+    test_register("memory", "mm_vma_ops", test_mm_vma_ops);
+    test_register("memory", "mm_brk", test_mm_brk);
+    test_register("memory", "mm_mprotect", test_mm_mprotect);
+    test_register("memory", "mm_demand_and_stack", test_mm_demand_and_stack);
     test_register("memory", "heap_alloc", test_heap_alloc);
     test_register("memory", "kzalloc", test_kzalloc);
     test_register("memory", "krealloc", test_krealloc);

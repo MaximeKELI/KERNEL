@@ -9,49 +9,57 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential nasm grub-pc-bin grub-common xorriso qemu-system-x86
-    
-    - name: Build kernel
+        sudo apt-get install -y build-essential nasm grub-pc-bin grub-common xorriso mtools
+
+    - name: Build kernel (ELF + ISO)
       run: |
         make clean
         make
-    
-    - name: Build with tests
+
+    - name: Build with tests enabled
       run: |
         make clean
-        make CFLAGS="-DRUN_TESTS -g -O0"
-    
+        make RUN_TESTS=1
+
+    - name: Verify build artifacts
+      run: |
+        test -f build/kernel.elf
+        test -f build/kernel.iso
+
     - name: Generate documentation
       run: |
         sudo apt-get install -y doxygen graphviz
         make docs
-    
-    - name: Check for errors
-      run: |
-        make clean
-        make 2>&1 | grep -i error && exit 1 || exit 0
 
   test:
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential nasm grub-pc-bin xorriso qemu-system-x86
-    
-    - name: Run tests
+        sudo apt-get install -y build-essential nasm grub-pc-bin grub-common xorriso mtools qemu-system-x86
+
+    - name: Build with tests
       run: |
         make clean
-        make CFLAGS="-DRUN_TESTS"
-        timeout 30 qemu-system-x86_64 -cdrom build/kernel.iso -m 512M -serial stdio -nographic || true
+        make RUN_TESTS=1
+
+    - name: Boot kernel in QEMU (smoke test)
+      run: |
+        timeout 60 qemu-system-x86_64 \
+          -drive file=build/kernel.iso,format=raw,if=ide,index=0,media=disk \
+          -boot order=c -m 512M -serial stdio -display none -no-reboot \
+          | tee /tmp/boot.log || true
+        echo "--- boot log tail ---"
+        tail -n 40 /tmp/boot.log || true

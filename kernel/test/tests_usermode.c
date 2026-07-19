@@ -25,7 +25,16 @@
 #define SYS_EXIT   0
 #define SYS_WRITE  1
 
-static void build_user_blob(u8* code) {
+/*
+ * User VAs are placed ABOVE the PMM-managed physical range (512 MiB) and backed
+ * by freshly-allocated physical pages. This keeps the userspace mapping from
+ * colliding with the kernel heap / kthread stacks, which live in low identity-
+ * mapped physical memory (0x400000 would land right inside the kernel heap).
+ */
+#define U_CODE_VA    0x30000000UL
+#define U_STACK_TOP  0x30011000UL   /* stack page: [0x30010000, 0x30011000) */
+
+static void build_user_blob(u8* code, u64 code_va) {
     size_t o = 0;
     size_t msg_imm_off, len_off, msg_off;
     static const char msg[] = "ring3 ok\n";
@@ -61,23 +70,25 @@ static void build_user_blob(u8* code) {
         code[o++] = (u8)msg[i];
     }
 
-    *(u64*)(code + msg_imm_off) = USER_LOAD_ADDR + msg_off;
+    *(u64*)(code + msg_imm_off) = code_va + msg_off;
     *(u32*)(code + len_off) = (u32)(sizeof(msg) - 1);
 }
 
 static void user_probe_thread(void* arg) {
     (void)arg;
 
-    /* Code page: USER + writable so the kernel can lay down the blob, then the
-     * CPU can fetch it in ring 3. Identity phys (inside the low huge-map). */
-    vmm_map_page((void*)USER_LOAD_ADDR, (void*)USER_LOAD_ADDR,
-                 PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    /* One USER stack page (this blob is stack-free, but keep it realistic). */
-    u64 ustk = USER_STACK_TOP - PAGE_SIZE;
-    vmm_map_page((void*)ustk, (void*)ustk,
+    /* Back the user code/stack with dedicated physical pages (never the kernel's
+     * heap or our own kernel stack), mapped USER at a collision-free VA. */
+    void* code_phys = pmm_alloc(1);
+    void* stack_phys = pmm_alloc(1);
+    if (!code_phys || !stack_phys) {
+        kthread_exit(-1);
+    }
+    vmm_map_page((void*)U_CODE_VA, code_phys, PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    vmm_map_page((void*)(U_STACK_TOP - PAGE_SIZE), stack_phys,
                  PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
 
-    build_user_blob((u8*)USER_LOAD_ADDR);
+    build_user_blob((u8*)U_CODE_VA, U_CODE_VA);
 
     /* Ring3 traps/syscalls must land on this thread's kernel stack. */
     process_t* cur = process_current();
@@ -85,7 +96,7 @@ static void user_probe_thread(void* arg) {
     tss_set_rsp0(ktop);
 
     /* Enter ring 3; the only way back is SYS_EXIT -> kthread_exit(). */
-    exec_iretq_user(USER_LOAD_ADDR, USER_STACK_TOP - 16, 0x202);
+    exec_iretq_user(U_CODE_VA, U_STACK_TOP - 16, 0x202);
 }
 
 static test_result_t test_usermode_ring3_roundtrip(void) {

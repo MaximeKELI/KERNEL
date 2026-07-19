@@ -96,4 +96,21 @@ ssize_t vfs_write_path(const char* path, const void* buf, size_t count);
 /* Poll: EPOLLIN if fd is open and readable */
 int vfs_fd_poll_events(int fd);
 
+/*
+ * Per-process file-descriptor table (files_struct). Kept opaque (void*) so it
+ * can hang off process_t.files without pulling VFS internals into process.h.
+ *   files_create : fresh empty table
+ *   files_clone  : fork() — share the same open files (refcounted) with the child
+ *   files_on_exec: close descriptors marked close-on-exec
+ *   files_destroy: exit() — drop every descriptor
+ */
+void* files_create(void);
+void* files_clone(void* src);
+void  files_on_exec(void* files);
+void  files_destroy(void* files);
+
+/* dup2-style: point new_fd at old_fd's open file within the current table. */
+int vfs_dup2_fd(int old_fd, int new_fd);
+int vfs_set_cloexec(int fd, int on);
+
 #endif /* VFS_H */

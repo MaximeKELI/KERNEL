@@ -3,6 +3,8 @@
 #include "string.h"
 #include "stdio.h"
 #include "validate.h"
+#include "refcount.h"
+#include "process.h"
 #include "tmpfs.h"
 #include "ext2.h"
 #include "epoll.h"
@@ -16,25 +18,147 @@ typedef enum {
     VFS_BACKEND_EXT2,
 } vfs_backend_type_t;
 
-typedef struct vfs_fd_entry {
+/*
+ * A single open file. Shared (refcounted) between descriptors created by dup()
+ * and between parent/child after fork(), so a seek in one is seen in the other
+ * exactly like Linux's struct file.
+ */
+typedef struct file_obj {
     vfs_file_t* file;
     vfs_ops_t* ops;
     vfs_backend_type_t backend;
-    bool in_use;
-} vfs_fd_entry_t;
+    refcount_t refcount;
+} file_obj_t;
 
-static vfs_fd_entry_t fd_table[VFS_MAX_FD];
-static u32 next_vfs_fd = 3;
+/* Per-process descriptor table (hangs off process_t.files). */
+typedef struct files_struct {
+    file_obj_t* fd[VFS_MAX_FD];
+    u8 cloexec[VFS_MAX_FD];
+} files_struct_t;
+
+/* Fallback table for kernel threads / early boot (no owning process yet). */
+static files_struct_t kernel_files;
 static vfs_fs_ops_t* mounted_fs[VFS_MAX_BACKENDS];
 static u32 mount_count = 0;
 static bool ext2_mounted = false;
 
+static files_struct_t* current_files(void) {
+    process_t* p = process_current();
+    if (p && p->files) {
+        return (files_struct_t*)p->files;
+    }
+    return &kernel_files;
+}
+
+static file_obj_t* fobj_new(vfs_file_t* f, vfs_ops_t* ops, vfs_backend_type_t be) {
+    file_obj_t* o = (file_obj_t*)kzalloc(sizeof(file_obj_t));
+    if (!o) {
+        return NULL;
+    }
+    o->file = f;
+    o->ops = ops;
+    o->backend = be;
+    o->refcount.count = 1;
+    spinlock_init(&o->refcount.lock);
+    return o;
+}
+
+/* Drop one reference; close + free the underlying file at the last one. */
+static void fobj_put(file_obj_t* o) {
+    if (!o) {
+        return;
+    }
+    if (refcount_put(&o->refcount) == 0) {
+        if (o->ops && o->ops->close && o->file) {
+            o->ops->close(o->file);
+        }
+        kfree(o->file);
+        kfree(o);
+    }
+}
+
 void vfs_init(void) {
-    memset(fd_table, 0, sizeof(fd_table));
-    next_vfs_fd = 3;
+    memset(&kernel_files, 0, sizeof(kernel_files));
     mount_count = 0;
     ext2_mounted = false;
     printk("VFS: Initialized (tmpfs + ext2)\n");
+}
+
+void* files_create(void) {
+    return kzalloc(sizeof(files_struct_t));
+}
+
+void* files_clone(void* src) {
+    files_struct_t* s = src ? (files_struct_t*)src : &kernel_files;
+    files_struct_t* d = (files_struct_t*)kzalloc(sizeof(files_struct_t));
+    if (!d) {
+        return NULL;
+    }
+    for (int fd = 0; fd < VFS_MAX_FD; fd++) {
+        if (s->fd[fd]) {
+            refcount_get(&s->fd[fd]->refcount);
+            d->fd[fd] = s->fd[fd];
+            d->cloexec[fd] = s->cloexec[fd];
+        }
+    }
+    return d;
+}
+
+void files_on_exec(void* files) {
+    files_struct_t* f = files ? (files_struct_t*)files : &kernel_files;
+    for (int fd = 0; fd < VFS_MAX_FD; fd++) {
+        if (f->fd[fd] && f->cloexec[fd]) {
+            fobj_put(f->fd[fd]);
+            f->fd[fd] = NULL;
+            f->cloexec[fd] = 0;
+        }
+    }
+}
+
+void files_destroy(void* files) {
+    if (!files || files == &kernel_files) {
+        return;
+    }
+    files_struct_t* f = (files_struct_t*)files;
+    for (int fd = 0; fd < VFS_MAX_FD; fd++) {
+        if (f->fd[fd]) {
+            fobj_put(f->fd[fd]);
+            f->fd[fd] = NULL;
+        }
+    }
+    kfree(f);
+}
+
+int vfs_dup2_fd(int old_fd, int new_fd) {
+    if (old_fd < 0 || old_fd >= VFS_MAX_FD || new_fd < 0 || new_fd >= VFS_MAX_FD) {
+        return -1;
+    }
+    files_struct_t* fs = current_files();
+    if (!fs->fd[old_fd]) {
+        return -1;
+    }
+    if (old_fd == new_fd) {
+        return new_fd;
+    }
+    if (fs->fd[new_fd]) {
+        fobj_put(fs->fd[new_fd]);
+    }
+    refcount_get(&fs->fd[old_fd]->refcount);
+    fs->fd[new_fd] = fs->fd[old_fd];
+    fs->cloexec[new_fd] = 0;   /* dup2 clears close-on-exec on the copy */
+    return new_fd;
+}
+
+int vfs_set_cloexec(int fd, int on) {
+    if (fd < 0 || fd >= VFS_MAX_FD) {
+        return -1;
+    }
+    files_struct_t* fs = current_files();
+    if (!fs->fd[fd]) {
+        return -1;
+    }
+    fs->cloexec[fd] = on ? 1 : 0;
+    return 0;
 }
 
 static vfs_backend_type_t vfs_path_backend(const char* path) {
@@ -81,16 +205,16 @@ int vfs_unmount(const char* target) {
 }
 
 static int vfs_alloc_fd(vfs_file_t* file, vfs_ops_t* ops, vfs_backend_type_t backend) {
-    for (u32 fd = next_vfs_fd; fd < VFS_MAX_FD; fd++) {
-        if (!fd_table[fd].in_use) {
-            fd_table[fd].file = file;
-            fd_table[fd].ops = ops;
-            fd_table[fd].backend = backend;
-            fd_table[fd].in_use = true;
-            if (fd >= next_vfs_fd) {
-                next_vfs_fd = fd + 1;
+    files_struct_t* fs = current_files();
+    for (int fd = 3; fd < VFS_MAX_FD; fd++) {   /* 0/1/2 reserved for stdio */
+        if (!fs->fd[fd]) {
+            file_obj_t* o = fobj_new(file, ops, backend);
+            if (!o) {
+                return -1;
             }
-            return (int)fd;
+            fs->fd[fd] = o;
+            fs->cloexec[fd] = 0;
+            return fd;
         }
     }
     return -1;
@@ -141,38 +265,40 @@ int vfs_open_fd(const char* path, u64 flags) {
 }
 
 int vfs_close_fd(int fd) {
-    if (fd < 0 || fd >= (int)VFS_MAX_FD || !fd_table[fd].in_use) {
+    if (fd < 0 || fd >= (int)VFS_MAX_FD) {
         return -1;
     }
-    vfs_fd_entry_t* e = &fd_table[fd];
-    if (e->ops && e->ops->close && e->file) {
-        e->ops->close(e->file);
+    files_struct_t* fs = current_files();
+    file_obj_t* o = fs->fd[fd];
+    if (!o) {
+        return -1;
     }
-    kfree(e->file);
-    memset(e, 0, sizeof(*e));
+    fs->fd[fd] = NULL;
+    fs->cloexec[fd] = 0;
+    fobj_put(o);            /* closes the file only at the last reference */
     return 0;
 }
 
 ssize_t vfs_read_fd(int fd, void* buf, size_t count) {
-    if (fd < 0 || fd >= (int)VFS_MAX_FD || !fd_table[fd].in_use) {
+    if (fd < 0 || fd >= (int)VFS_MAX_FD) {
         return -1;
     }
-    vfs_fd_entry_t* e = &fd_table[fd];
-    if (!e->ops || !e->ops->read || !e->file) {
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o || !o->ops || !o->ops->read || !o->file) {
         return -1;
     }
-    return e->ops->read(e->file, buf, count);
+    return o->ops->read(o->file, buf, count);
 }
 
 ssize_t vfs_write_fd(int fd, const void* buf, size_t count) {
-    if (fd < 0 || fd >= (int)VFS_MAX_FD || !fd_table[fd].in_use) {
+    if (fd < 0 || fd >= (int)VFS_MAX_FD) {
         return -1;
     }
-    vfs_fd_entry_t* e = &fd_table[fd];
-    if (!e->ops || !e->ops->write || !e->file) {
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o || !o->ops || !o->ops->write || !o->file) {
         return -1;
     }
-    return e->ops->write(e->file, buf, count);
+    return o->ops->write(o->file, buf, count);
 }
 
 int vfs_close(vfs_file_t* file) {
@@ -230,10 +356,14 @@ void vfs_register_filesystem(const char* name, vfs_fs_ops_t* fs_ops) {
 }
 
 int vfs_fd_poll_events(int fd) {
-    if (fd < 0 || fd >= (int)VFS_MAX_FD || !fd_table[fd].in_use) {
+    if (fd < 0 || fd >= (int)VFS_MAX_FD) {
         return 0;
     }
-    vfs_file_t* f = fd_table[fd].file;
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o) {
+        return 0;
+    }
+    vfs_file_t* f = o->file;
     if (!f) {
         return 0;
     }

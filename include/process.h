@@ -30,6 +30,16 @@ typedef struct sched_node {
     struct process* proc;
 } sched_node_t;
 
+/*
+ * A wait queue is a singly linked list of tasks blocked waiting for an event,
+ * threaded through process_t.wait_next (Linux-style, minus the callbacks).
+ */
+typedef struct wait_queue {
+    struct process* head;
+} wait_queue_t;
+
+#define WAIT_QUEUE_INIT { NULL }
+
 /* Process structure */
 typedef struct process {
     refcount_t refcount;  /* Reference counting */
@@ -82,7 +92,13 @@ typedef struct process {
 
     /* Child returns 0 from SYS_FORK once */
     u8 fork_child_ret;
-    
+
+    /* Task lifecycle: blocking / sleep / exit */
+    struct process* wait_next;  /* link when blocked on a wait queue or sleeper list */
+    wait_queue_t exit_wq;       /* tasks blocked in thread_join() on this task */
+    u64 sleep_until;            /* wakeup tick deadline when sleeping (sched_sleep) */
+    int exit_status;            /* value passed to kthread_exit(), read by thread_join() */
+
     /* Next in list */
     struct process* next;
 } process_t;

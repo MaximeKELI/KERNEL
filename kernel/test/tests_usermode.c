@@ -5,6 +5,7 @@
 #include "exec.h"
 #include "tss.h"
 #include "stdio.h"
+#include "drivers/keyboard.h"
 
 /*
  * Real ring-3 round trip.
@@ -123,13 +124,96 @@ static void sh_exec_thread(void* arg) {
     kthread_exit(-1);   /* only reached if exec failed */
 }
 
+static void inject_line(const char* s) {
+    while (*s) {
+        keyboard_inject_char(*s++);
+    }
+}
+
 static test_result_t test_usermode_real_elf(void) {
+    /* Drive the interactive shell: exercise a few branches then exit. The blob
+     * blocks on read(stdin), so seed the keyboard queue with a command script. */
+    inject_line("help\n");
+    inject_line("echo hi\n");
+    inject_line("bogus\n");
+    inject_line("exit\n");
+
     process_t* p = kthread_run(sh_exec_thread, NULL, 32 * 1024);
     TEST_ASSERT_NOT_NULL(p);
 
     int status = -1;
     TEST_ASSERT_EQ(thread_join(p, &status), 0);
-    TEST_ASSERT_EQ(status, 0);   /* /sh exit(0) => real ELF ran in ring 3 */
+    TEST_ASSERT_EQ(status, 0);   /* /sh exit(0) => real ELF ran interactively in ring 3 */
+
+    return TEST_PASS;
+}
+
+/*
+ * Interactive stdin round trip: a ring-3 blob does read(0, buf, 16) ->
+ * write(1, buf, n) -> exit(n). We pre-inject "abc\n" into the keyboard queue so
+ * the blocking sys_read(stdin) returns it without real hardware. Proves the tty
+ * line discipline feeds ring-3 programs.
+ */
+static void build_echo_blob(u8* code, u64 code_va) {
+    size_t o = 0;
+    u64 buf = code_va + 0x100;   /* scratch inside the (writable) code page */
+
+    /* read(0, buf, 16) */
+    code[o++] = 0xB8; code[o++] = 2; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov eax,2 */
+    code[o++] = 0xBF; code[o++] = 0; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov edi,0 */
+    code[o++] = 0x48; code[o++] = 0xBE; *(u64*)(code + o) = buf; o += 8;          /* mov rsi,buf */
+    code[o++] = 0xBA; code[o++] = 16; code[o++] = 0; code[o++] = 0; code[o++] = 0;/* mov edx,16 */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+
+    /* rax = n; keep it for the write count and the exit status */
+    code[o++] = 0x48; code[o++] = 0x89; code[o++] = 0xC2;                         /* mov rdx,rax */
+    code[o++] = 0x49; code[o++] = 0x89; code[o++] = 0xC0;                         /* mov r8,rax  */
+
+    /* write(1, buf, n) */
+    code[o++] = 0xB8; code[o++] = 1; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov eax,1 */
+    code[o++] = 0xBF; code[o++] = 1; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov edi,1 */
+    code[o++] = 0x48; code[o++] = 0xBE; *(u64*)(code + o) = buf; o += 8;          /* mov rsi,buf */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+
+    /* exit(n) */
+    code[o++] = 0x44; code[o++] = 0x89; code[o++] = 0xC7;                         /* mov edi,r8d */
+    code[o++] = 0xB8; code[o++] = 0; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov eax,0 */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+    code[o++] = 0xEB; code[o++] = 0xFE;                                           /* jmp $ */
+}
+
+static void echo_probe_thread(void* arg) {
+    (void)arg;
+    void* code_phys = pmm_alloc(1);
+    void* stack_phys = pmm_alloc(1);
+    if (!code_phys || !stack_phys) {
+        kthread_exit(-1);
+    }
+    vmm_map_page((void*)U_CODE_VA, code_phys, PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    vmm_map_page((void*)(U_STACK_TOP - PAGE_SIZE), stack_phys,
+                 PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    build_echo_blob((u8*)U_CODE_VA, U_CODE_VA);
+
+    process_t* cur = process_current();
+    u64 ktop = ((u64)cur->stack_base + cur->stack_size) & ~0xFULL;
+    tss_set_rsp0(ktop);
+
+    exec_iretq_user(U_CODE_VA, U_STACK_TOP - 16, 0x202);
+}
+
+static test_result_t test_usermode_stdin_echo(void) {
+    /* Seed the keyboard queue so the blocking read returns "abc\n" (4 bytes). */
+    keyboard_inject_char('a');
+    keyboard_inject_char('b');
+    keyboard_inject_char('c');
+    keyboard_inject_char('\n');
+
+    process_t* p = kthread_run(echo_probe_thread, NULL, 32 * 1024);
+    TEST_ASSERT_NOT_NULL(p);
+
+    int status = -1;
+    TEST_ASSERT_EQ(thread_join(p, &status), 0);
+    TEST_ASSERT_EQ(status, 4);   /* read returned "abc\n" and echoed it back */
 
     return TEST_PASS;
 }
@@ -137,4 +221,5 @@ static test_result_t test_usermode_real_elf(void) {
 void register_usermode_tests(void) {
     test_register("usermode", "ring3_roundtrip", test_usermode_ring3_roundtrip);
     test_register("usermode", "real_elf_sh", test_usermode_real_elf);
+    test_register("usermode", "stdin_echo", test_usermode_stdin_echo);
 }

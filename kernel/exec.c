@@ -7,6 +7,8 @@
 #include "debug.h"
 #include "validate.h"
 #include "gdt.h"
+#include "tss.h"
+#include "scheduler.h"
 #include "vdso.h"
 
 extern char nettest_bin_start[];
@@ -99,10 +101,42 @@ const void* exec_resolve_path(const char* path, size_t* size_out) {
     return NULL;
 }
 
+/* Map the user stack region as USER pages (grows down from USER_STACK_TOP). */
+static int exec_map_user_stack(void) {
+    u64 top = USER_STACK_TOP;
+    u64 bottom = USER_STACK_TOP - USER_STACK_SIZE;
+    for (u64 pa = bottom; pa < top; pa += PAGE_SIZE) {
+        void* phys = pmm_alloc(1);
+        if (!phys) {
+            return -1;
+        }
+        memset(phys, 0, PAGE_SIZE);
+        if (!vmm_map_page((void*)pa, phys, PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER)) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
 void exec_jump_user(u64 entry) {
     gdt_init_user_segments();
+
+    if (exec_map_user_stack() < 0) {
+        DEBUG_ERROR("failed to map user stack");
+    }
+
+    /*
+     * Direct ring3 traps/syscalls onto the current task's kernel stack so an
+     * interrupt taken in ring 3 has somewhere to land (else: triple fault).
+     */
+    process_t* cur = process_current();
+    if (cur && cur->stack_base) {
+        u64 ktop = ((u64)cur->stack_base + cur->stack_size) & ~0xFULL;
+        tss_set_rsp0(ktop);
+    }
+
     u64 stack = USER_STACK_TOP - 16;
-    u64 rflags = 0x202;
+    u64 rflags = 0x202;   /* IF=1: keep the task preemptible in ring 3 */
     exec_iretq_user(entry, stack, rflags);
 }
 

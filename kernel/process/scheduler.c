@@ -1,5 +1,6 @@
 #include "process.h"
 #include "scheduler.h"
+#include "wait.h"
 #include "ai_types.h"
 #include "memory.h"
 #include "stdio.h"
@@ -111,15 +112,77 @@ process_t* kthread_run(void (*entry)(void*), void* arg, u64 stack_size) {
     return p;
 }
 
-void thread_exit(void) {
+void kthread_exit(int code) {
+    u64 flags = local_irq_save();
     process_t* p = current_process;
     if (p) {
+        p->exit_status = code;
         p->state = PROCESS_ZOMBIE;   /* a zombie is never re-enqueued by schedule() */
+        wait_wake_all(&p->exit_wq);  /* release anyone blocked in thread_join() */
     }
-    schedule();                      /* switch away for good */
+    (void)flags;
+    schedule();                      /* switch away for good; never returns */
     for (;;) {
         __asm__ __volatile__("cli; hlt");
     }
+}
+
+void thread_exit(void) {
+    kthread_exit(0);
+}
+
+int thread_join(process_t* child, int* status) {
+    if (!child) {
+        return -1;
+    }
+    for (;;) {
+        u64 flags = local_irq_save();
+        if (child->state == PROCESS_ZOMBIE || child->state == PROCESS_DEAD) {
+            local_irq_restore(flags);
+            break;
+        }
+        /* Block on the child's exit queue. Enqueue + state change happen under
+         * the same IRQ-off section as the state test, so kthread_exit() cannot
+         * slip a wakeup in between (no lost wakeup). */
+        process_t* cur = current_process;
+        cur->state = PROCESS_BLOCKED;
+        cur->wait_next = child->exit_wq.head;
+        child->exit_wq.head = cur;
+        schedule();
+        local_irq_restore(flags);
+    }
+
+    if (status) {
+        *status = child->exit_status;
+    }
+    process_reap(child);
+    return 0;
+}
+
+void process_reap(process_t* proc) {
+    if (!proc) {
+        return;
+    }
+
+    u64 flags = local_irq_save();
+    if (process_list == proc) {
+        process_list = proc->next;
+    } else {
+        process_t* q = process_list;
+        while (q && q->next != proc) {
+            q = q->next;
+        }
+        if (q) {
+            q->next = proc->next;
+        }
+    }
+    local_irq_restore(flags);
+
+    if (proc->stack_base) {
+        size_t pages = (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
+        vmm_free_pages(proc->stack_base, pages);
+    }
+    kfree(proc);
 }
 
 void process_destroy(process_t* proc) {

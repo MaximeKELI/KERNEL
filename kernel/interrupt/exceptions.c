@@ -27,21 +27,29 @@ static const char* exception_names[] = {
 };
 
 void exception_handler(u32 vector, u64 error_code, interrupt_frame_t* frame) {
-    const char* name = "Unknown";
-    if (vector < 21) {
-        name = exception_names[vector];
-    }
-    
-    printk("\n!!! EXCEPTION: %s (vector %u, error code 0x%x) !!!\n",
-           name, vector, (u32)error_code);
-    
+    /*
+     * Page faults are normal control flow (COW, demand paging, stack growth):
+     * try to service them silently first. Only fall through to the crash path
+     * for genuinely unrecoverable faults.
+     */
+    u64 cr2 = 0;
     if (vector == 14) {
-        u64 cr2;
         __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
         extern int cow_handle_page_fault(u64 cr2, u64 error_code);
         if (cow_handle_page_fault(cr2, error_code) == 0) {
             return;
         }
+    }
+
+    const char* name = "Unknown";
+    if (vector < 21) {
+        name = exception_names[vector];
+    }
+
+    printk("\n!!! EXCEPTION: %s (vector %u, error code 0x%x) !!!\n",
+           name, vector, (u32)error_code);
+
+    if (vector == 14) {
         printk("Page fault at address: 0x%p (err=0x%x)\n", (void*)cr2, (u32)error_code);
     }
     

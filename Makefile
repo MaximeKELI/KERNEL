@@ -14,7 +14,17 @@ BOOT_DIR = boot
 KERNEL_DIR = kernel
 LIB_DIR = lib
 INCLUDE_DIR = include
-BUILD_DIR = build
+# Separate object trees for test vs prod so switching RUN_TESTS never reuses a
+# stale object compiled with different flags (which caused "undefined reference
+# to register_*_tests" link failures when flipping between builds).
+ifeq ($(RUN_TESTS),1)
+BUILD_DIR = build/test
+else
+BUILD_DIR = build/prod
+endif
+# User programs are ABI-identical across variants; build them once in a shared
+# location that the *_blob.S files incbin from ("build/user/...").
+USER_BUILD_DIR = build/user
 ISO_DIR = iso
 ISO_BOOT_DIR = $(ISO_DIR)/boot
 ISO_GRUB_DIR = $(ISO_DIR)/boot/grub
@@ -88,8 +98,8 @@ CFLAGS += -DRUN_TESTS
 KERNEL_SOURCES += $(wildcard $(KERNEL_DIR)/test/tests_*.c)
 endif
 
-USER_NETTEST = $(BUILD_DIR)/user/nettest
-USER_SH = $(BUILD_DIR)/user/sh
+USER_NETTEST = $(USER_BUILD_DIR)/nettest
+USER_SH = $(USER_BUILD_DIR)/sh
 NETTEST_BLOB = $(BUILD_DIR)/kernel/nettest_blob.o
 SH_BLOB = $(BUILD_DIR)/kernel/sh_blob.o
 
@@ -240,7 +250,7 @@ docs:
 
 # Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR) $(ISO_DIR) docs
+	rm -rf build $(ISO_DIR) docs
 
 # Run tests
 test:

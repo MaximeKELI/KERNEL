@@ -218,8 +218,83 @@ static test_result_t test_usermode_stdin_echo(void) {
     return TEST_PASS;
 }
 
+/*
+ * Real fork/wait round trip in ring 3.
+ *
+ * A ring-3 blob does fork(); the child exit(7)s, the parent wait()s for it,
+ * decodes the exit status and exit()s with the same code. If the parent thread
+ * ends with status 7 then: fork() built a valid ring-3 child frame, the child
+ * ran independently in its own COW address space, and wait() reaped it and
+ * propagated the exit code — the whole UNIX life cycle.
+ */
+static void build_fork_blob(u8* code, u64 code_va) {
+    size_t o = 0;
+    u64 status_addr = code_va + 0x200;   /* scratch inside the writable code page */
+
+    /* eax = SYS_FORK(5); syscall */
+    code[o++] = 0xB8; code[o++] = 5; code[o++] = 0; code[o++] = 0; code[o++] = 0;
+    code[o++] = 0x0F; code[o++] = 0x05;
+    /* test rax,rax ; jz child */
+    code[o++] = 0x48; code[o++] = 0x85; code[o++] = 0xC0;
+    code[o++] = 0x74; size_t jz_rel = o; code[o++] = 0x00;
+
+    /* ---- parent: wait(0, &status) ---- */
+    code[o++] = 0xB8; code[o++] = 7; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* eax=SYS_WAIT */
+    code[o++] = 0x31; code[o++] = 0xFF;                                           /* xor edi,edi */
+    code[o++] = 0x48; code[o++] = 0xBE; *(u64*)(code + o) = status_addr; o += 8;  /* mov rsi,&status */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+    /* eax = [status]; exit code = (status>>8)&0xff */
+    code[o++] = 0x8B; code[o++] = 0x04; code[o++] = 0x25; *(u32*)(code + o) = (u32)status_addr; o += 4;
+    code[o++] = 0xC1; code[o++] = 0xF8; code[o++] = 0x08;                         /* sar eax,8 */
+    code[o++] = 0x25; code[o++] = 0xFF; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* and eax,0xff */
+    code[o++] = 0x89; code[o++] = 0xC7;                                           /* mov edi,eax */
+    code[o++] = 0xB8; code[o++] = 0; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* eax=SYS_EXIT */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+    code[o++] = 0xEB; code[o++] = 0xFE;                                           /* jmp $ */
+
+    /* ---- child: exit(7) ---- */
+    size_t child_off = o;
+    code[o++] = 0xBF; code[o++] = 7; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* mov edi,7 */
+    code[o++] = 0xB8; code[o++] = 0; code[o++] = 0; code[o++] = 0; code[o++] = 0; /* eax=SYS_EXIT */
+    code[o++] = 0x0F; code[o++] = 0x05;                                           /* syscall */
+    code[o++] = 0xEB; code[o++] = 0xFE;                                           /* jmp $ */
+
+    code[jz_rel] = (u8)(child_off - (jz_rel + 1));
+}
+
+static void fork_probe_thread(void* arg) {
+    (void)arg;
+    void* code_phys = pmm_alloc(1);
+    void* stack_phys = pmm_alloc(1);
+    if (!code_phys || !stack_phys) {
+        kthread_exit(-1);
+    }
+    vmm_map_page((void*)U_CODE_VA, code_phys, PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    vmm_map_page((void*)(U_STACK_TOP - PAGE_SIZE), stack_phys,
+                 PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    build_fork_blob((u8*)U_CODE_VA, U_CODE_VA);
+
+    process_t* cur = process_current();
+    u64 ktop = ((u64)cur->stack_base + cur->stack_size) & ~0xFULL;
+    tss_set_rsp0(ktop);
+
+    exec_iretq_user(U_CODE_VA, U_STACK_TOP - 16, 0x202);
+}
+
+static test_result_t test_usermode_fork_wait(void) {
+    process_t* p = kthread_run(fork_probe_thread, NULL, 32 * 1024);
+    TEST_ASSERT_NOT_NULL(p);
+
+    int status = -1;
+    TEST_ASSERT_EQ(thread_join(p, &status), 0);
+    TEST_ASSERT_EQ(status, 7);   /* parent waited and got the child's exit(7) */
+
+    return TEST_PASS;
+}
+
 void register_usermode_tests(void) {
     test_register("usermode", "ring3_roundtrip", test_usermode_ring3_roundtrip);
     test_register("usermode", "real_elf_sh", test_usermode_real_elf);
     test_register("usermode", "stdin_echo", test_usermode_stdin_echo);
+    test_register("usermode", "fork_wait", test_usermode_fork_wait);
 }

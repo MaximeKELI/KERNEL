@@ -135,6 +135,7 @@ void kernel_init_minimal(void) {
     process_init();
     syscall_init();
     tss_init();          /* ring3 traps need a kernel stack (rsp0) or they triple-fault */
+    kspp_init();         /* arm the stack canary; syscall_handler rejects syscalls without it */
     scheduler_init();
 
     /* Lightweight eBPF interpreter: available early so tooling/tests can use it. */

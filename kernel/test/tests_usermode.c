@@ -111,6 +111,30 @@ static test_result_t test_usermode_ring3_roundtrip(void) {
     return TEST_PASS;
 }
 
+/*
+ * Real userland ELF round trip: load the embedded /sh binary through the actual
+ * exec path (ELF parse -> PT_LOAD mapping as USER pages -> iretq to e_entry) and
+ * let it run in ring 3. /sh prints its banner, does getpid, read(0) (returns 0)
+ * then exit(0), so it terminates cleanly and we can join it.
+ */
+static void sh_exec_thread(void* arg) {
+    (void)arg;
+    exec_run_path("/sh");
+    kthread_exit(-1);   /* only reached if exec failed */
+}
+
+static test_result_t test_usermode_real_elf(void) {
+    process_t* p = kthread_run(sh_exec_thread, NULL, 32 * 1024);
+    TEST_ASSERT_NOT_NULL(p);
+
+    int status = -1;
+    TEST_ASSERT_EQ(thread_join(p, &status), 0);
+    TEST_ASSERT_EQ(status, 0);   /* /sh exit(0) => real ELF ran in ring 3 */
+
+    return TEST_PASS;
+}
+
 void register_usermode_tests(void) {
     test_register("usermode", "ring3_roundtrip", test_usermode_ring3_roundtrip);
+    test_register("usermode", "real_elf_sh", test_usermode_real_elf);
 }

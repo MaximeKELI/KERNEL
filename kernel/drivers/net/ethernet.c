@@ -3,6 +3,7 @@
 #include "pci.h"
 #include "virtio.h"
 #include "rtl8139.h"
+#include "e1000.h"
 #include "net.h"
 #include "stdio.h"
 #include "spinlock.h"
@@ -40,9 +41,16 @@ void ethernet_init(void) {
         }
         if (pci && virtio_net_probe(pci, dev) == 0) {
             nic_ok = true;
-        } else {
+        }
+        if (!nic_ok) {
             pci = pci_find_device(RTL8139_VENDOR, RTL8139_DEVICE);
             if (pci && rtl8139_probe(pci, dev) == 0) {
+                nic_ok = true;
+            }
+        }
+        if (!nic_ok) {
+            pci = pci_find_device(E1000_VENDOR, E1000_DEVICE);
+            if (pci && e1000_probe(pci, dev) == 0) {
                 nic_ok = true;
             }
         }

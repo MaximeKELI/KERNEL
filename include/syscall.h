@@ -37,6 +37,21 @@
 #define SYS_RT_SIGACTION   30
 #define SYS_RT_SIGPROCMASK 31
 #define SYS_KILL           32
+#define SYS_LSEEK          33
+#define SYS_MKDIR          34
+#define SYS_UNLINK         35
+#define SYS_RMDIR          36
+#define SYS_GETDENTS       37
+#define SYS_PIPE           38
+#define SYS_DUP            39
+#define SYS_DUP2           40
+#define SYS_STAT           41
+#define SYS_FTRUNCATE      42
+
+/* lseek whence */
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 
 /* mmap prot / flags (subset, values match Linux). */
 #define PROT_NONE   0x0
@@ -90,5 +105,33 @@ u64 sys_getpid(void);
 u64 sys_clock_gettime(u64 clk_id, void* tp);
 u64 sys_brk(u64 new_brk);
 u64 sys_mprotect(void* addr, u64 length, u64 prot);
+
+/* File / directory syscalls (P5). */
+u64 sys_lseek(u64 fd, i64 offset, u64 whence);
+u64 sys_mkdir(const char* path, u64 mode);
+u64 sys_unlink(const char* path);
+u64 sys_rmdir(const char* path);
+u64 sys_getdents(u64 fd, void* dirp, u64 count);
+u64 sys_pipe(int* pipefd);
+u64 sys_dup(u64 oldfd);
+u64 sys_dup2(u64 oldfd, u64 newfd);
+u64 sys_stat(const char* path, void* statbuf);
+u64 sys_ftruncate(u64 fd, u64 length);
+
+/* Linux-like dirent for getdents. */
+typedef struct linux_dirent64_k {
+    u64 d_ino;
+    i64 d_off;
+    u16 d_reclen;
+    u8  d_type;
+    char d_name[];
+} linux_dirent64_k_t;
+
+/* Minimal stat exposed to user (subset). */
+typedef struct user_stat {
+    u64 st_ino;
+    u32 st_mode;
+    u64 st_size;
+} user_stat_t;
 
 #endif /* SYSCALL_H */

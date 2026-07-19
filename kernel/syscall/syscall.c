@@ -2,7 +2,9 @@
 #include "process.h"
 #include "scheduler.h"
 #include "stdio.h"
+#include "string.h"
 #include "fs/vfs.h"
+#include "fs/ramfs.h"
 #include "io.h"
 #include "validate.h"
 #include "seccomp.h"
@@ -25,8 +27,23 @@
 #include "vdso.h"
 #include "drivers/timer.h"
 #include "drivers/keyboard.h"
+#include "ipc.h"
 
 extern int socket_fd_poll_events(int fd);
+
+/* ---- pipe VFS glue: each end is a vfs_file whose private_data is the pipe. ---- */
+static ssize_t pipe_vfs_read(vfs_file_t* f, void* buf, size_t c) {
+    return pipe_read((pipe_t*)f->private_data, buf, c);
+}
+static ssize_t pipe_vfs_write(vfs_file_t* f, const void* buf, size_t c) {
+    return pipe_write((pipe_t*)f->private_data, buf, c);
+}
+static int pipe_vfs_close(vfs_file_t* f) {
+    pipe_close((pipe_t*)f->private_data);
+    return 0;
+}
+static vfs_ops_t pipe_read_ops  = { .read = pipe_vfs_read, .close = pipe_vfs_close };
+static vfs_ops_t pipe_write_ops = { .write = pipe_vfs_write, .close = pipe_vfs_close };
 
 typedef u64 (*syscall_func_t)(u64, u64, u64, u64, u64);
 
@@ -64,6 +81,16 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_rt_sigaction,
     (syscall_func_t)sys_rt_sigprocmask,
     (syscall_func_t)sys_kill,
+    (syscall_func_t)sys_lseek,
+    (syscall_func_t)sys_mkdir,
+    (syscall_func_t)sys_unlink,
+    (syscall_func_t)sys_rmdir,
+    (syscall_func_t)sys_getdents,
+    (syscall_func_t)sys_pipe,
+    (syscall_func_t)sys_dup,
+    (syscall_func_t)sys_dup2,
+    (syscall_func_t)sys_stat,
+    (syscall_func_t)sys_ftruncate,
 };
 
 static char audit_buf[64];
@@ -509,4 +536,151 @@ u64 sys_dns_resolve(const char* hostname, void* out_ip, u64 out_len) {
         return (u64)-1;
     }
     return 0;
+}
+
+/* ---- P5: file / directory syscalls ---- */
+
+static int copy_path(const char* user_path, char* kpath, size_t sz) {
+    if (!user_path) {
+        return -1;
+    }
+    if (copy_from_user(kpath, user_path, sz - 1) < 0) {
+        return -1;
+    }
+    kpath[sz - 1] = '\0';
+    return 0;
+}
+
+u64 sys_lseek(u64 fd, i64 offset, u64 whence) {
+    if (fd < 3) {
+        return (u64)-1;
+    }
+    ssize_t r = vfs_lseek_fd((int)fd, (ssize_t)offset, (int)whence);
+    return r < 0 ? (u64)-1 : (u64)r;
+}
+
+u64 sys_mkdir(const char* path, u64 mode) {
+    char kpath[256];
+    if (copy_path(path, kpath, sizeof(kpath)) < 0) {
+        return (u64)-1;
+    }
+    return vfs_mkdir(kpath, (u32)mode) == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_unlink(const char* path) {
+    char kpath[256];
+    if (copy_path(path, kpath, sizeof(kpath)) < 0) {
+        return (u64)-1;
+    }
+    return vfs_unlink(kpath) == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_rmdir(const char* path) {
+    char kpath[256];
+    if (copy_path(path, kpath, sizeof(kpath)) < 0) {
+        return (u64)-1;
+    }
+    return vfs_rmdir(kpath) == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_getdents(u64 fd, void* dirp, u64 count) {
+    if (fd < 3 || !dirp || count < sizeof(linux_dirent64_k_t) + 8) {
+        return (u64)-1;
+    }
+    vfs_dent_t ents[16];
+    int n = vfs_getdents_fd((int)fd, ents, 16);
+    if (n < 0) {
+        return (u64)-1;
+    }
+    u8 kbuf[1024];
+    u64 used = 0;
+    for (int i = 0; i < n; i++) {
+        size_t namelen = strlen(ents[i].name) + 1;
+        u16 reclen = (u16)((sizeof(linux_dirent64_k_t) + namelen + 7) & ~7ULL);
+        if (used + reclen > sizeof(kbuf) || used + reclen > count) {
+            break;
+        }
+        linux_dirent64_k_t* d = (linux_dirent64_k_t*)(kbuf + used);
+        d->d_ino = ents[i].ino;
+        d->d_off = (i64)(used + reclen);
+        d->d_reclen = reclen;
+        d->d_type = (ents[i].mode & RAMFS_IFDIR) ? 4 : 8;   /* DT_DIR / DT_REG */
+        memcpy(d->d_name, ents[i].name, namelen);
+        used += reclen;
+    }
+    if (used == 0) {
+        return 0;
+    }
+    if (copy_to_user(dirp, kbuf, used) < 0) {
+        return (u64)-1;
+    }
+    return used;
+}
+
+u64 sys_pipe(int* pipefd) {
+    if (!pipefd) {
+        return (u64)-1;
+    }
+    pipe_t* rd = NULL;
+    pipe_t* wr = NULL;
+    if (pipe_create(&rd, &wr) < 0) {
+        return (u64)-1;
+    }
+    vfs_file_t* rf = (vfs_file_t*)kzalloc(sizeof(vfs_file_t));
+    vfs_file_t* wf = (vfs_file_t*)kzalloc(sizeof(vfs_file_t));
+    if (!rf || !wf) {
+        if (rf) kfree(rf);
+        if (wf) kfree(wf);
+        return (u64)-1;
+    }
+    rf->private_data = rd;
+    rf->flags = O_RDONLY;
+    wf->private_data = wr;
+    wf->flags = O_WRONLY;
+    int fd0 = vfs_install_file(rf, &pipe_read_ops);
+    int fd1 = vfs_install_file(wf, &pipe_write_ops);
+    if (fd0 < 0 || fd1 < 0) {
+        return (u64)-1;
+    }
+    int fds[2] = { fd0, fd1 };
+    if (copy_to_user(pipefd, fds, sizeof(fds)) < 0) {
+        return (u64)-1;
+    }
+    return 0;
+}
+
+u64 sys_dup(u64 oldfd) {
+    int r = vfs_dup_fd((int)oldfd);
+    return r < 0 ? (u64)-1 : (u64)r;
+}
+
+u64 sys_dup2(u64 oldfd, u64 newfd) {
+    int r = vfs_dup2_fd((int)oldfd, (int)newfd);
+    return r < 0 ? (u64)-1 : (u64)r;
+}
+
+u64 sys_stat(const char* path, void* statbuf) {
+    char kpath[256];
+    if (copy_path(path, kpath, sizeof(kpath)) < 0 || !statbuf) {
+        return (u64)-1;
+    }
+    vfs_stat_t st;
+    if (vfs_stat(kpath, &st) < 0) {
+        return (u64)-1;
+    }
+    user_stat_t out;
+    out.st_ino = st.st_ino;
+    out.st_mode = st.st_mode;
+    out.st_size = st.st_size;
+    if (copy_to_user(statbuf, &out, sizeof(out)) < 0) {
+        return (u64)-1;
+    }
+    return 0;
+}
+
+u64 sys_ftruncate(u64 fd, u64 length) {
+    if (fd < 3) {
+        return (u64)-1;
+    }
+    return vfs_ftruncate_fd((int)fd, length) == 0 ? 0 : (u64)-1;
 }

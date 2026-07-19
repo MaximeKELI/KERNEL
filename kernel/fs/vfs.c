@@ -7,6 +7,7 @@
 #include "process.h"
 #include "tmpfs.h"
 #include "ext2.h"
+#include "fs/ramfs.h"
 #include "epoll.h"
 
 #define VFS_MAX_FD 256
@@ -16,7 +17,54 @@ typedef enum {
     VFS_BACKEND_NONE = 0,
     VFS_BACKEND_TMPFS,
     VFS_BACKEND_EXT2,
+    VFS_BACKEND_RAMFS,
 } vfs_backend_type_t;
+
+/* ramfs VFS glue (real hierarchical root filesystem). */
+static int ramfs_vfs_open(vfs_file_t* f, const char* path) {
+    ramfs_node_t* n = ramfs_resolve(path);
+    if (!n && (f->flags & O_CREAT)) {
+        n = ramfs_create(path, 0644);
+    }
+    if (!n) {
+        return -1;
+    }
+    if ((f->flags & O_TRUNC) && (n->mode & RAMFS_IFREG)) {
+        ramfs_truncate(n, 0);
+    }
+    f->private_data = n;
+    f->inode = n->ino;
+    f->size = n->size;
+    f->offset = 0;
+    return 0;
+}
+static int ramfs_vfs_close(vfs_file_t* f) { (void)f; return 0; }
+static ssize_t ramfs_vfs_read(vfs_file_t* f, void* buf, size_t c) {
+    ramfs_node_t* n = (ramfs_node_t*)f->private_data;
+    ssize_t r = ramfs_read(n, f->offset, buf, c);
+    if (r > 0) f->offset += (u64)r;
+    return r;
+}
+static ssize_t ramfs_vfs_write(vfs_file_t* f, const void* buf, size_t c) {
+    ramfs_node_t* n = (ramfs_node_t*)f->private_data;
+    if (f->flags & O_APPEND) f->offset = n->size;
+    ssize_t r = ramfs_write(n, f->offset, buf, c);
+    if (r > 0) { f->offset += (u64)r; f->size = n->size; }
+    return r;
+}
+static int ramfs_vfs_seek(vfs_file_t* f, ssize_t off, int whence) {
+    ramfs_node_t* n = (ramfs_node_t*)f->private_data;
+    if (!n) return -1;
+    if (whence == 0) f->offset = (u64)off;
+    else if (whence == 1) f->offset += (u64)off;
+    else if (whence == 2) f->offset = n->size + (u64)off;
+    return 0;
+}
+static vfs_ops_t ramfs_vfs_ops = {
+    .open = ramfs_vfs_open, .close = ramfs_vfs_close,
+    .read = ramfs_vfs_read, .write = ramfs_vfs_write,
+    .seek = ramfs_vfs_seek, .readdir = NULL,
+};
 
 /*
  * A single open file. Shared (refcounted) between descriptors created by dup()
@@ -41,6 +89,8 @@ static files_struct_t kernel_files;
 static vfs_fs_ops_t* mounted_fs[VFS_MAX_BACKENDS];
 static u32 mount_count = 0;
 static bool ext2_mounted = false;
+
+static int vfs_alloc_fd(vfs_file_t* file, vfs_ops_t* ops, vfs_backend_type_t backend);
 
 static files_struct_t* current_files(void) {
     process_t* p = process_current();
@@ -81,7 +131,8 @@ void vfs_init(void) {
     memset(&kernel_files, 0, sizeof(kernel_files));
     mount_count = 0;
     ext2_mounted = false;
-    printk("VFS: Initialized (tmpfs + ext2)\n");
+    ramfs_init();          /* real hierarchical root filesystem */
+    printk("VFS: Initialized (ramfs root + tmpfs + ext2)\n");
 }
 
 void* files_create(void) {
@@ -161,6 +212,32 @@ int vfs_set_cloexec(int fd, int on) {
     return 0;
 }
 
+int vfs_dup_fd(int old_fd) {
+    if (old_fd < 0 || old_fd >= VFS_MAX_FD) {
+        return -1;
+    }
+    files_struct_t* fs = current_files();
+    if (!fs->fd[old_fd]) {
+        return -1;
+    }
+    for (int fd = 0; fd < VFS_MAX_FD; fd++) {
+        if (!fs->fd[fd]) {
+            refcount_get(&fs->fd[old_fd]->refcount);
+            fs->fd[fd] = fs->fd[old_fd];
+            fs->cloexec[fd] = 0;
+            return fd;
+        }
+    }
+    return -1;
+}
+
+int vfs_install_file(vfs_file_t* file, struct vfs_ops* ops) {
+    if (!file) {
+        return -1;
+    }
+    return vfs_alloc_fd(file, (vfs_ops_t*)ops, VFS_BACKEND_NONE);
+}
+
 static vfs_backend_type_t vfs_path_backend(const char* path) {
     if (!path) {
         return VFS_BACKEND_NONE;
@@ -171,12 +248,20 @@ static vfs_backend_type_t vfs_path_backend(const char* path) {
     if (strncmp(path, "/etc/", 5) == 0) {
         return VFS_BACKEND_TMPFS;
     }
-    if (strncmp(path, "/boot/", 6) == 0 || strncmp(path, "/", 1) == 0) {
-        if (ext2_mounted) {
-            return VFS_BACKEND_EXT2;
-        }
+    if ((strncmp(path, "/boot/", 6) == 0) && ext2_mounted) {
+        return VFS_BACKEND_EXT2;
     }
-    return VFS_BACKEND_TMPFS;
+    /* Everything else lives in the real hierarchical ramfs root. */
+    return VFS_BACKEND_RAMFS;
+}
+
+static vfs_ops_t* backend_ops(vfs_backend_type_t be) {
+    switch (be) {
+    case VFS_BACKEND_TMPFS: return tmpfs_get_file_ops();
+    case VFS_BACKEND_EXT2:  return ext2_get_file_ops();
+    case VFS_BACKEND_RAMFS: return &ramfs_vfs_ops;
+    default: return NULL;
+    }
 }
 
 int vfs_mount(const char* source, const char* target, vfs_fs_ops_t* fs_ops) {
@@ -225,13 +310,7 @@ vfs_file_t* vfs_open(const char* path, u64 flags) {
     VALIDATE_FLAGS_NULL(flags, 0xFFFFFFFF);
 
     vfs_backend_type_t be = vfs_path_backend(path);
-    vfs_ops_t* ops = NULL;
-
-    if (be == VFS_BACKEND_TMPFS) {
-        ops = tmpfs_get_file_ops();
-    } else if (be == VFS_BACKEND_EXT2) {
-        ops = ext2_get_file_ops();
-    }
+    vfs_ops_t* ops = backend_ops(be);
 
     if (!ops || !ops->open) {
         return NULL;
@@ -260,7 +339,7 @@ int vfs_open_fd(const char* path, u64 flags) {
         return -1;
     }
     vfs_backend_type_t be = (vfs_backend_type_t)f->backend;
-    vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
+    vfs_ops_t* ops = backend_ops(be);
     return vfs_alloc_fd(f, ops, be);
 }
 
@@ -311,7 +390,7 @@ ssize_t vfs_read(vfs_file_t* file, void* buf, size_t count) {
     VALIDATE_PTR_RET(file, -1);
     VALIDATE_PTR_RET(buf, -1);
     vfs_backend_type_t be = (vfs_backend_type_t)file->backend;
-    vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
+    vfs_ops_t* ops = backend_ops(be);
     if (ops && ops->read) {
         return ops->read(file, buf, count);
     }
@@ -322,7 +401,7 @@ ssize_t vfs_write(vfs_file_t* file, const void* buf, size_t count) {
     VALIDATE_PTR_RET(file, -1);
     VALIDATE_PTR_RET(buf, -1);
     vfs_backend_type_t be = (vfs_backend_type_t)file->backend;
-    vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
+    vfs_ops_t* ops = backend_ops(be);
     if (ops && ops->write) {
         return ops->write(file, buf, count);
     }
@@ -371,4 +450,135 @@ int vfs_fd_poll_events(int fd) {
         return EPOLLIN;
     }
     return 0;
+}
+
+/* ---- Directory / metadata operations (ramfs root only for now) ---- */
+
+int vfs_mkdir(const char* path, u32 mode) {
+    (void)mode;
+    if (vfs_path_backend(path) != VFS_BACKEND_RAMFS) {
+        return -1;
+    }
+    return ramfs_mkdir(path) ? 0 : -1;
+}
+
+int vfs_unlink(const char* path) {
+    if (vfs_path_backend(path) != VFS_BACKEND_RAMFS) {
+        return -1;
+    }
+    return ramfs_unlink(path);
+}
+
+int vfs_rmdir(const char* path) {
+    if (vfs_path_backend(path) != VFS_BACKEND_RAMFS) {
+        return -1;
+    }
+    return ramfs_rmdir(path);
+}
+
+int vfs_stat(const char* path, vfs_stat_t* out) {
+    if (!out || vfs_path_backend(path) != VFS_BACKEND_RAMFS) {
+        return -1;
+    }
+    ramfs_node_t* n = ramfs_resolve(path);
+    if (!n) {
+        return -1;
+    }
+    out->st_ino = n->ino;
+    out->st_mode = n->mode;
+    out->st_size = n->size;
+    return 0;
+}
+
+int vfs_getdents_fd(int fd, vfs_dent_t* out, int max) {
+    if (fd < 0 || fd >= VFS_MAX_FD || !out || max <= 0) {
+        return -1;
+    }
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o || o->backend != VFS_BACKEND_RAMFS || !o->file) {
+        return -1;
+    }
+    ramfs_node_t* dir = (ramfs_node_t*)o->file->private_data;
+    if (!dir || (dir->mode & RAMFS_IFDIR) == 0) {
+        return -1;
+    }
+    int filled = 0;
+    while (filled < max) {
+        char name[RAMFS_NAME_MAX + 1];
+        u64 ino;
+        u32 mode;
+        if (!ramfs_readdir_index(dir, (u32)o->file->offset, name, &ino, &mode)) {
+            break;
+        }
+        out[filled].ino = ino;
+        out[filled].mode = mode;
+        strncpy(out[filled].name, name, sizeof(out[filled].name) - 1);
+        out[filled].name[sizeof(out[filled].name) - 1] = '\0';
+        filled++;
+        o->file->offset++;
+    }
+    return filled;
+}
+
+ssize_t vfs_lseek_fd(int fd, ssize_t offset, int whence) {
+    if (fd < 0 || fd >= VFS_MAX_FD) {
+        return -1;
+    }
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o || !o->file) {
+        return -1;
+    }
+    if (o->ops && o->ops->seek) {
+        if (o->ops->seek(o->file, offset, whence) < 0) {
+            return -1;
+        }
+    } else {
+        if (whence == 0) o->file->offset = (u64)offset;
+        else if (whence == 1) o->file->offset += (u64)offset;
+        else if (whence == 2) o->file->offset = o->file->size + (u64)offset;
+        else return -1;
+    }
+    return (ssize_t)o->file->offset;
+}
+
+int vfs_ftruncate_fd(int fd, u64 length) {
+    if (fd < 0 || fd >= VFS_MAX_FD) {
+        return -1;
+    }
+    file_obj_t* o = current_files()->fd[fd];
+    if (!o || o->backend != VFS_BACKEND_RAMFS || !o->file) {
+        return -1;
+    }
+    ramfs_node_t* n = (ramfs_node_t*)o->file->private_data;
+    int r = ramfs_truncate(n, length);
+    if (r == 0) {
+        o->file->size = n->size;
+    }
+    return r;
+}
+
+int vfs_getdents(const char* path, u32* pos, vfs_dent_t* out, int max) {
+    if (!pos || !out || max <= 0 || vfs_path_backend(path) != VFS_BACKEND_RAMFS) {
+        return -1;
+    }
+    ramfs_node_t* dir = ramfs_resolve(path);
+    if (!dir) {
+        return -1;
+    }
+    int filled = 0;
+    while (filled < max) {
+        char name[RAMFS_NAME_MAX + 1];
+        u64 ino;
+        u32 mode;
+        if (!ramfs_readdir_index(dir, *pos, name, &ino, &mode)) {
+            break;
+        }
+        out[filled].ino = ino;
+        out[filled].mode = mode;
+        strncpy(out[filled].name, name, sizeof(out[filled].name) - 1);
+        out[filled].name[sizeof(out[filled].name) - 1] = '\0';
+        filled++;
+        (*pos)++;
+    }
+    return filled;
 }

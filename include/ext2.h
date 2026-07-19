@@ -116,4 +116,12 @@ vfs_fs_ops_t* ext2_get_fs_ops(void);
 vfs_ops_t* ext2_get_file_ops(void);
 int ext2_writeback_page(u64 ino, u64 file_offset, const void* page_data);
 
+/* RAM-backed ext2 (real bitmap/dir/indirect write path; disk backend in P8). */
+int ext2_mkfs_ram(u32 total_blocks);
+int ext2_fs_create(const char* path, u16 mode);
+int ext2_fs_mkdir(const char* path);
+int ext2_fs_unlink(const char* path);
+ssize_t ext2_fs_pwrite(const char* path, u64 off, const void* buf, size_t n);
+ssize_t ext2_fs_pread(const char* path, u64 off, void* buf, size_t n);
+
 #endif /* EXT2_H */

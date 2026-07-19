@@ -111,6 +111,40 @@ void  files_destroy(void* files);
 
 /* dup2-style: point new_fd at old_fd's open file within the current table. */
 int vfs_dup2_fd(int old_fd, int new_fd);
+int vfs_dup_fd(int old_fd);                 /* lowest free fd -> old_fd's file */
 int vfs_set_cloexec(int fd, int on);
+
+/* Install an already-built file (e.g. a pipe end) into the fd table. */
+int vfs_install_file(vfs_file_t* file, struct vfs_ops* ops);
+
+/* Directory / metadata operations (dispatch to the path's backend). */
+int vfs_mkdir(const char* path, u32 mode);
+int vfs_unlink(const char* path);
+int vfs_rmdir(const char* path);
+
+/* Minimal stat. */
+typedef struct vfs_stat {
+    u64 st_ino;
+    u32 st_mode;
+    u64 st_size;
+} vfs_stat_t;
+int vfs_stat(const char* path, vfs_stat_t* out);
+
+/* getdents: fill up to `max` names starting at *pos (opaque index). */
+typedef struct vfs_dent {
+    u64 ino;
+    u32 mode;
+    char name[256];
+} vfs_dent_t;
+int vfs_getdents(const char* path, u32* pos, vfs_dent_t* out, int max);
+
+/* fd-based getdents: uses the open directory fd's offset as the cursor. */
+int vfs_getdents_fd(int fd, vfs_dent_t* out, int max);
+
+/* Truncate the file behind an open fd (ramfs regular files). */
+int vfs_ftruncate_fd(int fd, u64 length);
+
+/* lseek on an open fd; returns new absolute offset or -1. */
+ssize_t vfs_lseek_fd(int fd, ssize_t offset, int whence);
 
 #endif /* VFS_H */

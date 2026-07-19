@@ -89,6 +89,9 @@ int thread_join(process_t* child, int* status);
 /* Free a terminated (zombie) task's resources. Not for running/queued tasks. */
 void process_reap(process_t* proc);
 
+/* Wake a parent blocked in wait_process() when one of its children exits. */
+void process_notify_parent_exit(process_t* child);
+
 /* Set process priority */
 int setpriority(u64 pid, int priority);
 

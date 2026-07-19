@@ -112,15 +112,43 @@ process_t* kthread_run(void (*entry)(void*), void* arg, u64 stack_size) {
     return p;
 }
 
+/*
+ * Wake a parent blocked in wait_process() now that one of its children has
+ * become a zombie. wait_process() blocks with state == BLOCKED after failing to
+ * find a dead child; re-queuing it lets it re-scan and reap. Safe to call for
+ * kthread parents too (they use thread_join / exit_wq, so are not BLOCKED here).
+ */
+void process_notify_parent_exit(process_t* child) {
+    if (!child) {
+        return;
+    }
+    for (process_t* p = process_list; p; p = p->next) {
+        if (p->pid == child->parent_pid) {
+            if (p->state == PROCESS_BLOCKED) {
+                wake_up_process(p);
+            }
+            break;
+        }
+    }
+}
+
 void kthread_exit(int code) {
     u64 flags = local_irq_save();
     process_t* p = current_process;
     if (p) {
         p->exit_status = code;
         p->state = PROCESS_ZOMBIE;   /* a zombie is never re-enqueued by schedule() */
+        /* Release address space + open files now; the zombie only keeps its
+         * process_t (and exit status) around until the parent reaps it. */
+        if (p->files) {
+            extern void files_destroy(void*);
+            files_destroy(p->files);
+            p->files = NULL;
+        }
         wait_wake_all(&p->exit_wq);  /* release anyone blocked in thread_join() */
+        process_notify_parent_exit(p);
     }
-    (void)flags;
+    local_irq_restore(flags);
     schedule();                      /* switch away for good; never returns */
     for (;;) {
         __asm__ __volatile__("cli; hlt");
@@ -178,6 +206,21 @@ void process_reap(process_t* proc) {
     }
     local_irq_restore(flags);
 
+    /* Tear down the user address space (private CR3 only; kernel threads share
+     * the boot CR3 and must never free it). */
+    if (proc->mm) {
+        extern void mm_destroy(struct mm_struct*);
+        mm_destroy(proc->mm);
+        proc->mm = NULL;
+    }
+    if (proc->cr3 && proc->cr3 != vmm_get_cr3()) {
+        vmm_destroy_user_space(proc->cr3);
+    }
+    if (proc->files) {
+        extern void files_destroy(void*);
+        files_destroy(proc->files);
+        proc->files = NULL;
+    }
     if (proc->stack_base) {
         size_t pages = (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
         vmm_free_pages(proc->stack_base, pages);

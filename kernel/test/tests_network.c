@@ -12,6 +12,7 @@
 #include "pci.h"
 #include "ethernet.h"
 #include "e1000.h"
+#include "net_addr.h"
 
 /* Test TCP initialization */
 static test_result_t test_tcp_init(void) {
@@ -227,6 +228,26 @@ static test_result_t test_ip_addr(void) {
     return TEST_PASS;
 }
 
+/* Regression: snprintf must expand %u (it used to fall through and print the
+ * literal "%u", which broke every ip_addr_format() dotted-quad). */
+static test_result_t test_snprintf_u(void) {
+    char buf[32];
+
+    snprintf(buf, sizeof(buf), "%u", 0u);
+    TEST_ASSERT(strcmp(buf, "0") == 0);
+
+    snprintf(buf, sizeof(buf), "%u", 4294967295u);
+    TEST_ASSERT(strcmp(buf, "4294967295") == 0);
+
+    snprintf(buf, sizeof(buf), "%u.%u.%u.%u", 10u, 0u, 2u, 15u);
+    TEST_ASSERT(strcmp(buf, "10.0.2.15") == 0);
+
+    ip_addr_t ip = {{10, 0, 2, 15}};
+    ip_addr_format(&ip, buf, sizeof(buf));
+    TEST_ASSERT(strcmp(buf, "10.0.2.15") == 0);
+    return TEST_PASS;
+}
+
 /* Test the e1000 driver binds to QEMU's default NIC (8086:100e).
  * Covers the real path: PCI enumeration -> device match -> probe (reset, MAC
  * read, ring setup, handler install) -> RX/TX through the public ethernet API.
@@ -293,4 +314,5 @@ void register_network_tests(void) {
     test_register("network", "socket_close", test_socket_close);
     test_register("network", "skb_clone", test_skb_clone);
     test_register("network", "ip_addr", test_ip_addr);
+    test_register("network", "snprintf_u", test_snprintf_u);
 }

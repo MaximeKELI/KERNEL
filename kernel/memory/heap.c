@@ -14,22 +14,43 @@ typedef struct heap_block {
     struct heap_block* prev;  /* For better coalescing */
 } heap_block_t;
 
-#define HEAP_START 0x200000  /* 2MB */
-#define HEAP_SIZE  (10 * 1024 * 1024)  /* 10MB */
-#define HEAP_END   (HEAP_START + HEAP_SIZE)
+/*
+ * The heap lives between the end of the kernel image (_kernel_end, from the
+ * linker script) and the top of the PMM-reserved low region. Starting at a
+ * fixed 0x200000 used to overlap the kernel's own BSS (TSS ring-0 stack,
+ * descriptor tables), so a large enough allocation corrupted them.
+ */
+extern u8 _kernel_end[];
+#define HEAP_LIMIT 0xC00000ULL   /* end of the reserved low region (see pmm_init) */
 
+static u64 heap_start_addr = 0;
+static u64 heap_end_addr = 0;
+static size_t heap_total_size = 0;
 static heap_block_t* heap_head = NULL;
 static spinlock_t heap_lock = SPINLOCK_INIT;
 
 void heap_init(void) {
-    /* Allocate heap space */
-    heap_head = (heap_block_t*)HEAP_START;
-    heap_head->size = HEAP_SIZE - sizeof(heap_block_t);
+    u64 start = ((u64)(uintptr_t)_kernel_end + 0xFFF) & ~0xFFFULL;
+    if (start < 0x200000ULL) {
+        start = 0x200000ULL;   /* never below 2 MiB */
+    }
+    heap_start_addr = start;
+    heap_end_addr = HEAP_LIMIT;
+    heap_total_size = (size_t)(heap_end_addr - heap_start_addr);
+
+    heap_head = (heap_block_t*)heap_start_addr;
+    heap_head->size = heap_total_size - sizeof(heap_block_t);
     heap_head->free = true;
     heap_head->next = NULL;
     heap_head->prev = NULL;
-    
-    printk("Heap: Initialized at 0x%x, size %u KB\n", HEAP_START, HEAP_SIZE / 1024);
+
+    printk("Heap: Initialized at 0x%x, size %u KB\n",
+           (unsigned)heap_start_addr, (unsigned)(heap_total_size / 1024));
+}
+
+void heap_get_range(u64* start, u64* end) {
+    if (start) *start = heap_start_addr;
+    if (end) *end = heap_end_addr;
 }
 
 static void* heap_alloc_block(size_t size) {
@@ -105,7 +126,7 @@ static void heap_free_block(void* ptr) {
     }
     
     /* Validate pointer is within heap */
-    if ((u64)ptr < HEAP_START || (u64)ptr >= HEAP_END) {
+    if ((u64)ptr < heap_start_addr || (u64)ptr >= heap_end_addr) {
         DEBUG_ERROR("Invalid pointer to free: 0x%p", ptr);
         return;
     }
@@ -113,7 +134,7 @@ static void heap_free_block(void* ptr) {
     heap_block_t* block = (heap_block_t*)ptr - 1;
     
     /* Validate block header */
-    if (block->size == 0 || block->size > HEAP_SIZE) {
+    if (block->size == 0 || block->size > heap_total_size) {
         DEBUG_ERROR("Corrupted heap block at 0x%p (size: %u)", ptr, (u32)block->size);
         return;
     }

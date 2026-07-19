@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "mm.h"
 #include "trapframe.h"
+#include "signal.h"
 #include "fs/vfs.h"
 #include "stdio.h"
 #include "string.h"
@@ -84,9 +85,10 @@ process_t* fork_process(void) {
     child->exit_wq.head = NULL;
     child->wait_next = NULL;
 
-    /* Duplicate the VMA map and the fd table. */
+    /* Duplicate the VMA map, fd table, and signal dispositions. */
     child->mm = parent->mm ? mm_clone(parent->mm) : NULL;
     child->files = files_clone(parent->files);
+    child->signal_state = signal_clone(parent->signal_state);
 
     /* Build the child's ring-3 resume image at the top of its kernel stack. */
     u64 top = ((u64)kstack + KSTACK_SIZE) & ~0xFULL;

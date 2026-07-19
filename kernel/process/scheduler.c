@@ -145,6 +145,11 @@ void kthread_exit(int code) {
             files_destroy(p->files);
             p->files = NULL;
         }
+        if (p->signal_state) {
+            extern void signal_state_free(void*);
+            signal_state_free(p->signal_state);
+            p->signal_state = NULL;
+        }
         wait_wake_all(&p->exit_wq);  /* release anyone blocked in thread_join() */
         process_notify_parent_exit(p);
     }
@@ -220,6 +225,11 @@ void process_reap(process_t* proc) {
         extern void files_destroy(void*);
         files_destroy(proc->files);
         proc->files = NULL;
+    }
+    if (proc->signal_state) {
+        extern void signal_state_free(void*);
+        signal_state_free(proc->signal_state);
+        proc->signal_state = NULL;
     }
     if (proc->stack_base) {
         size_t pages = (proc->stack_size + PAGE_SIZE - 1) / PAGE_SIZE;

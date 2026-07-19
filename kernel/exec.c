@@ -236,6 +236,12 @@ int exec_run_path_argv(const char* path, char* const argv[]) {
         proc->mm = mm_create();
         /* Descriptors marked close-on-exec are dropped across exec. */
         files_on_exec(proc->files);
+        /* Caught signals reset to default across exec (POSIX). */
+        if (proc->signal_state) {
+            extern void signal_state_free(void*);
+            signal_state_free(proc->signal_state);
+            proc->signal_state = NULL;
+        }
     }
 
     u64 entry = 0;

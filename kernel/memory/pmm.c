@@ -12,6 +12,16 @@ static u64 pmm_total_blocks = 0;
 static u64 pmm_used_blocks = 0;
 static u64 pmm_bitmap_start = 0;
 
+/* Per-frame reference counts. Sized for the largest configuration we boot with
+ * (512 MiB / 4 KiB). u16 so a page can be shared by many COW children without
+ * overflow. Frame N's count lives at pmm_refcounts[N]. */
+#define PMM_MAX_FRAMES (512UL * 1024 * 1024 / PMM_BLOCK_SIZE)
+static u16 pmm_refcounts[PMM_MAX_FRAMES];
+
+static inline u64 pmm_block_of(void* phys) {
+    return (u64)phys / PMM_BLOCK_SIZE;
+}
+
 void pmm_init(u64 mem_size, u64 reserved_start, u64 reserved_size) {
     /* Calculate bitmap size */
     pmm_total_blocks = mem_size / PMM_BLOCK_SIZE;
@@ -74,6 +84,9 @@ void* pmm_alloc(size_t pages) {
                     u64 bit = block % PMM_BITS_PER_BYTE;
                     pmm_bitmap[byte] |= (1 << bit);
                     pmm_used_blocks++;
+                    if (block < PMM_MAX_FRAMES) {
+                        pmm_refcounts[block] = 1;
+                    }
                 }
                 return (void*)(start_block * PMM_BLOCK_SIZE);
             }
@@ -100,8 +113,45 @@ void pmm_free(void* addr, size_t pages) {
         if (pmm_bitmap[byte] & (1 << bit)) {
             pmm_bitmap[byte] &= ~(1 << bit);
             pmm_used_blocks--;
+            if (block < PMM_MAX_FRAMES) {
+                pmm_refcounts[block] = 0;
+            }
         }
     }
+}
+
+void pmm_ref(void* phys_page) {
+    u64 block = pmm_block_of(phys_page);
+    if (block >= pmm_total_blocks || block >= PMM_MAX_FRAMES) {
+        return;
+    }
+    /* A frame handed out by pmm_alloc has count 1; guard the degenerate case of
+     * sharing a frame that was never counted (e.g. identity/boot memory). */
+    if (pmm_refcounts[block] == 0) {
+        pmm_refcounts[block] = 1;
+    }
+    pmm_refcounts[block]++;
+}
+
+unsigned pmm_unref(void* phys_page) {
+    u64 block = pmm_block_of(phys_page);
+    if (block >= pmm_total_blocks || block >= PMM_MAX_FRAMES) {
+        return 0;
+    }
+    if (pmm_refcounts[block] <= 1) {
+        pmm_free(phys_page, 1);   /* clears the bit and zeroes the count */
+        return 0;
+    }
+    pmm_refcounts[block]--;
+    return pmm_refcounts[block];
+}
+
+unsigned pmm_refcount(void* phys_page) {
+    u64 block = pmm_block_of(phys_page);
+    if (block >= pmm_total_blocks || block >= PMM_MAX_FRAMES) {
+        return 0;
+    }
+    return pmm_refcounts[block];
 }
 
 size_t pmm_get_free_pages(void) {

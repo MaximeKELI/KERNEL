@@ -10,6 +10,14 @@ void pmm_free(void* addr, size_t pages);
 size_t pmm_get_free_pages(void);
 size_t pmm_get_total_pages(void);
 
+/* Per-frame reference counting (for copy-on-write sharing of 4 KiB frames).
+ * pmm_alloc() sets the refcount of each returned frame to 1. pmm_ref adds a
+ * sharer; pmm_unref drops one and frees the frame when the count reaches 0
+ * (returning the new count). pmm_refcount reads the current count. */
+void pmm_ref(void* phys_page);
+unsigned pmm_unref(void* phys_page);
+unsigned pmm_refcount(void* phys_page);
+
 /* Virtual memory manager */
 void vmm_init(void);
 void* vmm_map_page(void* virt, void* phys, u64 flags);

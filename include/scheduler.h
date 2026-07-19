@@ -77,6 +77,18 @@ process_t* kthread_run(void (*entry)(void*), void* arg, u64 stack_size);
 /* Terminate the current kernel thread (never returns) */
 void thread_exit(void);
 
+/* Terminate the current kernel thread with an explicit exit code (never returns) */
+void kthread_exit(int code);
+
+/*
+ * Block until `child` terminates, then reap it (free its stack and descriptor).
+ * Stores the child's exit code in *status when non-NULL. Returns 0 on success.
+ */
+int thread_join(process_t* child, int* status);
+
+/* Free a terminated (zombie) task's resources. Not for running/queued tasks. */
+void process_reap(process_t* proc);
+
 /* Set process priority */
 int setpriority(u64 pid, int priority);
 

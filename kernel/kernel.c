@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "test.h"
 #include "multiboot2_fb.h"
+#include "init.h"
 
 u64 kernel_mb_info = 0;
 
@@ -54,7 +55,10 @@ void kernel_main(u64 magic, u64 mb_info) {
 
     printk("Shell ready. init-full | score | appliance | exec nettest\n");
 
+#ifdef RUN_TESTS
+    /* No init in the test build: the in-kernel shell drives the console. */
     kshell_init();
+#endif
 
 #ifdef RUN_TESTS
     printk("Initializing test framework...\n");
@@ -83,6 +87,11 @@ void kernel_main(u64 magic, u64 mb_info) {
     }
 #endif
 
+#ifndef RUN_TESTS
+    /* Boot the real user journey: PID 1 launches /sh in ring 3. */
+    init_start();
+#endif
+
     while (true) {
         if (kernel_extended_ready()) {
             extern void writeback_tick(void);
@@ -95,8 +104,14 @@ void kernel_main(u64 magic, u64 mb_info) {
             if (system_wq) {
                 workqueue_process(system_wq);
             }
-            schedule();
         }
-        kshell_run_once();
+        if (g_init_active) {
+            /* init owns the console; just let its threads run. */
+            schedule();
+            __asm__ __volatile__("hlt");
+        } else {
+            schedule();
+            kshell_run_once();
+        }
     }
 }

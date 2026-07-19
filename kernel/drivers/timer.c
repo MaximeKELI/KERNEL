@@ -5,6 +5,7 @@
 #include "ai_manager.h"
 #include "smp.h"
 #include "scheduler.h"
+#include "wait.h"
 
 #include "hw_ports.h"
 
@@ -20,6 +21,7 @@ static void timer_irq_handler(u32 irq, void* data) {
     
     ticks++;
     scheduler_tick();
+    sched_timer_wakeups();   /* wake tasks whose sched_sleep() deadline elapsed */
     
     extern bool ai_initialized;
     if (ai_initialized) {

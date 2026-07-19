@@ -16,6 +16,7 @@
 #include "memory.h"
 #include "mm.h"
 #include "signal.h"
+#include "trapframe.h"
 #include "kspp.h"
 #include "fb_console.h"
 #include "gdt.h"
@@ -40,7 +41,7 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_wait,
     (syscall_func_t)sys_mmap,
     (syscall_func_t)sys_munmap,
-    (syscall_func_t)sys_sigreturn,
+    (syscall_func_t)sys_rt_sigreturn,
     (syscall_func_t)sys_socket,
     (syscall_func_t)sys_bind,
     (syscall_func_t)sys_connect,
@@ -60,6 +61,9 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_clock_gettime,
     (syscall_func_t)sys_brk,
     (syscall_func_t)sys_mprotect,
+    (syscall_func_t)sys_rt_sigaction,
+    (syscall_func_t)sys_rt_sigprocmask,
+    (syscall_func_t)sys_kill,
 };
 
 static char audit_buf[64];
@@ -100,8 +104,23 @@ u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64
      * runs here, and sys_fork() returns the child pid.
      */
 
-    if (proc) {
-        signal_deliver_pending(proc);
+    /* Deliver a pending signal on the way back to user mode. Uses the caller's
+     * saved register block so the handler runs in ring 3 and sigreturn resumes
+     * the interrupted code (or the syscall's result). */
+    if (proc && proc->syscall_regs && signal_has_pending(proc)) {
+        syscall_frame_t* sf = (syscall_frame_t*)proc->syscall_regs;
+        sigcontext_t ctx;
+        ctx.rax = ret; ctx.rbx = sf->rbx; ctx.rcx = 0; ctx.rdx = sf->rdx;
+        ctx.rsi = sf->rsi; ctx.rdi = sf->rdi; ctx.rbp = sf->rbp;
+        ctx.r8 = sf->r8; ctx.r9 = sf->r9; ctx.r10 = sf->r10; ctx.r11 = 0;
+        ctx.r12 = sf->r12; ctx.r13 = sf->r13; ctx.r14 = sf->r14; ctx.r15 = sf->r15;
+        ctx.rip = sf->user_rip; ctx.rsp = sf->user_rsp; ctx.rflags = sf->user_rflags;
+        if (signal_dispatch(proc, &ctx, true) > 0) {
+            sf->user_rip = ctx.rip;
+            sf->user_rsp = ctx.rsp;
+            sf->user_rflags = ctx.rflags;
+            sf->rdi = ctx.rdi;    /* signo -> handler's first argument */
+        }
     }
 
     if (syscall_num == SYS_OPEN || syscall_num == SYS_EXEC) {
@@ -361,8 +380,47 @@ u64 sys_mprotect(void* addr, u64 length, u64 prot) {
 }
 
 u64 sys_sigreturn(void) {
-    signal_return_from_handler();
-    return 0;
+    return sys_rt_sigreturn();
+}
+
+u64 sys_rt_sigaction(u64 sig, const void* act, void* oldact) {
+    sigaction_t kact, koldact;
+    sigaction_t* pact = NULL;
+    if (act) {
+        if (copy_from_user(&kact, act, sizeof(kact)) < 0) {
+            return (u64)-1;
+        }
+        pact = &kact;
+    }
+    int r = rt_sigaction((int)sig, pact, oldact ? &koldact : NULL);
+    if (r == 0 && oldact) {
+        if (copy_to_user(oldact, &koldact, sizeof(koldact)) < 0) {
+            return (u64)-1;
+        }
+    }
+    return r == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_rt_sigprocmask(u64 how, const void* set, void* oldset) {
+    sigset_t kset, koldset;
+    sigset_t* pset = NULL;
+    if (set) {
+        if (copy_from_user(&kset, set, sizeof(kset)) < 0) {
+            return (u64)-1;
+        }
+        pset = &kset;
+    }
+    int r = rt_sigprocmask((int)how, pset, oldset ? &koldset : NULL);
+    if (r == 0 && oldset) {
+        if (copy_to_user(oldset, &koldset, sizeof(koldset)) < 0) {
+            return (u64)-1;
+        }
+    }
+    return r == 0 ? 0 : (u64)-1;
+}
+
+u64 sys_kill(u64 pid, u64 sig) {
+    return kill(pid, (int)sig) == 0 ? 0 : (u64)-1;
 }
 
 u64 sys_ai_metrics(void* out_info, u64 size) {

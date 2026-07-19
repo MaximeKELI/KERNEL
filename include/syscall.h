@@ -34,6 +34,9 @@
 #define SYS_CLOCK_GETTIME 27
 #define SYS_BRK          28
 #define SYS_MPROTECT     29
+#define SYS_RT_SIGACTION   30
+#define SYS_RT_SIGPROCMASK 31
+#define SYS_KILL           32
 
 /* mmap prot / flags (subset, values match Linux). */
 #define PROT_NONE   0x0
@@ -62,6 +65,9 @@ u64 sys_wait(u64 pid, int* status);
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags);
 u64 sys_munmap(void* addr, u64 length);
 u64 sys_sigreturn(void);
+u64 sys_rt_sigaction(u64 sig, const void* act, void* oldact);
+u64 sys_rt_sigprocmask(u64 how, const void* set, void* oldset);
+u64 sys_kill(u64 pid, u64 sig);
 
 void syscall_socket_init(void);
 u64 sys_socket(u64 domain, u64 type, u64 protocol);

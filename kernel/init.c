@@ -2,6 +2,7 @@
 #include "scheduler.h"
 #include "process.h"
 #include "exec.h"
+#include "kernel_init.h"
 #include "stdio.h"
 
 /*
@@ -22,6 +23,16 @@ static void sh_child(void* arg) {
 
 static void init_supervisor(void* arg) {
     (void)arg;
+
+    /*
+     * Bring up the network stack before handing over to the shell, so userland
+     * commands like `nettest` have a working stack. We deliberately use the
+     * lightweight kernel_init_network() rather than kernel_init_extended():
+     * the latter initialises hundreds of subsystems and exhausts the kernel
+     * heap, leaving nothing to allocate /sh's kernel stack.
+     */
+    kernel_init_network();
+
     for (;;) {
         process_t* sh = kthread_run(sh_child, NULL, 32 * 1024);
         if (!sh) {

@@ -174,7 +174,7 @@ int futex_requeue(u32* uaddr, i32 nr_wake, i32 nr_requeue, u32* uaddr2) {
         requeued++;
     }
     
-    word1->waiters = (struct futex_wait_queue*)w;
+    word1->waiters = w;
     
     spinlock_unlock(&word2->lock);
     spinlock_unlock(&word1->lock);

@@ -1,9 +1,14 @@
 #include "membarrier.h"
-#include "io.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
 #include "smp.h"
+
+/* Defined below; declared here for use before definition */
+void mb(void);
+void rmb(void);
+void wmb(void);
+void smp_mb(void);
 
 static u32 membarrier_supported = 0;
 static spinlock_t membarrier_lock = SPINLOCK_INIT;

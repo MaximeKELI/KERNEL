@@ -27,10 +27,11 @@
 #define FUTEX_BITSET_MATCH_ANY 0xFFFFFFFF
 
 /* Futex word structure */
+struct futex_waiter;
 typedef struct futex_word {
     volatile u32 value;
     spinlock_t lock;
-    struct futex_wait_queue* waiters;
+    struct futex_waiter* waiters;
     struct futex_word* next;
 } futex_word_t;
 

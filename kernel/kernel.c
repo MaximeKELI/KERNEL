@@ -93,17 +93,19 @@ void kernel_main(u64 magic, u64 mb_info) {
 #endif
 
     while (true) {
-        if (kernel_extended_ready()) {
-            extern void writeback_tick(void);
-            extern void vdso_update(void);
+        if (kernel_net_ready()) {
             net_poll();
-            writeback_tick();
-            vdso_update();
             hrtimer_process();
             extern workqueue_t* system_wq;
             if (system_wq) {
                 workqueue_process(system_wq);
             }
+        }
+        if (kernel_extended_ready()) {
+            extern void writeback_tick(void);
+            extern void vdso_update(void);
+            writeback_tick();
+            vdso_update();
         }
         if (g_init_active) {
             /* init owns the console; just let its threads run. */

@@ -14,6 +14,7 @@
 #include "landlock.h"
 #include "audit.h"
 #include "memory.h"
+#include "mm.h"
 #include "signal.h"
 #include "kspp.h"
 #include "fb_console.h"
@@ -57,6 +58,8 @@ static syscall_func_t syscall_table[] = {
     (syscall_func_t)sys_poll,
     (syscall_func_t)sys_getpid,
     (syscall_func_t)sys_clock_gettime,
+    (syscall_func_t)sys_brk,
+    (syscall_func_t)sys_mprotect,
 };
 
 static char audit_buf[64];
@@ -265,35 +268,51 @@ u64 sys_wait(u64 pid) {
     return r < 0 ? (u64)-1 : (u64)r;
 }
 
-#define USER_MMAP_BASE 0x500000UL
-#define USER_MMAP_MAX  (USER_STACK_TOP - USER_MMAP_BASE)
+static u64 prot_to_vm(u64 prot) {
+    u64 vm = 0;
+    if (prot & PROT_READ)  vm |= VM_READ;
+    if (prot & PROT_WRITE) vm |= VM_WRITE;
+    if (prot & PROT_EXEC)  vm |= VM_EXEC;
+    return vm;
+}
 
+/* Anonymous memory only for now; backing is demand-paged by mm_fault(). */
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags) {
-    (void)addr;
-    (void)prot;
     (void)flags;
-    if (length == 0 || length > USER_MMAP_MAX) {
+    process_t* proc = process_current();
+    if (!proc || !proc->mm || length == 0) {
         return (u64)-1;
     }
-    size_t pages = (length + PAGE_SIZE - 1) / PAGE_SIZE;
-    void* virt = vmm_alloc_pages(pages);
-    if (!virt) {
-        return (u64)-1;
+    u64 vm = prot_to_vm(prot);
+    if (vm == 0) {
+        vm = VM_READ;
     }
-    u64 va = (u64)virt;
-    if (va < USER_MMAP_BASE) {
-        va = USER_MMAP_BASE;
-    }
-    return va;
+    return mm_mmap(proc->mm, (u64)addr, length, vm);
 }
 
 u64 sys_munmap(void* addr, u64 length) {
-    if (!addr || length == 0) {
+    process_t* proc = process_current();
+    if (!proc || !proc->mm || !addr || length == 0) {
         return (u64)-1;
     }
-    size_t pages = (length + PAGE_SIZE - 1) / PAGE_SIZE;
-    vmm_free_pages(addr, pages);
-    return 0;
+    return (u64)mm_remove_range(proc->mm, (u64)addr, (u64)addr + length);
+}
+
+u64 sys_brk(u64 new_brk) {
+    process_t* proc = process_current();
+    if (!proc || !proc->mm) {
+        return (u64)-1;
+    }
+    return mm_brk(proc->mm, new_brk);
+}
+
+u64 sys_mprotect(void* addr, u64 length, u64 prot) {
+    process_t* proc = process_current();
+    if (!proc || !proc->mm || !addr || length == 0) {
+        return (u64)-1;
+    }
+    u64 vm = prot_to_vm(prot);
+    return (u64)mm_protect_range(proc->mm, (u64)addr, (u64)addr + length, vm);
 }
 
 u64 sys_sigreturn(void) {

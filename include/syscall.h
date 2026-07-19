@@ -32,6 +32,16 @@
 #define SYS_POLL         25
 #define SYS_GETPID       26
 #define SYS_CLOCK_GETTIME 27
+#define SYS_BRK          28
+#define SYS_MPROTECT     29
+
+/* mmap prot / flags (subset, values match Linux). */
+#define PROT_NONE   0x0
+#define PROT_READ   0x1
+#define PROT_WRITE  0x2
+#define PROT_EXEC   0x4
+#define MAP_PRIVATE   0x02
+#define MAP_ANONYMOUS 0x20
 
 /* System call handler */
 u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
@@ -71,5 +81,7 @@ u64 sys_epoll_wait(u64 epfd, void* events, u64 maxevents, u64 timeout);
 u64 sys_poll(void* fds, u64 nfds, u64 timeout_ms);
 u64 sys_getpid(void);
 u64 sys_clock_gettime(u64 clk_id, void* tp);
+u64 sys_brk(u64 new_brk);
+u64 sys_mprotect(void* addr, u64 length, u64 prot);
 
 #endif /* SYSCALL_H */

@@ -3,8 +3,15 @@
 
 #include "types.h"
 
-#define USER_LOAD_ADDR  0x400000UL
-#define USER_STACK_TOP  0x00600000UL
+/*
+ * User address space lives at 1 GiB, well clear of the kernel image + heap,
+ * which occupy low physical/virtual memory (kernel .text/.bss up to ~4.3 MiB,
+ * heap 2..12 MiB, all identity-mapped). Loading a user ELF at the old 0x400000
+ * base remapped those very pages and corrupted the running kernel (#GP). The
+ * loader maps this window explicitly, so being past the identity map is fine.
+ */
+#define USER_LOAD_ADDR  0x40000000UL              /* 1 GiB */
+#define USER_STACK_TOP  0x40400000UL              /* 1 GiB + 4 MiB */
 #define USER_STACK_SIZE (64 * 1024)
 
 /* Load ELF at fixed user addresses; returns entry point */

@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "spinlock.h"
 #include "interrupt.h"
+#include "tss.h"
 
 /*
  * CFS (Completely Fair Scheduler) core with real preemptive multitasking.
@@ -449,6 +450,9 @@ void schedule(void) {
         stats.total_switches++;
         sched_stats_record_switch();
         current_process = next;
+        /* Route any subsequent ring3 trap/syscall onto the incoming task's
+         * kernel stack (tss.rsp0 + SYSCALL stack). */
+        arch_update_kernel_stack(next);
         switch_to(&prev->rsp, &next->rsp);
         /* Control returns here only when `prev` is scheduled again later. */
     }

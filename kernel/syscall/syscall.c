@@ -1,5 +1,6 @@
 #include "syscall.h"
 #include "process.h"
+#include "scheduler.h"
 #include "stdio.h"
 #include "fs/vfs.h"
 #include "io.h"
@@ -116,12 +117,12 @@ void syscall_init(void) {
 }
 
 u64 sys_exit(u64 status) {
-    (void)status;
-    process_t* proc = process_current();
-    if (proc) {
-        proc->state = PROCESS_ZOMBIE;
-    }
-    schedule();
+    /*
+     * Terminate the current task the same way a kernel thread does: record the
+     * exit code, wake any thread_join()/wait waiters and switch away for good.
+     * kthread_exit() never returns.
+     */
+    kthread_exit((int)status);
     return 0;
 }
 

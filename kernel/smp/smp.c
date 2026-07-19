@@ -74,7 +74,7 @@ int set_cpu_affinity(u64 pid, u64 mask) {
 
     while (proc) {
         if (proc->pid == pid) {
-            proc->private_data = (void*)mask;
+            proc->cpu_affinity = mask;
             return 0;
         }
         proc = proc->next;
@@ -88,7 +88,7 @@ u64 get_cpu_affinity(u64 pid) {
 
     while (proc) {
         if (proc->pid == pid) {
-            return (u64)proc->private_data;
+            return proc->cpu_affinity;
         }
         proc = proc->next;
     }

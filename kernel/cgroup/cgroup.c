@@ -58,7 +58,7 @@ int cgroup_attach_process(cgroup_t* cg, u64 pid) {
         if (proc->pid == pid) {
             spinlock_lock(&cgroup_lock);
             cg->process_count++;
-            proc->private_data = cg;
+            proc->cgroup_data = cg;
             spinlock_unlock(&cgroup_lock);
             DEBUG_INFO("Process %u attached to cgroup %s", (u32)pid, cg->name);
             return 0;
@@ -93,7 +93,7 @@ cgroup_t* cgroup_get_process(u64 pid) {
     
     while (proc) {
         if (proc->pid == pid) {
-            return (cgroup_t*)proc->private_data;
+            return (cgroup_t*)proc->cgroup_data;
         }
         proc = proc->next;
     }

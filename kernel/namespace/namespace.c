@@ -42,7 +42,7 @@ namespace_t* namespace_get(u64 type) {
     process_t* proc = process_current();
     if (!proc) return NULL;
     
-    namespace_t* ns = (namespace_t*)proc->private_data;
+    namespace_t* ns = (namespace_t*)proc->ns_data;
     while (ns) {
         if (ns->type == type) {
             return ns;
@@ -57,7 +57,7 @@ int namespace_set(u64 type, namespace_t* ns) {
     process_t* proc = process_current();
     if (!proc) return -1;
     
-    namespace_t* current = (namespace_t*)proc->private_data;
+    namespace_t* current = (namespace_t*)proc->ns_data;
     namespace_t* prev = NULL;
     
     while (current) {
@@ -65,7 +65,7 @@ int namespace_set(u64 type, namespace_t* ns) {
             if (prev) {
                 prev->next = ns;
             } else {
-                proc->private_data = ns;
+                proc->ns_data = ns;
             }
             ns->next = current->next;
             kfree(current);
@@ -76,8 +76,8 @@ int namespace_set(u64 type, namespace_t* ns) {
     }
     
     /* Add new namespace */
-    ns->next = (namespace_t*)proc->private_data;
-    proc->private_data = ns;
+    ns->next = (namespace_t*)proc->ns_data;
+    proc->ns_data = ns;
     
     return 0;
 }

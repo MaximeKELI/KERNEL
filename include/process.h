@@ -88,8 +88,18 @@ typedef struct process {
     /* Per-process lock (PI mutex, etc.) */
     spinlock_t lock;
 
-    /* Opaque per-process data (signals, namespaces, ...) */
+    /* Opaque per-process data (namespaces, cgroups, drivers, ...) */
     void* private_data;
+
+    /*
+     * Dedicated per-process slots. These used to all alias `private_data`, so
+     * enabling signals silently clobbered a task's namespace/affinity/cgroup
+     * (and vice-versa). Each subsystem now owns its own field.
+     */
+    void* signal_state;   /* signal_state_t* (kernel/signal/signal.c) */
+    void* ns_data;        /* namespace_t* list head */
+    void* cgroup_data;    /* cgroup_t* */
+    u64   cpu_affinity;   /* SMP affinity bitmask (0 = unset => all CPUs) */
 
     /* Child returns 0 from SYS_FORK once */
     u8 fork_child_ret;

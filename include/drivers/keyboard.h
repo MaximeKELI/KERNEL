@@ -26,4 +26,10 @@ bool keyboard_get_event(keyboard_event_t* event);
 /* Read character (blocking) */
 char keyboard_read_char(void);
 
+/* Inject a synthetic key press (serial bridge / tests) */
+void keyboard_inject_char(char c);
+
+/* Blocking line-buffered read (tty line discipline); returns length read */
+u32 keyboard_read_line(char* buf, u32 max);
+
 #endif /* KEYBOARD_H */

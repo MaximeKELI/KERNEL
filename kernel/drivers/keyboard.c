@@ -63,3 +63,56 @@ char keyboard_read_char(void) {
         __asm__ __volatile__("hlt");
     }
 }
+
+/*
+ * Push a synthetic key press into the event queue. Used to bridge other input
+ * sources (e.g. the serial console) and to drive the keyboard path from tests
+ * without real hardware.
+ */
+void keyboard_inject_char(char c) {
+    if (queue_size >= 256) {
+        return;
+    }
+    keyboard_event_t event;
+    event.scancode = 0;
+    event.pressed = true;
+    event.character = c;
+    event_queue[queue_tail] = event;
+    queue_tail = (queue_tail + 1) % 256;
+    queue_size++;
+}
+
+/*
+ * Blocking, line-buffered read (a minimal tty line discipline): echoes typed
+ * characters, handles backspace, and returns once Enter is pressed or the
+ * buffer is full. The returned length includes the trailing '\n' (if any) and
+ * the buffer is NUL-terminated. This backs sys_read(stdin) so ring-3 programs
+ * can read interactively.
+ */
+u32 keyboard_read_line(char* buf, u32 max) {
+    u32 len = 0;
+    if (!buf || max == 0) {
+        return 0;
+    }
+    while (len + 1 < max) {
+        char c = keyboard_read_char();
+        if (c == '\b' || c == 127) {
+            if (len > 0) {
+                len--;
+                printk("\b \b");
+            }
+            continue;
+        }
+        if (c == '\r' || c == '\n') {
+            buf[len++] = '\n';
+            printk("\n");
+            break;
+        }
+        if (c >= 32 && c < 127) {
+            buf[len++] = c;
+            printk("%c", c);
+        }
+    }
+    buf[len] = '\0';
+    return len;
+}

@@ -62,6 +62,7 @@ typedef struct process {
     /* Memory */
     void* stack_base;
     size_t stack_size;
+    struct mm_struct* mm;   /* user virtual-memory areas (NULL for pure kthreads) */
     
     /* Scheduling */
     sched_node_t sched_node;  /* embedded CFS runqueue node (no alloc on schedule) */

@@ -9,6 +9,9 @@
 #include "memory.h"
 #include "stdio.h"
 #include "string.h"
+#include "pci.h"
+#include "ethernet.h"
+#include "e1000.h"
 
 /* Test TCP initialization */
 static test_result_t test_tcp_init(void) {
@@ -224,8 +227,54 @@ static test_result_t test_ip_addr(void) {
     return TEST_PASS;
 }
 
+/* Test the e1000 driver binds to QEMU's default NIC (8086:100e).
+ * Covers the real path: PCI enumeration -> device match -> probe (reset, MAC
+ * read, ring setup, handler install) -> RX/TX through the public ethernet API.
+ * (End-to-end traffic needs a network backend, which the CI VM lacks.) */
+static test_result_t test_e1000_probe(void) {
+    pci_init();  /* scan bus 0 so the NIC is discoverable */
+
+    pci_device_t* pci = pci_find_device(E1000_VENDOR, E1000_DEVICE);
+    TEST_ASSERT_NOT_NULL(pci);
+
+    ethernet_device_t dev;
+    memset(&dev, 0, sizeof(dev));
+    strncpy(dev.name, "test0", sizeof(dev.name) - 1);
+
+    TEST_ASSERT_EQ(e1000_probe(pci, &dev), 0);
+
+    /* Data-path handlers must be installed -> counts as a hardware NIC. */
+    TEST_ASSERT_NOT_NULL((void*)dev.tx_fn);
+    TEST_ASSERT_NOT_NULL((void*)dev.rx_fn);
+    TEST_ASSERT_NOT_NULL((void*)dev.poll_fn);
+    TEST_ASSERT(ethernet_is_hardware(&dev));
+
+    /* QEMU's default e1000 MAC is 52:54:00:12:34:56. */
+    TEST_ASSERT_EQ(dev.mac_address[0], 0x52);
+    TEST_ASSERT_EQ(dev.mac_address[1], 0x54);
+    TEST_ASSERT_EQ(dev.mac_address[2], 0x00);
+
+    dev.up = true;
+
+    /* No frame has arrived: RX must report "nothing" (0), never a bogus read. */
+    u8 rxbuf[64];
+    TEST_ASSERT_EQ(ethernet_receive_packet(&dev, rxbuf, sizeof(rxbuf)), 0);
+
+    /* TX a minimum-size frame: the descriptor ring + MMIO doorbell must accept it. */
+    u8 frame[60];
+    memset(frame, 0xFF, 6);           /* broadcast dst */
+    memcpy(frame + 6, dev.mac_address, 6);
+    frame[12] = 0x08; frame[13] = 0x00;
+    memset(frame + 14, 0, sizeof(frame) - 14);
+    TEST_ASSERT_EQ(ethernet_send_packet(&dev, frame, sizeof(frame)), 0);
+    TEST_ASSERT_EQ(dev.tx_packets, 1);
+
+    return TEST_PASS;
+}
+
 /* Register all network tests */
 void register_network_tests(void) {
+    test_register("network", "e1000_probe", test_e1000_probe);
     test_register("network", "tcp_init", test_tcp_init);
     test_register("network", "udp_init", test_udp_init);
     test_register("network", "ip_init", test_ip_init);

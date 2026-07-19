@@ -18,7 +18,64 @@ extern char nettest_bin_end[];
 extern char sh_bin_start[];
 extern char sh_bin_end[];
 
-#define PT_LOAD 1
+#define PT_LOAD    1
+#define PT_DYNAMIC 2
+#define PT_PHDR    6
+#define ET_EXEC    2
+#define ET_DYN     3
+
+/* Dynamic-section tags (subset). */
+#define DT_NULL     0
+#define DT_RELA     7
+#define DT_RELASZ   8
+#define DT_RELAENT  9
+#define R_X86_64_RELATIVE 8
+
+typedef struct __packed { i64 d_tag; u64 d_val; } elf_dyn_t;
+typedef struct __packed { u64 r_offset; u64 r_info; i64 r_addend; } elf_rela_t;
+
+/* Filled by exec_load_elf so exec can build a proper SysV auxv. */
+elf_load_info_t g_last_elf_info;
+
+/*
+ * Apply R_X86_64_RELATIVE relocations for a static-PIE binary. The dynamic
+ * section is walked to find the RELA table; each RELATIVE entry patches an
+ * absolute pointer to (load_bias + addend). Enough to run musl static-PIE.
+ */
+static void exec_apply_relocations(const elf_header_t* ehdr, const void* elf_data,
+                                   u64 bias) {
+    const elf_phdr_t* phdr = (const elf_phdr_t*)((const u8*)elf_data + ehdr->e_phoff);
+    u64 rela = 0, relasz = 0, relaent = sizeof(elf_rela_t);
+
+    for (u16 i = 0; i < ehdr->e_phnum; i++) {
+        if (phdr[i].p_type != PT_DYNAMIC) {
+            continue;
+        }
+        const elf_dyn_t* dyn = (const elf_dyn_t*)(bias + phdr[i].p_vaddr);
+        for (; dyn->d_tag != DT_NULL; dyn++) {
+            if (dyn->d_tag == DT_RELA)    rela = bias + dyn->d_val;
+            else if (dyn->d_tag == DT_RELASZ)  relasz = dyn->d_val;
+            else if (dyn->d_tag == DT_RELAENT) relaent = dyn->d_val;
+        }
+    }
+    if (!rela || !relasz || !relaent) {
+        return;
+    }
+    exec_apply_rela(bias, rela, relasz, relaent);
+}
+
+/* Apply R_X86_64_RELATIVE entries from a RELA table (pure; unit-testable). */
+void exec_apply_rela(u64 bias, u64 rela_addr, u64 relasz, u64 relaent) {
+    if (!rela_addr || !relaent) {
+        return;
+    }
+    for (u64 off = 0; off < relasz; off += relaent) {
+        const elf_rela_t* r = (const elf_rela_t*)(rela_addr + off);
+        if ((r->r_info & 0xffffffff) == R_X86_64_RELATIVE) {
+            *(u64*)(bias + r->r_offset) = bias + (u64)r->r_addend;
+        }
+    }
+}
 
 int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
     if (!elf_data || !entry_out || elf_validate(elf_data, size) < 0) {
@@ -28,12 +85,16 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
     const elf_header_t* ehdr = (const elf_header_t*)elf_data;
     const elf_phdr_t* phdr = (const elf_phdr_t*)((const u8*)elf_data + ehdr->e_phoff);
 
+    /* Static-PIE (ET_DYN) is position-independent: relocate it to USER_LOAD_ADDR.
+     * A fixed ET_EXEC keeps its own addresses (bias 0). */
+    u64 bias = (ehdr->e_type == ET_DYN) ? USER_LOAD_ADDR : 0;
+
     for (u16 i = 0; i < ehdr->e_phnum; i++) {
         if (phdr[i].p_type != PT_LOAD) {
             continue;
         }
 
-        u64 vaddr = phdr[i].p_vaddr;
+        u64 vaddr = phdr[i].p_vaddr + bias;
         size_t memsz = phdr[i].p_memsz;
         size_t filesz = phdr[i].p_filesz;
         u64 flags = phdr[i].p_flags;
@@ -80,11 +141,44 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
         }
     }
 
-    *entry_out = ehdr->e_entry;
+    /* Relocate if position-independent (writable pages are mapped now). */
+    if (bias) {
+        exec_apply_relocations(ehdr, elf_data, bias);
+    }
+
+    /* Compute AT_PHDR: the in-memory address of the program headers. */
+    u64 at_phdr = 0;
+    for (u16 i = 0; i < ehdr->e_phnum; i++) {
+        if (phdr[i].p_type == PT_PHDR) {
+            at_phdr = phdr[i].p_vaddr + bias;
+            break;
+        }
+    }
+    if (!at_phdr) {
+        for (u16 i = 0; i < ehdr->e_phnum; i++) {
+            if (phdr[i].p_type == PT_LOAD && phdr[i].p_offset == 0) {
+                at_phdr = phdr[i].p_vaddr + bias + ehdr->e_phoff;
+                break;
+            }
+        }
+    }
+
+    g_last_elf_info.entry = ehdr->e_entry + bias;
+    g_last_elf_info.phdr = at_phdr;
+    g_last_elf_info.phent = ehdr->e_phentsize;
+    g_last_elf_info.phnum = ehdr->e_phnum;
+    g_last_elf_info.base = bias;
+
+    *entry_out = g_last_elf_info.entry;
     return 0;
 }
 
 static u8 exec_file_buf[256 * 1024];
+
+/* True if the blob came from the VFS (vs an embedded incbin blob). */
+bool exec_blob_is_vfs(const void* blob) {
+    return blob == exec_file_buf;
+}
 
 const void* exec_resolve_path(const char* path, size_t* size_out) {
     if (!path || !size_out) {
@@ -138,7 +232,19 @@ static int exec_map_user_stack(void) {
 
 /* AT_* auxiliary vector tags (subset; values match Linux). */
 #define AT_NULL   0
+#define AT_PHDR   3
+#define AT_PHENT  4
+#define AT_PHNUM  5
 #define AT_PAGESZ 6
+#define AT_BASE   7
+#define AT_ENTRY  9
+#define AT_UID    11
+#define AT_EUID   12
+#define AT_GID    13
+#define AT_EGID   14
+#define AT_HWCAP  16
+#define AT_RANDOM 25
+#define AT_SYSINFO_EHDR 33
 
 /*
  * Lay out the initial user stack per the SysV AMD64 ABI:
@@ -173,8 +279,14 @@ static u64 exec_setup_stack(char* const argv[]) {
         argv_ptr[i] = sp;
     }
 
+    /* 16 bytes of AT_RANDOM data live just above the vector. */
+    sp -= 16;
+    u64 at_random = sp;
+    *(u64*)(sp) = 0x0123456789abcdefULL;
+    *(u64*)(sp + 8) = 0xfedcba9876543210ULL;
+
     /* Assemble the pointer vector in a scratch buffer, then place it 16-aligned. */
-    u64 vec[64];
+    u64 vec[96];
     int n = 0;
     vec[n++] = (u64)argc;
     for (int i = 0; i < argc; i++) {
@@ -182,10 +294,28 @@ static u64 exec_setup_stack(char* const argv[]) {
     }
     vec[n++] = 0;             /* argv terminator */
     vec[n++] = 0;             /* envp terminator (no env yet) */
+
+    /* Auxiliary vector (SysV AMD64 ABI): describes the loaded image. */
+    vec[n++] = AT_PHDR;   vec[n++] = g_last_elf_info.phdr;
+    vec[n++] = AT_PHENT;  vec[n++] = g_last_elf_info.phent;
+    vec[n++] = AT_PHNUM;  vec[n++] = g_last_elf_info.phnum;
+    vec[n++] = AT_BASE;   vec[n++] = g_last_elf_info.base;
+    vec[n++] = AT_ENTRY;  vec[n++] = g_last_elf_info.entry;
     vec[n++] = AT_PAGESZ; vec[n++] = PAGE_SIZE;
+    vec[n++] = AT_UID;    vec[n++] = 0;
+    vec[n++] = AT_EUID;   vec[n++] = 0;
+    vec[n++] = AT_GID;    vec[n++] = 0;
+    vec[n++] = AT_EGID;   vec[n++] = 0;
+    vec[n++] = AT_HWCAP;  vec[n++] = 0;
+    vec[n++] = AT_RANDOM; vec[n++] = at_random;
+    vec[n++] = AT_SYSINFO_EHDR; vec[n++] = vdso_ehdr_addr();
     vec[n++] = AT_NULL;   vec[n++] = 0;
 
     u64 dest = (sp - (u64)n * 8) & ~0xFULL;
+    /* Keep argc at a 16-aligned rsp: total slots must be even. */
+    if (((dest / 8) & 1) != 0) {
+        dest -= 8;
+    }
     memcpy((void*)dest, vec, (size_t)n * 8);
     return dest;
 }
@@ -228,6 +358,13 @@ int exec_run_path_argv(const char* path, char* const argv[]) {
     }
 
     process_t* proc = process_current();
+
+    /* Binaries loaded from the filesystem use the Linux x86-64 syscall ABI;
+     * the embedded sh/nettest blobs keep this kernel's internal numbering. */
+    bool from_vfs = exec_blob_is_vfs(blob);
+    if (proc) {
+        proc->linux_abi = from_vfs;
+    }
 
     /* Replace the address space: discard the inherited/previous user mappings
      * (a no-op on first exec) and start from an empty VMA map. */

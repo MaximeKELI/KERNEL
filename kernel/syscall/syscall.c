@@ -28,6 +28,7 @@
 #include "drivers/timer.h"
 #include "drivers/keyboard.h"
 #include "ipc.h"
+#include "abi/linux_abi.h"
 
 extern int socket_fd_poll_events(int fd);
 
@@ -97,11 +98,6 @@ static char audit_buf[64];
 
 u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5,
                     void* uframe) {
-    if (syscall_num >= sizeof(syscall_table) / sizeof(syscall_table[0])) {
-        DEBUG_ERROR("Invalid syscall number: %llu", (unsigned long long)syscall_num);
-        return (u64)-1;
-    }
-
     process_t* proc = process_current();
     if (proc) {
         /* Remember the caller's user register block so fork() can clone it. */
@@ -118,12 +114,22 @@ u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64
         return (u64)-1;
     }
 
-    syscall_func_t func = syscall_table[syscall_num];
-    if (!func) {
-        return (u64)-1;
+    u64 ret;
+    if (proc && proc->linux_abi) {
+        /* Linux x86-64 ABI: rax is a __NR_* number, result is -errno on error.
+         * (arg6 is not marshalled by the entry stub; 6-arg calls like sendto
+         * are unsupported on this fast path — see kernel/syscall/linux_abi.c.) */
+        ret = (u64)linux_syscall((long)syscall_num, arg1, arg2, arg3, arg4, arg5, 0);
+    } else {
+        if (syscall_num >= sizeof(syscall_table) / sizeof(syscall_table[0])) {
+            return (u64)-1;
+        }
+        syscall_func_t func = syscall_table[syscall_num];
+        if (!func) {
+            return (u64)-1;
+        }
+        ret = func(arg1, arg2, arg3, arg4, arg5);
     }
-
-    u64 ret = func(arg1, arg2, arg3, arg4, arg5);
 
     /*
      * The fork() child does NOT return through this path: it resumes directly

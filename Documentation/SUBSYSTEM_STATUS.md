@@ -12,17 +12,29 @@ Legend:
 
 ## Core (relied upon)
 
-- Memory: PMM bitmap + per-frame refcount (REAL), `kmalloc` heap (REAL, fixed
-  10 MiB), slab (REAL), 4-level paging + map/unmap + huge-page split (REAL),
-  COW machinery (REAL). Gaps: no per-process CR3 switch yet, no VMA/`mm_struct`,
-  `mmap`/`brk` not real, fault handler only does COW. (See phases P1-P2.)
+- Memory: PMM bitmap + per-frame refcount (REAL), `kmalloc` heap (REAL, sized
+  from `_kernel_end`), slab (REAL), 4-level paging + map/unmap + huge-page split
+  (REAL), COW machinery (REAL). Per-process CR3 switch (REAL, P1), `mm_struct` +
+  VMA tree + page-fault dispatcher (COW/anon/stack) (REAL, P2), real
+  `mmap`/`munmap`/`mprotect`/`brk` (REAL, P2).
 - Scheduler: CFS with RB-tree + vruntime (REAL), timer preemption (REAL),
   context switch (REAL), kthreads `kthread_run/join/exit` (REAL). Single global
   runqueue; SMP not real (see P7).
-- Syscalls: `SYSCALL/SYSRET` entry (REAL), ~28 calls, custom (non-Linux) ABI.
-- FS: ext2 READ (REAL), VFS is a prefix switch (PARTIAL), ext2 WRITE is a stub.
+- Process lifecycle: `fork` (COW clone, ring-3 resume frame), `exec` (teardown +
+  SysV ABI stack argv/envp/auxv), `wait` (zombie reaping, exit status),
+  per-process fd table (REAL, P3).
+- Signals: real ring-3 delivery on syscall/IRQ return, `sigreturn`, default
+  actions, `rt_sigaction/procmask`, cross-process `kill`, `SIGSEGV` on fault
+  (REAL, P4).
+- Syscalls: `SYSCALL/SYSRET` entry (REAL), ~43 calls, custom (non-Linux) ABI
+  (Linux ABI renumber pending, P6).
+- FS: VFS root is now real hierarchical **ramfs** (dirs, path resolution,
+  create/mkdir/unlink/rmdir/getdents, growing files) (REAL, P5). ext2 READ
+  (REAL) and ext2 WRITE (REAL against a RAM-backed image: bitmap alloc, dir
+  entries, inode writeback, single/double indirect blocks; real disk backend
+  deferred to P8). Pipes: in-memory ring buffer wired to the fd table (REAL, P5).
 - Net: L2/L3/L4 stack (REAL-ish), drivers virtio-net / rtl8139 / e1000 (REAL).
-- Userland: ring-3 exec of flat static ELF blobs (REAL), no argv/env/auxv, no libc.
+- Userland: ring-3 exec of static ELF with argv/env/auxv (REAL), no libc yet (P6).
 
 ## Substantive extras (REAL / REAL-ish)
 
@@ -50,7 +62,7 @@ overcommit,userfaultfd,hugepages}.
 - `kernel/container/security.c`
 - `kernel/perf/profiling.c`
 - `kernel/trace/events.c`, `tracepoint.c`
-- `kernel/fs/{ext4,xfs,btrfs,overlayfs,fuse}.c` (print-only)
+- `kernel/fs/{ext4,xfs,btrfs,overlayfs,fuse}.c` (print-only; ext2 is the real one)
 - `kernel/efi/efi.c` (mostly no-ops)
 
 These are targeted for real implementation or clear quarantine in phase P8.

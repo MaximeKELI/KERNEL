@@ -14,11 +14,27 @@
 #define USER_STACK_TOP  0x40400000UL              /* 1 GiB + 4 MiB */
 #define USER_STACK_SIZE (64 * 1024)
 
+/* Program-header/entry info produced by the loader for the SysV auxv. */
+typedef struct elf_load_info {
+    u64 entry;
+    u64 phdr;
+    u64 phent;
+    u64 phnum;
+    u64 base;
+} elf_load_info_t;
+extern elf_load_info_t g_last_elf_info;
+
 /* Load ELF at fixed user addresses; returns entry point */
 int exec_load_elf(const void* elf_data, size_t size, u64* entry_out);
 
+/* Apply R_X86_64_RELATIVE entries from a RELA table (static-PIE relocation). */
+void exec_apply_rela(u64 bias, u64 rela_addr, u64 relasz, u64 relaent);
+
 /* Resolve path to embedded nettest or return NULL */
 const void* exec_resolve_path(const char* path, size_t* size_out);
+
+/* True if a resolved blob came from the VFS (vs an embedded incbin blob). */
+bool exec_blob_is_vfs(const void* blob);
 
 /* Replace current task image and jump to user entry (no return) */
 int exec_run_path(const char* path);

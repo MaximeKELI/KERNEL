@@ -101,6 +101,12 @@ typedef struct process {
     void* cgroup_data;    /* cgroup_t* */
     u64   cpu_affinity;   /* SMP affinity bitmask (0 = unset => all CPUs) */
 
+    /* Linux x86-64 ABI (P6): when set, the syscall entry dispatches rax as a
+     * Linux __NR_* number through the linux_syscall() translator (-errno). */
+    bool  linux_abi;
+    u64   fs_base;        /* arch_prctl(ARCH_SET_FS) TLS base (%fs) */
+    u64   clear_child_tid;/* set_tid_address */
+
     /* Child returns 0 from SYS_FORK once */
     u8 fork_child_ret;
 

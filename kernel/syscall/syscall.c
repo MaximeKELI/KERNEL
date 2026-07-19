@@ -109,8 +109,15 @@ void syscall_init(void) {
     syscall_socket_init();
     u64 efer = rdmsr(0xC0000080);
     wrmsr(0xC0000080, efer | (1 << 0));
-    /* STAR: kernel CS @ 63:48, user CS @ 47:32 (SYSRET SS = user CS + 8) */
-    wrmsr(0xC0000081, ((u64)GDT_KERNEL_CODE << 48) | ((u64)GDT_USER_CODE << 32));
+    /*
+     * STAR (Intel SDM):
+     *   [47:32] SYSCALL loads CS = this selector, SS = this+8.  -> kernel 0x08/0x10
+     *   [63:48] SYSRET base: CS = base+16, SS = base+8 (both forced RPL 3).
+     *           base 0x10 => CS=0x23 (user code), SS=0x1B (user data).
+     * Getting [47:32] wrong makes SYSCALL run the kernel with a user-code CS
+     * (CS=0x20) and blows up on the first privileged operation.
+     */
+    wrmsr(0xC0000081, ((u64)0x10 << 48) | ((u64)GDT_KERNEL_CODE << 32));
     wrmsr(0xC0000082, (u64)syscall_entry);
     wrmsr(0xC0000084, 0x200);
     printk("Syscall: SYSCALL/SYSRET ring0/ring3\n");

@@ -53,8 +53,8 @@ void tss_init(void) {
     gdt_install_tss((u64)(uintptr_t)&tss, sizeof(tss_t) - 1);
     __asm__ volatile("ltr %%ax" : : "a"((u16)GDT_TSS_SEL) : "memory");
 
-    printk("[TSS] loaded (sel=0x%x, rsp0=0x%llx)\n",
-           (unsigned)GDT_TSS_SEL, (unsigned long long)top);
+    printk("[TSS] loaded (sel=0x%x, rsp0=0x%x)\n",
+           (unsigned)GDT_TSS_SEL, (unsigned)top);
 }
 
 void tss_set_rsp0(u64 rsp0) {

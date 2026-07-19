@@ -115,7 +115,13 @@ void kernel_init_minimal(void) {
     printk("[init] fast boot path\n");
 
     printk("Memory (core)...\n");
-    pmm_init(512 * 1024 * 1024, 0x100000, 0x100000);
+    /*
+     * Reserve everything from physical 0 up to the end of the kernel heap
+     * (low 1 MiB + kernel image at 1 MiB + 10 MiB heap at 2 MiB), and place the
+     * PMM bitmap right after the heap. This guarantees pmm_alloc() never hands
+     * out address 0 (which reads as NULL) nor memory overlapping the kernel/heap.
+     */
+    pmm_init(512 * 1024 * 1024, 0x0, 0xC00000);
     vmm_init();
     heap_init();
 

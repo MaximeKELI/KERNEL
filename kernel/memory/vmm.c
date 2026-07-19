@@ -30,6 +30,8 @@ static u64* get_pte(void* virt) {
     page_table_t* pd = (page_table_t*)(pdpt_entry & ~0xFFF);
     u64 pd_entry = pd->entries[pd_idx];
     if (!(pd_entry & PAGE_PRESENT)) return NULL;
+    /* 2 MiB huge page: there is no 4 KiB page table to index into. */
+    if (pd_entry & PAGE_SIZE_2MB_FLAG) return NULL;
     
     page_table_t* pt = (page_table_t*)(pd_entry & ~0xFFF);
     return &pt->entries[pt_idx];

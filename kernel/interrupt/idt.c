@@ -67,13 +67,13 @@ extern void syscall_handler_asm(void);
 u64 global_interrupt_count = 0;
 
 /* Common interrupt handler */
-void interrupt_handler(u64 vector, u64 error_code) {
+void interrupt_handler(u64 vector, u64 error_code, interrupt_frame_t* frame) {
     /* Increment interrupt counter for AI monitoring */
     global_interrupt_count++;
     
     if (vector < 32) {
         /* Exception */
-        exception_handler(vector, error_code);
+        exception_handler(vector, error_code, frame);
     } else if (vector >= 32 && vector < 48) {
         /* IRQ */
         u32 irq = vector - 32;

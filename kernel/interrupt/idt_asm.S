@@ -97,6 +97,7 @@ isr_common:
     ; Call C handler
     mov rdi, [rsp + 15*8]  ; Interrupt number
     mov rsi, [rsp + 16*8]  ; Error code
+    mov rdx, rsp           ; Pointer to saved register frame (interrupt_frame_t)
     call interrupt_handler
     
     ; Restore registers

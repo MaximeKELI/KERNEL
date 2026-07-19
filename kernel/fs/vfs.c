@@ -125,7 +125,8 @@ vfs_file_t* vfs_open(const char* path, u64 flags) {
         kfree(file);
         return NULL;
     }
-    file->private_data = (void*)(uintptr_t)be;
+    /* Record the backend separately: private_data belongs to the FS open(). */
+    file->backend = (int)be;
     return file;
 }
 
@@ -134,7 +135,7 @@ int vfs_open_fd(const char* path, u64 flags) {
     if (!f) {
         return -1;
     }
-    vfs_backend_type_t be = (vfs_backend_type_t)(uintptr_t)f->private_data;
+    vfs_backend_type_t be = (vfs_backend_type_t)f->backend;
     vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
     return vfs_alloc_fd(f, ops, be);
 }
@@ -183,7 +184,7 @@ int vfs_close(vfs_file_t* file) {
 ssize_t vfs_read(vfs_file_t* file, void* buf, size_t count) {
     VALIDATE_PTR_RET(file, -1);
     VALIDATE_PTR_RET(buf, -1);
-    vfs_backend_type_t be = (vfs_backend_type_t)(uintptr_t)file->private_data;
+    vfs_backend_type_t be = (vfs_backend_type_t)file->backend;
     vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
     if (ops && ops->read) {
         return ops->read(file, buf, count);
@@ -194,7 +195,7 @@ ssize_t vfs_read(vfs_file_t* file, void* buf, size_t count) {
 ssize_t vfs_write(vfs_file_t* file, const void* buf, size_t count) {
     VALIDATE_PTR_RET(file, -1);
     VALIDATE_PTR_RET(buf, -1);
-    vfs_backend_type_t be = (vfs_backend_type_t)(uintptr_t)file->private_data;
+    vfs_backend_type_t be = (vfs_backend_type_t)file->backend;
     vfs_ops_t* ops = (be == VFS_BACKEND_EXT2) ? ext2_get_file_ops() : tmpfs_get_file_ops();
     if (ops && ops->write) {
         return ops->write(file, buf, count);

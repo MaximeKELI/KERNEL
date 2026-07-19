@@ -32,7 +32,10 @@ slab_cache_t* kmem_cache_create(const char* name, size_t size) {
     
     strncpy(cache->name, name, sizeof(cache->name) - 1);
     cache->object_size = ALIGN_UP(size, 8);
-    cache->objects_per_slab = (SLAB_SIZE - sizeof(slab_t)) / cache->object_size;
+    /* Each object also needs a u32 slot in the free_list stored in the same
+     * page, so budget object_size + sizeof(u32) per object to avoid overrun. */
+    cache->objects_per_slab =
+        (SLAB_SIZE - sizeof(slab_t)) / (cache->object_size + sizeof(u32));
     cache->active_objects = 0;
     cache->total_objects = 0;
     spinlock_init(&cache->lock);

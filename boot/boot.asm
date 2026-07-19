@@ -119,6 +119,8 @@ enable_paging:
 
     mov eax, cr4
     or eax, 1 << 5             ; CR4.PAE
+    or eax, 1 << 9             ; CR4.OSFXSR      (enable SSE / FXSAVE)
+    or eax, 1 << 10            ; CR4.OSXMMEXCPT  (SSE #XM exceptions)
     mov cr4, eax
 
     mov ecx, 0xC0000080        ; EFER MSR
@@ -127,6 +129,8 @@ enable_paging:
     wrmsr
 
     mov eax, cr0
+    and eax, 0xFFFFFFFB        ; clear CR0.EM  (no x87/SSE emulation)
+    or eax, 1 << 1             ; CR0.MP
     or eax, 1 << 31            ; CR0.PG
     or eax, 1 << 0             ; CR0.PE (already set by GRUB)
     mov cr0, eax

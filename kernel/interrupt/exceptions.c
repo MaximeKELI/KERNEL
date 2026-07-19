@@ -26,7 +26,7 @@ static const char* exception_names[] = {
     "Virtualization Exception"
 };
 
-void exception_handler(u32 vector, u64 error_code) {
+void exception_handler(u32 vector, u64 error_code, interrupt_frame_t* frame) {
     const char* name = "Unknown";
     if (vector < 21) {
         name = exception_names[vector];
@@ -45,29 +45,23 @@ void exception_handler(u32 vector, u64 error_code) {
         printk("Page fault at address: 0x%p (err=0x%x)\n", (void*)cr2, (u32)error_code);
     }
     
-    /* Dump registers */
-    u64 rax, rbx, rcx, rdx, rsi, rdi, rbp, rsp, rip, rflags;
-    __asm__ __volatile__(
-        "mov %%rax, %0\n\t"
-        "mov %%rbx, %1\n\t"
-        "mov %%rcx, %2\n\t"
-        "mov %%rdx, %3\n\t"
-        "mov %%rsi, %4\n\t"
-        "mov %%rdi, %5\n\t"
-        "mov %%rbp, %6\n\t"
-        "mov %%rsp, %7"
-        : "=r"(rax), "=r"(rbx), "=r"(rcx), "=r"(rdx),
-          "=r"(rsi), "=r"(rdi), "=r"(rbp), "=r"(rsp)
-    );
-    __asm__ __volatile__("lea (%%rip), %0" : "=r"(rip));
-    __asm__ __volatile__("pushfq; pop %0" : "=r"(rflags));
-    
-    printk("Registers:\n");
-    printk("  RAX: 0x%p  RBX: 0x%p  RCX: 0x%p  RDX: 0x%p\n",
-           (void*)rax, (void*)rbx, (void*)rcx, (void*)rdx);
-    printk("  RSI: 0x%p  RDI: 0x%p  RBP: 0x%p  RSP: 0x%p\n",
-           (void*)rsi, (void*)rdi, (void*)rbp, (void*)rsp);
-    printk("  RIP: 0x%p  RFLAGS: 0x%p\n", (void*)rip, (void*)rflags);
+    /*
+     * Dump the CPU state captured at the fault site (from the interrupt frame),
+     * not the live registers of this handler.
+     */
+    if (frame) {
+        printk("Registers (at fault):\n");
+        printk("  RIP: 0x%p  CS: 0x%p  RFLAGS: 0x%p\n",
+               (void*)frame->rip, (void*)frame->cs, (void*)frame->rflags);
+        printk("  RAX: 0x%p  RBX: 0x%p  RCX: 0x%p  RDX: 0x%p\n",
+               (void*)frame->rax, (void*)frame->rbx, (void*)frame->rcx, (void*)frame->rdx);
+        printk("  RSI: 0x%p  RDI: 0x%p  RBP: 0x%p  RSP: 0x%p\n",
+               (void*)frame->rsi, (void*)frame->rdi, (void*)frame->rbp, (void*)frame->rsp);
+        printk("  R8 : 0x%p  R9 : 0x%p  R10: 0x%p  R11: 0x%p\n",
+               (void*)frame->r8, (void*)frame->r9, (void*)frame->r10, (void*)frame->r11);
+        printk("  R12: 0x%p  R13: 0x%p  R14: 0x%p  R15: 0x%p\n",
+               (void*)frame->r12, (void*)frame->r13, (void*)frame->r14, (void*)frame->r15);
+    }
     
     panic("Kernel exception");
 }

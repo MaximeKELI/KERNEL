@@ -33,7 +33,8 @@ typedef struct vfs_file {
     size_t size;
     u64 flags;
     u64 offset;
-    void* private_data;
+    void* private_data;   /* owned by the backing filesystem's open() */
+    int backend;          /* vfs_backend_type_t, set by vfs_open (see vfs.c) */
 } vfs_file_t;
 
 /* Directory entry */

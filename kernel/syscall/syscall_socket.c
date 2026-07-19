@@ -1,6 +1,7 @@
 #include "syscall.h"
 #include "net.h"
 #include "net_socket.h"
+#include "ip.h"
 #include "udp.h"
 #include "uaccess.h"
 #include "memory.h"

@@ -1,4 +1,5 @@
 #include "membarrier.h"
+#include "io.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"

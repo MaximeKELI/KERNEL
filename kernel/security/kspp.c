@@ -1,5 +1,6 @@
 #include "kspp.h"
 #include "memory.h"
+#include "string.h"
 #include "stdio.h"
 #include "debug.h"
 #include "io.h"

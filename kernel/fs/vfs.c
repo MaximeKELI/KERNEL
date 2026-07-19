@@ -97,8 +97,8 @@ static int vfs_alloc_fd(vfs_file_t* file, vfs_ops_t* ops, vfs_backend_type_t bac
 }
 
 vfs_file_t* vfs_open(const char* path, u64 flags) {
-    VALIDATE_STRING(path, 4096);
-    VALIDATE_FLAGS(flags, 0xFFFFFFFF);
+    VALIDATE_STRING_NULL(path, 4096);
+    VALIDATE_FLAGS_NULL(flags, 0xFFFFFFFF);
 
     vfs_backend_type_t be = vfs_path_backend(path);
     vfs_ops_t* ops = NULL;
@@ -223,7 +223,7 @@ ssize_t vfs_write_path(const char* path, const void* buf, size_t count) {
 }
 
 void vfs_register_filesystem(const char* name, vfs_fs_ops_t* fs_ops) {
-    VALIDATE_STRING(name, 256);
+    VALIDATE_STRING_VOID(name, 256);
     VALIDATE_PTR_VOID(fs_ops);
     vfs_mount(name, "/", fs_ops);
 }

@@ -94,6 +94,61 @@
         } \
     } while(0)
 
+/* NULL-returning variants (for functions that return a pointer) */
+#define VALIDATE_RANGE_NULL(val, min, max) \
+    do { \
+        if ((val) < (min) || (val) > (max)) { \
+            DEBUG_ERROR("Value out of range at %s:%d: %lld not in [%lld, %lld]", \
+                       __FILE__, __LINE__, (long long)(val), (long long)(min), (long long)(max)); \
+            return NULL; \
+        } \
+    } while(0)
+
+#define VALIDATE_STRING_NULL(str, max_len) \
+    do { \
+        if ((str) == NULL) { \
+            DEBUG_ERROR("Null string at %s:%d", __FILE__, __LINE__); \
+            return NULL; \
+        } \
+        if (strlen((str)) > (max_len)) { \
+            DEBUG_ERROR("String too long at %s:%d: %u > %u", \
+                       __FILE__, __LINE__, (u32)strlen((str)), (u32)(max_len)); \
+            return NULL; \
+        } \
+    } while(0)
+
+#define VALIDATE_INDEX_NULL(idx, max) \
+    do { \
+        if ((idx) >= (max)) { \
+            DEBUG_ERROR("Index out of bounds at %s:%d: %u >= %u", \
+                       __FILE__, __LINE__, (u32)(idx), (u32)(max)); \
+            return NULL; \
+        } \
+    } while(0)
+
+#define VALIDATE_FLAGS_NULL(flags, valid_mask) \
+    do { \
+        if (((flags) & ~(valid_mask)) != 0) { \
+            DEBUG_ERROR("Invalid flags at %s:%d: 0x%x", \
+                       __FILE__, __LINE__, (u32)(flags)); \
+            return NULL; \
+        } \
+    } while(0)
+
+/* void-returning variants (for functions that return void) */
+#define VALIDATE_STRING_VOID(str, max_len) \
+    do { \
+        if ((str) == NULL) { \
+            DEBUG_ERROR("Null string at %s:%d", __FILE__, __LINE__); \
+            return; \
+        } \
+        if (strlen((str)) > (max_len)) { \
+            DEBUG_ERROR("String too long at %s:%d: %u > %u", \
+                       __FILE__, __LINE__, (u32)strlen((str)), (u32)(max_len)); \
+            return; \
+        } \
+    } while(0)
+
 /* Assertion macros (panic on failure) */
 #define ASSERT_PTR(ptr) \
     do { \

@@ -1,4 +1,5 @@
 #include "kthread.h"
+#include "scheduler.h"
 #include "memory.h"
 #include "stdio.h"
 #include "debug.h"

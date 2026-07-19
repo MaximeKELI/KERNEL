@@ -235,8 +235,8 @@ int video_device_set_mode(video_device_t* dev, u32 mode_index) {
 video_buffer_t* video_buffer_create(video_device_t* dev, u32 width, 
                                     u32 height, u32 format) {
     VALIDATE_PTR_RET(dev, NULL);
-    VALIDATE_RANGE(width, 1, 7680);
-    VALIDATE_RANGE(height, 1, 4320);
+    VALIDATE_RANGE_NULL(width, 1, 7680);
+    VALIDATE_RANGE_NULL(height, 1, 4320);
     
     /* Validate format */
     if (format != VIDEO_FORMAT_RGB888 && format != VIDEO_FORMAT_RGBA8888 &&

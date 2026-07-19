@@ -12,6 +12,10 @@
 #include "drivers/timer.h"
 #include "tcp_cc.h"
 
+/* Forward declaration: defined later in this file, used by helpers above */
+void tcp_cc_get(tcp_conn_t* conn, u32* cwnd, u32* ssthresh,
+                u32* peer_rwnd, u32* flight, u32* last_ack, u8* dupacks);
+
 #define TCP_HEADER_LEN 20
 #define TCP_INITIAL_RTO_MS 1000
 #define TCP_MAX_RETRIES 12

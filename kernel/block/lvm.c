@@ -252,7 +252,7 @@ lvm_vg_t* lvm_vg_list(void) {
 }
 
 lvm_lv_t* lvm_lv_list(const char* vg_name) {
-    VALIDATE_STRING(vg_name, 64);
+    VALIDATE_STRING_NULL(vg_name, 64);
     
     lvm_lv_t* result = NULL;
     lvm_lv_t** tail = &result;

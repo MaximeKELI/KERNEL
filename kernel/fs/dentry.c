@@ -19,7 +19,7 @@ void dentry_init(void) {
 }
 
 dentry_t* dentry_alloc(const char* name, inode_t* inode) {
-    VALIDATE_STRING(name, 256);
+    VALIDATE_STRING_NULL(name, 256);
     VALIDATE_PTR_RET(inode, NULL);
     
     if (next_dentry >= MAX_DENTRIES) {
@@ -88,7 +88,7 @@ void dentry_free(dentry_t* dentry) {
 
 dentry_t* dentry_lookup(dentry_t* parent, const char* name) {
     VALIDATE_PTR_RET(parent, NULL);
-    VALIDATE_STRING(name, 256);
+    VALIDATE_STRING_NULL(name, 256);
     
     spinlock_lock(&dentry_lock);
     

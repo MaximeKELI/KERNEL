@@ -115,9 +115,9 @@ void net_init(void) {
 }
 
 socket_t* socket_create(int domain, int type, int protocol) {
-    VALIDATE_RANGE(domain, 0, 255);
-    VALIDATE_RANGE(type, 0, 255);
-    VALIDATE_RANGE(protocol, 0, 255);
+    VALIDATE_RANGE_NULL(domain, 0, 255);
+    VALIDATE_RANGE_NULL(type, 0, 255);
+    VALIDATE_RANGE_NULL(protocol, 0, 255);
 
     socket_t* sock = (socket_t*)kzalloc(sizeof(socket_t));
     if (!sock) {

@@ -1,5 +1,6 @@
 #include "nvme.h"
 #include "memory.h"
+#include "string.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"
@@ -28,7 +29,7 @@ int nvme_identify_controller(void* buffer) {
 }
 
 nvme_queue_t* nvme_create_io_queue(u16 qid, u32 qsize) {
-    VALIDATE_SIZE(qsize);
+    VALIDATE_SIZE_RET_NULL(qsize);
     
     nvme_queue_t* queue = (nvme_queue_t*)kzalloc(sizeof(nvme_queue_t));
     if (!queue) {

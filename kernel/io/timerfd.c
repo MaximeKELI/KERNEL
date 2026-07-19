@@ -1,5 +1,6 @@
 #include "timerfd.h"
 #include "memory.h"
+#include "string.h"
 #include "stdio.h"
 #include "debug.h"
 #include "spinlock.h"

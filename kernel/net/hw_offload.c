@@ -3,6 +3,7 @@
 #include "tcp.h"
 #include "ip.h"
 #include "ethernet.h"
+#include "memory.h"
 #include "pci.h"
 #include "stdio.h"
 #include "debug.h"

@@ -59,9 +59,36 @@ static test_result_t test_krealloc(void) {
     return TEST_PASS;
 }
 
+/* Test per-frame refcounting (COW safety): a shared frame is only freed once
+ * the last sharer drops it, and the freed frame becomes reusable. */
+static test_result_t test_pmm_refcount(void) {
+    void* p = pmm_alloc(1);
+    TEST_ASSERT_NOT_NULL(p);
+    TEST_ASSERT_EQ(pmm_refcount(p), 1);          /* alloc starts at 1 */
+
+    pmm_ref(p);
+    TEST_ASSERT_EQ(pmm_refcount(p), 2);          /* second sharer */
+
+    TEST_ASSERT_EQ(pmm_unref(p), 1);             /* one sharer left, not freed */
+    TEST_ASSERT_EQ(pmm_refcount(p), 1);
+
+    size_t free_before = pmm_get_free_pages();
+    TEST_ASSERT_EQ(pmm_unref(p), 0);             /* last sharer -> freed */
+    TEST_ASSERT_EQ(pmm_refcount(p), 0);
+    TEST_ASSERT(pmm_get_free_pages() > free_before);
+
+    /* The freed frame must be reusable. */
+    void* q = pmm_alloc(1);
+    TEST_ASSERT_NOT_NULL(q);
+    TEST_ASSERT_EQ(pmm_refcount(q), 1);
+    pmm_free(q, 1);
+    return TEST_PASS;
+}
+
 /* Register memory tests */
 void register_memory_tests(void) {
     test_register("memory", "pmm_alloc", test_pmm_alloc);
+    test_register("memory", "pmm_refcount", test_pmm_refcount);
     test_register("memory", "heap_alloc", test_heap_alloc);
     test_register("memory", "kzalloc", test_kzalloc);
     test_register("memory", "krealloc", test_krealloc);

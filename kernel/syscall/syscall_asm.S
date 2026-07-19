@@ -1,72 +1,75 @@
 bits 64
 section .text
 
+; SYSCALL entry (LSTAR target).
+;
+; On entry (set by the CPU):
+;   rcx = user RIP to return to (must be preserved for SYSRET)
+;   r11 = user RFLAGS to restore (must be preserved for SYSRET)
+;   rax = syscall number
+;   rdi, rsi, rdx, r10, r8, r9 = args 1..6  (r10 replaces rcx vs. the C ABI)
+;   IF is masked by SFMASK, so we run with interrupts disabled and cannot be
+;   preempted or reentered here.
+;
+; SYSCALL does NOT switch stacks, so we manually move to the current task's
+; kernel stack. Everything the user must get back (all GP regs except rax/rcx/r11,
+; plus the user rip/rflags/rsp) is saved on that kernel stack, making the path
+; safe even if the C handler blocks and the task is rescheduled.
+
+extern syscall_handler
+extern syscall_kernel_stack
+extern saved_user_rsp_tmp
+
 global syscall_entry
 syscall_entry:
-    ; syscall instruction provides:
-    ;   rax = syscall number
-    ;   rdi = arg1, rsi = arg2, rdx = arg3, r10 = arg4, r8 = arg5, r9 = arg6
-    ; 
-    ; We need to save registers BEFORE pushing, then rearrange for C calling convention
-    ; C calling convention: rdi, rsi, rdx, rcx, r8, r9
-    
-    ; Save syscall number and arguments in callee-saved registers
-    mov r11, rax  ; Save syscall number
-    mov r12, rdi  ; Save arg1
-    mov r13, rsi  ; Save arg2
-    mov r14, rdx  ; Save arg3
-    mov r15, r10  ; Save arg4
-    ; r8 already has arg5, we'll handle it
-    
-    ; Now save all registers
-    push r15
-    push r14
-    push r13
-    push r12
-    push r11
-    push r10
-    push r9
-    push r8
+    ; Switch to the kernel stack (stash the user rsp through a scratch cell:
+    ; safe because SYSCALL runs with IF=0 and is not reentrant on this CPU).
+    mov [saved_user_rsp_tmp], rsp
+    mov rsp, [syscall_kernel_stack]
+
+    ; Save everything needed to resume the user thread exactly.
+    push qword [saved_user_rsp_tmp]   ; user rsp
+    push r11                          ; user rflags (for sysretq)
+    push rcx                          ; user rip    (for sysretq)
+    push rbx
     push rbp
+    push r12
+    push r13
+    push r14
+    push r15
     push rdi
     push rsi
     push rdx
-    push rcx
-    push rbx
-    push rax
-    
-    ; Rearrange for C calling convention using saved values
-    mov rdi, r11  ; syscall number -> rdi (first param)
-    mov rsi, r12  ; arg1 -> rsi (second param)
-    mov rdx, r13  ; arg2 -> rdx (third param)
-    mov rcx, r14  ; arg3 -> rcx (fourth param, but we'll use r10)
-    mov r10, r15  ; arg4 -> r10 (fifth param)
-    ; r8 already has arg5 (sixth param)
-    
-    extern syscall_handler
+    push r10
+    push r8
+    push r9
+
+    ; Marshal into the C calling convention:
+    ;   syscall_handler(num=rdi, a1=rsi, a2=rdx, a3=rcx, a4=r8, a5=r9)
+    ; The source registers are still live (push does not modify them).
+    mov r9, r8      ; a5
+    mov r8, r10     ; a4
+    mov rcx, rdx    ; a3
+    mov rdx, rsi    ; a2
+    mov rsi, rdi    ; a1
+    mov rdi, rax    ; syscall number
     call syscall_handler
-    
-    ; Save return value (in rax) before restoring
-    mov r11, rax
-    
-    ; Restore registers
-    pop rax
-    pop rbx
-    pop rcx
+    ; rax = return value (kept across the restores below)
+
+    pop r9
+    pop r8
+    pop r10
     pop rdx
     pop rsi
     pop rdi
-    pop rbp
-    pop r8
-    pop r9
-    pop r10
-    pop r11
-    pop r12
-    pop r13
-    pop r14
     pop r15
-    
-    ; Restore return value
-    mov rax, r11
-    
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+    pop rcx                           ; user rip   -> rcx for sysretq
+    pop r11                           ; user rflags-> r11 for sysretq
+    pop rsp                           ; back to the user stack
+
     sysretq

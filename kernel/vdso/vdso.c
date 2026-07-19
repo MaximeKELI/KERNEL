@@ -6,7 +6,14 @@
 #include "process.h"
 #include "string.h"
 
-#define VDSO_BASE 0xFFFFC0000000ULL
+/*
+ * vDSO data page. The old value 0xFFFFC0000000 is NON-canonical (bits 63:48 do
+ * not sign-extend bit 47), so mapping it and touching it #GP'd (invlpg / the
+ * write below both fault on a non-canonical address). Place it in canonical user
+ * space just below the ELF window (USER_LOAD_ADDR = 0x40000000) and clear of the
+ * kernel image + heap (which end at ~12 MiB).
+ */
+#define VDSO_BASE 0x3FFFF000ULL
 #define VDSO_SIZE PAGE_SIZE
 
 typedef struct vdso_data {

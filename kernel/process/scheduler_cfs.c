@@ -453,6 +453,15 @@ void schedule(void) {
         /* Route any subsequent ring3 trap/syscall onto the incoming task's
          * kernel stack (tss.rsp0 + SYSCALL stack). */
         arch_update_kernel_stack(next);
+        /* Load the incoming task's address space. Kernel threads all share the
+         * boot CR3, so this is a no-op for them; only real user processes with a
+         * private CR3 pay the TLB flush. */
+        if (next->cr3) {
+            u64 cur = vmm_get_cr3() & ~0xFFFULL;
+            if ((next->cr3 & ~0xFFFULL) != cur) {
+                vmm_switch_mm(next->cr3);
+            }
+        }
         switch_to(&prev->rsp, &next->rsp);
         /* Control returns here only when `prev` is scheduled again later. */
     }

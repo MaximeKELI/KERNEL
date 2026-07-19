@@ -78,4 +78,8 @@ syscall_entry:
     pop r11                           ; user rflags-> r11 for sysretq
     pop rsp                           ; back to the user stack
 
-    sysretq
+    ; NASM has no "sysretq" mnemonic — that assembles as a *label*, silently
+    ; dropping the instruction and falling through into the next function in
+    ; kernel mode. Force the 64-bit form with the o64 (REX.W) prefix so we
+    ; return to CPL=3 at rcx with rflags from r11.
+    o64 sysret

@@ -43,8 +43,9 @@
 #define MAP_PRIVATE   0x02
 #define MAP_ANONYMOUS 0x20
 
-/* System call handler */
-u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5);
+/* System call handler (uframe = saved-register block on the kernel stack). */
+u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5,
+                    void* uframe);
 
 /* Initialize syscall subsystem */
 void syscall_init(void);
@@ -57,7 +58,7 @@ u64 sys_open(const char* path, u64 flags);
 u64 sys_close(u64 fd);
 u64 sys_fork(void);
 u64 sys_exec(const char* path, char* const argv[]);
-u64 sys_wait(u64 pid);
+u64 sys_wait(u64 pid, int* status);
 u64 sys_mmap(void* addr, u64 length, u64 prot, u64 flags);
 u64 sys_munmap(void* addr, u64 length);
 u64 sys_sigreturn(void);

@@ -64,13 +64,18 @@ static syscall_func_t syscall_table[] = {
 
 static char audit_buf[64];
 
-u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5) {
+u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64 arg5,
+                    void* uframe) {
     if (syscall_num >= sizeof(syscall_table) / sizeof(syscall_table[0])) {
         DEBUG_ERROR("Invalid syscall number: %llu", (unsigned long long)syscall_num);
         return (u64)-1;
     }
 
     process_t* proc = process_current();
+    if (proc) {
+        /* Remember the caller's user register block so fork() can clone it. */
+        proc->syscall_regs = uframe;
+    }
     if (proc && !seccomp_check_syscall(syscall_num)) {
         snprintf(audit_buf, sizeof(audit_buf), "deny syscall %llu", (unsigned long long)syscall_num);
         audit_log(AUDIT_SYSCALL, audit_buf);
@@ -89,10 +94,11 @@ u64 syscall_handler(u64 syscall_num, u64 arg1, u64 arg2, u64 arg3, u64 arg4, u64
 
     u64 ret = func(arg1, arg2, arg3, arg4, arg5);
 
-    if (proc && proc->fork_child_ret) {
-        proc->fork_child_ret = 0;
-        ret = 0;
-    }
+    /*
+     * The fork() child does NOT return through this path: it resumes directly
+     * in ring 3 via fork_child_trampoline with rax already 0. Only the parent
+     * runs here, and sys_fork() returns the child pid.
+     */
 
     if (proc) {
         signal_deliver_pending(proc);
@@ -243,8 +249,13 @@ u64 sys_clock_gettime(u64 clk_id, void* tp) {
     return 0;
 }
 
+/* Bounded kernel copies of the argv strings passed to execve(). */
+#define EXEC_MAX_ARGS 16
+#define EXEC_ARG_LEN  128
+static char exec_arg_store[EXEC_MAX_ARGS][EXEC_ARG_LEN];
+static char* exec_argv[EXEC_MAX_ARGS + 1];
+
 u64 sys_exec(const char* path, char* const argv[]) {
-    (void)argv;
     char kpath[256];
     if (!path) {
         return (u64)-1;
@@ -254,18 +265,52 @@ u64 sys_exec(const char* path, char* const argv[]) {
     }
     kpath[sizeof(kpath) - 1] = '\0';
 
+    /*
+     * Snapshot argv into kernel memory BEFORE exec tears down the user address
+     * space (the argv pointers/strings live in the caller's memory, which is
+     * about to be unmapped).
+     */
+    char* const* kargv = NULL;
+    if (argv) {
+        int argc = 0;
+        for (; argc < EXEC_MAX_ARGS; argc++) {
+            char* uptr = NULL;
+            if (copy_from_user(&uptr, (const char*)&argv[argc], sizeof(uptr)) < 0) {
+                break;
+            }
+            if (!uptr) {
+                break;
+            }
+            if (copy_from_user(exec_arg_store[argc], uptr, EXEC_ARG_LEN - 1) < 0) {
+                break;
+            }
+            exec_arg_store[argc][EXEC_ARG_LEN - 1] = '\0';
+            exec_argv[argc] = exec_arg_store[argc];
+        }
+        exec_argv[argc] = NULL;
+        kargv = exec_argv;
+    }
+
     seccomp_set_mode_strict();
 
-    if (exec_run_path(kpath) < 0) {
+    if (exec_run_path_argv(kpath, kargv) < 0) {
         return (u64)-1;
     }
     return 0;
 }
 
-u64 sys_wait(u64 pid) {
+u64 sys_wait(u64 pid, int* status_user) {
     int status = 0;
     int r = wait_process(pid, &status);
-    return r < 0 ? (u64)-1 : (u64)r;
+    if (r < 0) {
+        return (u64)-1;
+    }
+    if (status_user) {
+        /* Encode like Linux wait status: exit code in bits 8..15. */
+        int wstatus = (status & 0xff) << 8;
+        copy_to_user(status_user, &wstatus, sizeof(wstatus));
+    }
+    return (u64)r;
 }
 
 static u64 prot_to_vm(u64 prot) {

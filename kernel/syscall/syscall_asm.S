@@ -53,7 +53,13 @@ syscall_entry:
     mov rdx, rsi    ; a2
     mov rsi, rdi    ; a1
     mov rdi, rax    ; syscall number
+
+    ; 15 pushes above leave rsp at (16-aligned top - 120), i.e. rsp%16 == 8.
+    ; The SysV ABI requires rsp%16 == 0 at the call site, else 16-byte-aligned
+    ; stack spills (movaps) inside the C handler #GP. Re-align, restore after.
+    sub rsp, 8
     call syscall_handler
+    add rsp, 8
     ; rax = return value (kept across the restores below)
 
     pop r9

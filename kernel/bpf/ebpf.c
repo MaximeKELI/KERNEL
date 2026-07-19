@@ -43,6 +43,9 @@ static u64 ebpf_run(const ebpf_insn_t* insns, u32 count, u64 r0) {
 }
 
 void ebpf_init(void) {
+    if (ebpf_enabled) {
+        return;
+    }
     ebpf_enabled = true;
     printk("[eBPF] minimal interpreter ready\n");
 }

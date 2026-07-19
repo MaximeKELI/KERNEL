@@ -135,6 +135,9 @@ void kernel_init_minimal(void) {
     syscall_init();
     scheduler_init();
 
+    /* Lightweight eBPF interpreter: available early so tooling/tests can use it. */
+    ebpf_init();
+
     boot_profiler_mark("minimal_done");
 }
 

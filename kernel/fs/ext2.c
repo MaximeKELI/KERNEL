@@ -318,8 +318,14 @@ vfs_ops_t* ext2_get_file_ops(void) {
 }
 
 int ext2_writeback_page(u64 ino, u64 file_offset, const void* page_data) {
-    if (!page_data || !superblock) {
+    if (!page_data) {
         return -1;
+    }
+    if (!superblock) {
+        /* No ext2 filesystem mounted: the page cache is purely in-memory with
+         * no persistent backing store, so there is nothing to flush. Report
+         * success so the dirty->clean writeback cycle can complete. */
+        return 0;
     }
     ext2_inode_t inode;
     if (ext2_read_inode((u32)ino, &inode) < 0) {

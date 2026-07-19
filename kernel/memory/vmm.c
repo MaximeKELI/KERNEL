@@ -89,6 +89,10 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
         if (!pt) return NULL;
         memset(pt, 0, PAGE_SIZE);
         pd->entries[pd_idx] = (u64)pt | PAGE_PRESENT | PAGE_WRITABLE;
+    } else if (pd_entry & PAGE_SIZE_2MB_FLAG) {
+        /* Region is already covered by the boot-time 2 MiB identity map;
+         * mapping virt==phys here is a no-op, so leave the huge page intact. */
+        return virt;
     } else {
         pt = (page_table_t*)(pd_entry & ~0xFFF);
     }
@@ -135,6 +139,10 @@ void vmm_free_pages(void* virt, size_t pages) {
         if (phys) {
             vmm_unmap_page(page_virt);
             pmm_free(phys, 1);
+        } else {
+            /* Identity-mapped through a boot-time huge page: no 4 KiB PTE to
+             * resolve, so release the physical block directly (phys == virt). */
+            pmm_free(page_virt, 1);
         }
     }
 }

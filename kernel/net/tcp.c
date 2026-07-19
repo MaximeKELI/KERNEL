@@ -531,7 +531,8 @@ static int tcp_close(socket_t* sock) {
     
     tcp_conn_t* conn = (tcp_conn_t*)sock->private_data;
     if (!conn) {
-        return -1;
+        /* Socket was created but never connected/bound: nothing to tear down. */
+        return 0;
     }
     
     if (conn->state == TCP_ESTABLISHED) {

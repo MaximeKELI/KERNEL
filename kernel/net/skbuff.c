@@ -34,8 +34,10 @@ sk_buff_t* skb_alloc(size_t size) {
     sk_buff_t* skb = (sk_buff_t*)data;
     memset(skb, 0, sizeof(sk_buff_t));
     
-    skb->data = (u8*)data + sizeof(sk_buff_t) + SKB_HEADROOM;
-    skb->head = skb->data;
+    /* head marks the start of the buffer; data sits SKB_HEADROOM bytes later so
+     * that skb_push() has room to prepend headers (Linux sk_buff semantics). */
+    skb->head = (u8*)data + sizeof(sk_buff_t);
+    skb->data = skb->head + SKB_HEADROOM;
     skb->tail = skb->data;
     skb->end = skb->data + size;
     skb->len = 0;
@@ -65,8 +67,8 @@ void skb_free(sk_buff_t* skb) {
         /* Release device reference */
     }
     
-    /* Free pages */
-    void* data = (void*)((u64)skb->head - SKB_HEADROOM - sizeof(sk_buff_t));
+    /* Free pages (head points just past the sk_buff header at the base). */
+    void* data = (void*)((u64)skb->head - sizeof(sk_buff_t));
     size_t pages = (skb->truesize + PAGE_SIZE - 1) / PAGE_SIZE;
     vmm_free_pages(data, pages);
 }

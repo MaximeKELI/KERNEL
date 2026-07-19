@@ -190,6 +190,19 @@ void scheduler_init(void) {
     DEBUG_INFO("%s", "CFS scheduler initialized");
 }
 
+void scheduler_tick(void) {
+    /*
+     * One PIT tick of CPU time has elapsed. Attribute it to total runtime and,
+     * when nothing but the idle task is running, to idle time. These counters
+     * feed the AI monitor's CPU-usage computation.
+     */
+    stats.total_runtime++;
+    process_t* current = process_current();
+    if (!current || current == idle_process || current->pid == 0) {
+        stats.idle_time++;
+    }
+}
+
 void schedule(void) {
     sched_stats_record_schedule();
 

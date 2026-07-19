@@ -28,6 +28,9 @@ void scheduler_init(void);
 /* Schedule next process (CFS-like) */
 void schedule(void);
 
+/* Account one timer tick of CPU time (called from the timer IRQ) */
+void scheduler_tick(void);
+
 /* Set process priority */
 int setpriority(u64 pid, int priority);
 

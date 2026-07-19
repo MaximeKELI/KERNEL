@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "ai_manager.h"
 #include "smp.h"
+#include "scheduler.h"
 
 #include "hw_ports.h"
 
@@ -18,6 +19,7 @@ static void timer_irq_handler(u32 irq, void* data) {
     (void)data;
     
     ticks++;
+    scheduler_tick();
     
     extern bool ai_initialized;
     if (ai_initialized) {

@@ -22,6 +22,7 @@
 #include "net.h"
 #include "vdso.h"
 #include "drivers/timer.h"
+#include "drivers/keyboard.h"
 
 extern int socket_fd_poll_events(int fd);
 
@@ -151,6 +152,20 @@ u64 sys_write(u64 fd, const void* buf, u64 count) {
 
 u64 sys_read(u64 fd, void* buf, u64 count) {
     VALIDATE_PTR_RET(buf, 0);
+    if (fd == 0) {
+        /* stdin: block on the keyboard line discipline, then hand the line to
+         * the user buffer. Lets ring-3 shells read commands interactively. */
+        if (count == 0) {
+            return 0;
+        }
+        char line[256];
+        u32 max = count < sizeof(line) ? (u32)count : (u32)sizeof(line);
+        u32 n = keyboard_read_line(line, max);
+        if (copy_to_user(buf, line, n) < 0) {
+            return (u64)-1;
+        }
+        return n;
+    }
     if (fd < 3) {
         return 0;
     }

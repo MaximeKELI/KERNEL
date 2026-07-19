@@ -11,6 +11,7 @@
 #include "tss.h"
 #include "scheduler.h"
 #include "vdso.h"
+#include "fs/vfs.h"
 
 extern char nettest_bin_start[];
 extern char nettest_bin_end[];
@@ -135,29 +136,91 @@ static int exec_map_user_stack(void) {
     return 0;
 }
 
+/* AT_* auxiliary vector tags (subset; values match Linux). */
+#define AT_NULL   0
+#define AT_PAGESZ 6
+
+/*
+ * Lay out the initial user stack per the SysV AMD64 ABI:
+ *
+ *   high | argv/envp string data                       |
+ *        | auxv[]  (AT_PAGESZ, AT_NULL)                 |
+ *        | NULL                       (end of envp)     |
+ *        | envp[]                                       |
+ *        | NULL                       (end of argv)     |
+ *        | argv[]                                       |
+ *   rsp->| argc                                         |
+ *
+ * rsp is 16-byte aligned on entry with argc at [rsp]. Returns that user rsp.
+ * `argv` must be kernel-resident (the old address space may already be gone).
+ */
+static u64 exec_setup_stack(char* const argv[]) {
+    u64 sp = USER_STACK_TOP;
+
+    int argc = 0;
+    u64 argv_ptr[32];
+    if (argv) {
+        while (argv[argc] && argc < 31) {
+            argc++;
+        }
+    }
+
+    /* Copy the argument strings to the top of the stack (high to low). */
+    for (int i = argc - 1; i >= 0; i--) {
+        size_t len = strlen(argv[i]) + 1;
+        sp -= len;
+        memcpy((void*)sp, argv[i], len);
+        argv_ptr[i] = sp;
+    }
+
+    /* Assemble the pointer vector in a scratch buffer, then place it 16-aligned. */
+    u64 vec[64];
+    int n = 0;
+    vec[n++] = (u64)argc;
+    for (int i = 0; i < argc; i++) {
+        vec[n++] = argv_ptr[i];
+    }
+    vec[n++] = 0;             /* argv terminator */
+    vec[n++] = 0;             /* envp terminator (no env yet) */
+    vec[n++] = AT_PAGESZ; vec[n++] = PAGE_SIZE;
+    vec[n++] = AT_NULL;   vec[n++] = 0;
+
+    u64 dest = (sp - (u64)n * 8) & ~0xFULL;
+    memcpy((void*)dest, vec, (size_t)n * 8);
+    return dest;
+}
+
 void exec_jump_user(u64 entry) {
+    /* Legacy no-argv entry (kept for callers that only need a bare stack). */
     gdt_init_user_segments();
 
     if (exec_map_user_stack() < 0) {
         DEBUG_ERROR("failed to map user stack");
     }
 
-    /*
-     * Direct ring3 traps/syscalls onto the current task's kernel stack so an
-     * interrupt taken in ring 3 has somewhere to land (else: triple fault).
-     */
     process_t* cur = process_current();
     if (cur && cur->stack_base) {
         u64 ktop = ((u64)cur->stack_base + cur->stack_size) & ~0xFULL;
         tss_set_rsp0(ktop);
     }
 
-    u64 stack = USER_STACK_TOP - 16;
-    u64 rflags = 0x202;   /* IF=1: keep the task preemptible in ring 3 */
-    exec_iretq_user(entry, stack, rflags);
+    exec_iretq_user(entry, USER_STACK_TOP - 16, 0x202);
 }
 
-int exec_run_path(const char* path) {
+/* Unmap every user VMA of the current process (exec discards the old image). */
+static void exec_teardown_user(process_t* proc) {
+    if (!proc || !proc->mm) {
+        return;
+    }
+    while (proc->mm->vmas) {
+        vma_t* v = proc->mm->vmas;
+        mm_remove_range(proc->mm, v->start, v->end);
+    }
+    mm_destroy(proc->mm);
+    proc->mm = NULL;
+}
+
+int exec_run_path_argv(const char* path, char* const argv[]) {
     size_t size = 0;
     const void* blob = exec_resolve_path(path, &size);
     if (!blob) {
@@ -165,8 +228,14 @@ int exec_run_path(const char* path) {
     }
 
     process_t* proc = process_current();
-    if (proc && !proc->mm) {
+
+    /* Replace the address space: discard the inherited/previous user mappings
+     * (a no-op on first exec) and start from an empty VMA map. */
+    if (proc) {
+        exec_teardown_user(proc);
         proc->mm = mm_create();
+        /* Descriptors marked close-on-exec are dropped across exec. */
+        files_on_exec(proc->files);
     }
 
     u64 entry = 0;
@@ -174,10 +243,28 @@ int exec_run_path(const char* path) {
         return -1;
     }
 
+    gdt_init_user_segments();
+    if (exec_map_user_stack() < 0) {
+        DEBUG_ERROR("failed to map user stack");
+        return -1;
+    }
+
     vdso_map_user();
 
-    printk("[exec] %s ring3 entry=0x%x (%u bytes)\n",
-           path, (unsigned)entry, (unsigned)size);
-    exec_jump_user(entry);
+    /* Route ring-3 traps/syscalls onto this task's kernel stack. */
+    if (proc && proc->stack_base) {
+        u64 ktop = ((u64)proc->stack_base + proc->stack_size) & ~0xFULL;
+        tss_set_rsp0(ktop);
+    }
+
+    u64 user_sp = exec_setup_stack(argv);
+
+    printk("[exec] %s ring3 entry=0x%x argc=%d (%u bytes)\n",
+           path, (unsigned)entry, argv ? 1 : 0, (unsigned)size);
+    exec_iretq_user(entry, user_sp, 0x202);
     return 0;
+}
+
+int exec_run_path(const char* path) {
+    return exec_run_path_argv(path, NULL);
 }

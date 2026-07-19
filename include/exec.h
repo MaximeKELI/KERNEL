@@ -23,6 +23,9 @@ const void* exec_resolve_path(const char* path, size_t* size_out);
 /* Replace current task image and jump to user entry (no return) */
 int exec_run_path(const char* path);
 
+/* exec_run_path variant that lays down a SysV argv/envp/auxv stack. */
+int exec_run_path_argv(const char* path, char* const argv[]);
+
 /* Jump to already-loaded user entry */
 void exec_jump_user(u64 entry) __attribute__((noreturn));
 

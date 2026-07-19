@@ -259,6 +259,29 @@ int vsnprintf(char* str, size_t size, const char* format, va_list args) {
                     }
                     break;
                 }
+                case 'u': {
+                    u32 val = va_arg(args, u32);
+                    char num[32];
+                    int i = 0;
+                    if (val == 0) {
+                        if (remaining > 0) {
+                            *dest++ = '0';
+                            remaining--;
+                            written++;
+                        }
+                    } else {
+                        while (val > 0 && i < 31) {
+                            num[i++] = (char)('0' + (val % 10));
+                            val /= 10;
+                        }
+                        while (i > 0 && remaining > 0) {
+                            *dest++ = num[--i];
+                            remaining--;
+                            written++;
+                        }
+                    }
+                    break;
+                }
                 case 's': {
                     const char* s = va_arg(args, const char*);
                     if (!s) s = "(null)";

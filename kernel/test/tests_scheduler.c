@@ -1,6 +1,7 @@
 #include "test.h"
 #include "process.h"
 #include "scheduler.h"
+#include "wait.h"
 #include "memory.h"
 #include "drivers/timer.h"
 
@@ -132,10 +133,105 @@ static test_result_t test_context_switch_integrity(void) {
     return TEST_PASS;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Task lifecycle: join + exit status, blocking sleep, zombie reaping          */
+/* -------------------------------------------------------------------------- */
+
+/* Child computes 1+2+...+n and exits with that sum as its status code. */
+static void adder_child(void* arg) {
+    u64 n = (u64)arg;
+    int sum = 0;
+    for (u64 i = 1; i <= n; i++) {
+        sum += (int)i;
+    }
+    kthread_exit(sum);
+}
+
+/*
+ * Full create -> run -> exit -> join lifecycle: the parent blocks in
+ * thread_join() until the child terminates, then recovers its exit status.
+ */
+static test_result_t test_thread_join(void) {
+    process_t* child = kthread_run(adder_child, (void*)10, WORKER_STACK_SIZE);
+    TEST_ASSERT_NOT_NULL(child);
+
+    int status = -1;
+    TEST_ASSERT_EQ(thread_join(child, &status), 0);
+    TEST_ASSERT_EQ(status, 55);   /* 1+2+...+10 */
+
+    return TEST_PASS;
+}
+
+static volatile u64 sleep_bg_counter;
+static volatile int sleep_bg_stop;
+
+static void sleep_bg_worker(void* arg) {
+    (void)arg;
+    while (!sleep_bg_stop) {
+        sleep_bg_counter++;
+    }
+}
+
+/*
+ * A blocking sleep must truly yield the CPU: while the main task sleeps for ~20
+ * ticks, a background thread must keep running (proving the sleeper is off the
+ * CPU, not busy-waiting), and the sleep must last about the requested duration.
+ */
+static test_result_t test_blocking_sleep(void) {
+    sleep_bg_stop = 0;
+    sleep_bg_counter = 0;
+
+    process_t* bg = kthread_run(sleep_bg_worker, NULL, WORKER_STACK_SIZE);
+    TEST_ASSERT_NOT_NULL(bg);
+
+    u64 t0 = timer_get_ticks();
+    sched_sleep(20);
+    u64 dt = timer_get_ticks() - t0;
+    u64 progressed = sleep_bg_counter;
+
+    sleep_bg_stop = 1;
+    TEST_ASSERT_EQ(thread_join(bg, NULL), 0);
+
+    TEST_ASSERT(dt >= 18);          /* slept about the requested 20 ticks */
+    TEST_ASSERT(dt <= 80);          /* and woke up in a timely manner */
+    TEST_ASSERT_NE(progressed, 0);  /* the CPU ran the other thread meanwhile */
+
+    return TEST_PASS;
+}
+
+/* Exits immediately; used to churn create/reap cycles. */
+static void tiny_child(void* arg) {
+    (void)arg;
+    kthread_exit(0);
+}
+
+/*
+ * Reaping must actually free a terminated task's stack: repeatedly creating and
+ * joining threads must not monotonically drain physical memory (8 x 4 pages
+ * would leak 32 pages without reaping).
+ */
+static test_result_t test_reaping_frees_memory(void) {
+    size_t before = pmm_get_free_pages();
+
+    for (int i = 0; i < 8; i++) {
+        process_t* t = kthread_run(tiny_child, NULL, WORKER_STACK_SIZE);
+        TEST_ASSERT_NOT_NULL(t);
+        TEST_ASSERT_EQ(thread_join(t, NULL), 0);
+    }
+
+    size_t after = pmm_get_free_pages();
+    TEST_ASSERT(after + 4 >= before);   /* no meaningful leak across 8 cycles */
+
+    return TEST_PASS;
+}
+
 /* Register scheduler tests */
 void register_scheduler_tests(void) {
     test_register("scheduler", "process_create", test_process_create);
     test_register("scheduler", "scheduler_stats", test_scheduler_stats);
     test_register("scheduler", "preemptive_concurrency", test_preemptive_concurrency);
     test_register("scheduler", "context_switch_integrity", test_context_switch_integrity);
+    test_register("scheduler", "thread_join", test_thread_join);
+    test_register("scheduler", "blocking_sleep", test_blocking_sleep);
+    test_register("scheduler", "reaping_frees_memory", test_reaping_frees_memory);
 }

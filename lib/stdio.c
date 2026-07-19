@@ -62,24 +62,18 @@ int printk(const char* format, ...) {
                 }
                 case 'x': {
                     u32 val = va_arg(args, u32);
-                    printk_putchar('0');
-                    printk_putchar('x');
                     print_number(val, 16, false);
                     written++;
                     break;
                 }
                 case 'X': {
                     u32 val = va_arg(args, u32);
-                    printk_putchar('0');
-                    printk_putchar('X');
                     print_number(val, 16, true);
                     written++;
                     break;
                 }
                 case 'p': {
                     void* ptr = va_arg(args, void*);
-                    printk_putchar('0');
-                    printk_putchar('x');
                     print_number((u64)ptr, 16, false);
                     written++;
                     break;
@@ -151,24 +145,18 @@ void kprintf(const char* format, ...) {
                 }
                 case 'x': {
                     u32 val = va_arg(args, u32);
-                    vga_putchar('0');
-                    vga_putchar('x');
                     print_number(val, 16, false);
                     written++;
                     break;
                 }
                 case 'X': {
                     u32 val = va_arg(args, u32);
-                    vga_putchar('0');
-                    vga_putchar('X');
                     print_number(val, 16, true);
                     written++;
                     break;
                 }
                 case 'p': {
                     void* ptr = va_arg(args, void*);
-                    vga_putchar('0');
-                    vga_putchar('x');
                     print_number((u64)ptr, 16, false);
                     written++;
                     break;
@@ -293,12 +281,6 @@ int vsnprintf(char* str, size_t size, const char* format, va_list args) {
                 case 'x': {
                     u32 val = va_arg(args, u32);
                     char hex[] = "0123456789abcdef";
-                    if (remaining >= 2) {
-                        *dest++ = '0';
-                        *dest++ = 'x';
-                        remaining -= 2;
-                        written += 2;
-                    }
                     bool started = false;
                     for (int i = 28; i >= 0; i -= 4) {
                         u8 nibble = (val >> i) & 0xF;

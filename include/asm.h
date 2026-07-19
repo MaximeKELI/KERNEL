@@ -64,9 +64,6 @@ u64 rol_asm(u64 value, u32 shift);
 u64 ror_asm(u64 value, u32 shift);
 u64 bit_reverse_asm(u64 value);
 
-/* Context switch */
-void context_switch_asm(void* from, void* to);
-
 /* Page table operations */
 u64 get_cr3(void);
 void set_cr3(u64 cr3);

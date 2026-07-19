@@ -14,6 +14,22 @@ typedef enum {
     PROCESS_DEAD
 } process_state_t;
 
+struct process;
+
+/*
+ * CFS runqueue node, embedded in every process_t so the scheduler never has to
+ * allocate on the hot path (cf. Linux sched_entity.run_node). Keyed by vruntime.
+ */
+typedef struct sched_node {
+    u64 vruntime;
+    struct sched_node* left;
+    struct sched_node* right;
+    struct sched_node* parent;
+    u8 color;   /* 0 = black, 1 = red */
+    u8 on_rq;   /* currently linked in the runqueue tree */
+    struct process* proc;
+} sched_node_t;
+
 /* Process structure */
 typedef struct process {
     refcount_t refcount;  /* Reference counting */
@@ -21,7 +37,12 @@ typedef struct process {
     u64 parent_pid;
     process_state_t state;
     
-    /* CPU context */
+    /*
+     * CPU context.
+     * `rsp` is the SAVED KERNEL STACK POINTER: switch_to() stores the outgoing
+     * task's rsp here and reloads the incoming task's rsp from it. It is the
+     * single invariant the context switch relies on.
+     */
     u64 rsp;
     u64 rbp;
     u64 rip;
@@ -33,6 +54,8 @@ typedef struct process {
     size_t stack_size;
     
     /* Scheduling */
+    sched_node_t sched_node;  /* embedded CFS runqueue node (no alloc on schedule) */
+    u32 time_slice_left;      /* remaining PIT ticks before preemption */
     u64 priority;
     u64 time_slice;
     u64 runtime;
@@ -87,9 +110,6 @@ process_t* process_current(void);
 
 /* Schedule next process */
 void schedule(void);
-
-/* Context switch */
-void context_switch(process_t* from, process_t* to);
 
 /* Yield CPU */
 void yield(void);

@@ -1,4 +1,5 @@
 #include "process.h"
+#include "scheduler.h"
 #include "ai_types.h"
 #include "memory.h"
 #include "stdio.h"
@@ -9,82 +10,116 @@
 #include "memory.h"
 
 process_t* process_list = NULL;
-static process_t* current_process = NULL;
+process_t* current_process = NULL;   /* the task running on the (single) CPU */
 u64 next_pid = 1;
+
+/* First-run trampoline for kernel threads (kernel/asm/context_switch.S). */
+extern void kthread_trampoline(void);
 
 void process_init(void) {
     extern void vmm_init_user_mm(void);
     vmm_init_user_mm();
 }
 
-process_t* process_create(void* entry_point, u64 stack_size) {
-    VALIDATE_PTR_RET(entry_point, NULL);
+/*
+ * Allocate a kernel thread and lay out its initial kernel stack so that the
+ * very first switch_to() into it pops the six callee-saved slots and returns
+ * into kthread_trampoline, with the entry point in r15 and the argument in r14.
+ * The task is created READY but is NOT placed on the runqueue.
+ */
+static process_t* proc_create_kthread(void (*entry)(void*), void* arg, u64 stack_size) {
+    if (!entry) {
+        return NULL;
+    }
     if (stack_size < PAGE_SIZE || stack_size > 64 * 1024 * 1024) {
         DEBUG_ERROR("Invalid stack size: %u", (u32)stack_size);
         return NULL;
     }
-    
-    process_t* proc = (process_t*)kmalloc(sizeof(process_t));
+
+    process_t* proc = (process_t*)kzalloc(sizeof(process_t));
     if (!proc) return NULL;
-    
-    /* Initialize refcount */
+
     proc->refcount.count = 1;
     spinlock_init(&proc->refcount.lock);
     spinlock_init(&proc->lock);
     proc->private_data = NULL;
-    
-    /* Check for overflow in page calculation */
-    size_t pages_needed;
-    size_t total_pages = (stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
-    pages_needed = total_pages;
-    
-    /* Allocate stack */
+
+    size_t pages_needed = (stack_size + PAGE_SIZE - 1) / PAGE_SIZE;
     void* stack = vmm_alloc_pages(pages_needed);
     if (!stack) {
         kfree(proc);
         return NULL;
     }
-    
-    /* Initialize process */
+
     proc->pid = next_pid++;
     proc->parent_pid = current_process ? current_process->pid : 0;
     proc->state = PROCESS_READY;
     proc->stack_base = stack;
-    proc->stack_size = stack_size;
-    
-    /* Check for overflow in stack pointer calculation */
-    size_t stack_offset;
-    if (stack_size < 16) {
-        DEBUG_ERROR("Stack size too small: %u", (u32)stack_size);
-        kfree(proc);
-        return NULL;
-    }
-    stack_offset = stack_size - 16;
-    proc->rsp = (u64)stack + stack_offset;
-    proc->rbp = proc->rsp;
-    proc->rip = (u64)entry_point;
-    proc->rflags = 0x202;  /* Interrupts enabled */
-    proc->cr3 = vmm_get_cr3();
-    proc->priority = 0;
+    proc->stack_size = pages_needed * PAGE_SIZE;
+    proc->cr3 = vmm_get_cr3();          /* kernel threads share the kernel address space */
+    proc->priority = PRIO_DEFAULT;
     proc->time_slice = 100;
+    proc->time_slice_left = 0;
     proc->runtime = 0;
     proc->ai_class = AI_CLASS_IDLE;
-    proc->ai_boost = 0;
-    proc->ai_score = 0;
-    proc->ai_wait_ticks = 0;
-    proc->ai_run_ticks = 0;
     proc->files = NULL;
-    proc->next = NULL;
-    
-    /* Setup stack for entry */
-    u64* stack_top = (u64*)(proc->rsp);
-    *stack_top = 0;  /* Return address (will cause fault if returns) */
-    
-    /* Add to process list */
+    proc->sched_node.proc = proc;
+    proc->sched_node.on_rq = 0;
+
+    /* Build the initial switch_to frame at the top of the stack. */
+    u64 top = ((u64)stack + proc->stack_size) & ~0xFULL;   /* 16-aligned */
+    u64* sp = (u64*)(top - 7 * 8);                          /* => sp % 16 == 8 */
+    sp[0] = (u64)entry;                 /* popped into r15 */
+    sp[1] = (u64)arg;                   /* popped into r14 */
+    sp[2] = 0;                          /* r13 */
+    sp[3] = 0;                          /* r12 */
+    sp[4] = 0;                          /* rbx */
+    sp[5] = 0;                          /* rbp */
+    sp[6] = (u64)kthread_trampoline;    /* return address */
+    proc->rsp = (u64)sp;
+    proc->rbp = 0;
+    proc->rip = (u64)entry;             /* informational only */
+    proc->rflags = 0x202;
+
+    u64 flags = local_irq_save();
     proc->next = process_list;
     process_list = proc;
-    
+    local_irq_restore(flags);
+
     return proc;
+}
+
+process_t* process_create(void* entry_point, u64 stack_size) {
+    VALIDATE_PTR_RET(entry_point, NULL);
+    /*
+     * Created but intentionally NOT runnable: the caller must wake_up_process()
+     * to schedule it. This preserves the old contract used by callers that pass
+     * a placeholder entry point purely to test allocation.
+     */
+    return proc_create_kthread((void (*)(void*))entry_point, NULL, stack_size);
+}
+
+process_t* kthread_create_stopped(void (*entry)(void*), void* arg, u64 stack_size) {
+    return proc_create_kthread(entry, arg, stack_size);
+}
+
+process_t* kthread_run(void (*entry)(void*), void* arg, u64 stack_size) {
+    process_t* p = proc_create_kthread(entry, arg, stack_size);
+    if (p) {
+        wake_up_process(p);
+    }
+    return p;
+}
+
+void thread_exit(void) {
+    process_t* p = current_process;
+    if (p) {
+        p->state = PROCESS_ZOMBIE;   /* a zombie is never re-enqueued by schedule() */
+    }
+    schedule();                      /* switch away for good */
+    for (;;) {
+        __asm__ __volatile__("cli; hlt");
+    }
 }
 
 void process_destroy(process_t* proc) {
@@ -120,36 +155,11 @@ process_t* process_current(void) {
     return current_process;
 }
 
-void context_switch(process_t* from, process_t* to) {
-    if (!to) return;
-    
-    /* Save from context */
-    if (from) {
-        __asm__ __volatile__(
-            "mov %%rsp, %0\n\t"
-            "mov %%rbp, %1"
-            : "=m"(from->rsp), "=m"(from->rbp)
-        );
-    }
-    
-    /* Load to context */
-    __asm__ __volatile__(
-        "mov %0, %%rsp\n\t"
-        "mov %1, %%rbp\n\t"
-        "mov %2, %%cr3"
-        :
-        : "r"(to->rsp), "r"(to->rbp), "r"(to->cr3)
-        : "memory"
-    );
-    
-    /* Jump to process */
-    __asm__ __volatile__("jmp *%0" : : "r"(to->rip));
-}
-
 void yield(void) {
-    if (current_process) {
-        current_process->state = PROCESS_READY;
-    }
+    /*
+     * Give up the CPU but stay runnable: schedule() requeues the current task
+     * (it is still RUNNING) with an updated vruntime and picks the next one.
+     */
     schedule();
 }
 

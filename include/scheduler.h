@@ -4,6 +4,18 @@
 #include "types.h"
 #include "process.h"
 
+/* Save the current RFLAGS and disable interrupts (returns previous flags). */
+static inline u64 local_irq_save(void) {
+    u64 flags;
+    __asm__ __volatile__("pushfq; pop %0; cli" : "=r"(flags) : : "memory");
+    return flags;
+}
+
+/* Restore RFLAGS previously captured by local_irq_save(). */
+static inline void local_irq_restore(u64 flags) {
+    __asm__ __volatile__("push %0; popfq" : : "r"(flags) : "memory", "cc");
+}
+
 /* Scheduler types */
 #define SCHED_NORMAL 0
 #define SCHED_FIFO   1
@@ -30,6 +42,40 @@ void schedule(void);
 
 /* Account one timer tick of CPU time (called from the timer IRQ) */
 void scheduler_tick(void);
+
+/*
+ * Preemption entry point, called from the timer IRQ after scheduler_tick().
+ * Decrements the current task's quantum and reschedules when it expires and
+ * preemption is enabled.
+ */
+void scheduler_timer_preempt(void);
+
+/* Preemption control (Linux preempt_count semantics: >0 means non-preemptible) */
+void preempt_disable(void);
+void preempt_enable(void);
+
+/*
+ * Low-level kernel-stack switch (kernel/asm/context_switch.S).
+ * Saves callee-saved registers of the current task, stores rsp at *save_rsp,
+ * loads rsp from *load_rsp, restores callee-saved registers and returns into
+ * the incoming task. Both arguments point at process_t.rsp.
+ */
+void switch_to(u64* save_rsp, u64* load_rsp);
+
+/* First code every freshly-scheduled task runs (finish_task_switch): unlocks + sti */
+void schedule_tail(void);
+
+/* Make a READY task runnable and insert it into the runqueue */
+void wake_up_process(process_t* proc);
+
+/* Create a kernel thread but leave it stopped (not on the runqueue) */
+process_t* kthread_create_stopped(void (*entry)(void*), void* arg, u64 stack_size);
+
+/* Create + start a kernel thread (entry(arg)); returns the process or NULL */
+process_t* kthread_run(void (*entry)(void*), void* arg, u64 stack_size);
+
+/* Terminate the current kernel thread (never returns) */
+void thread_exit(void);
 
 /* Set process priority */
 int setpriority(u64 pid, int priority);

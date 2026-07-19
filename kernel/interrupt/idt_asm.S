@@ -77,7 +77,7 @@ syscall_handler_asm:
 ; Common interrupt handler
 extern interrupt_handler
 isr_common:
-    ; Save all registers
+    ; Save all general-purpose registers (order must match interrupt_frame_t)
     push rax
     push rbx
     push rcx
@@ -93,13 +93,26 @@ isr_common:
     push r13
     push r14
     push r15
-    
-    ; Call C handler
-    mov rdi, [rsp + 15*8]  ; Interrupt number
-    mov rsi, [rsp + 16*8]  ; Error code
-    mov rdx, rsp           ; Pointer to saved register frame (interrupt_frame_t)
+
+    ; rbp := pointer to the saved GP frame (interrupt_frame_t). rbp is callee-
+    ; saved, so the C handler preserves it across the call. The interrupted rbp
+    ; value is already safe on the stack and is restored by "pop rbp" below.
+    mov rbp, rsp
+
+    ; Preserve the interrupted task's FPU/SSE state BEFORE any C code runs, so a
+    ; preemptive context switch inside interrupt_handler cannot corrupt it. The
+    ; 512-byte fxsave area lives on this task's kernel stack (below the frame);
+    ; because we always return to this exact frame, fxrstor restores it verbatim.
+    mov rdi, [rbp + 15*8]      ; Interrupt number
+    mov rsi, [rbp + 16*8]      ; Error code
+    mov rdx, rbp               ; interrupt_frame_t*
+    sub rsp, 512
+    and rsp, -16               ; fxsave requires a 16-byte aligned operand
+    fxsave [rsp]
     call interrupt_handler
-    
+    fxrstor [rsp]
+    mov rsp, rbp               ; discard fxsave scratch, back to the GP frame
+
     ; Restore registers
     pop r15
     pop r14
@@ -116,8 +129,8 @@ isr_common:
     pop rcx
     pop rbx
     pop rax
-    
+
     ; Remove error code and interrupt number
     add rsp, 16
-    
+
     iretq

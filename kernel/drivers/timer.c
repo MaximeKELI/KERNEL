@@ -32,6 +32,10 @@ static void timer_irq_handler(u32 irq, void* data) {
     if (callback) {
         callback(callback_data);
     }
+
+    /* Preempt the running task once its time slice is exhausted. Must be last:
+     * it may switch away and only return when this task is scheduled again. */
+    scheduler_timer_preempt();
 }
 
 void timer_init(u32 frequency) {

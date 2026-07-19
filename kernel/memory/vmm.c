@@ -54,7 +54,16 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
     u64 pt_idx = (addr >> 12) & 0x1FF;
     
     if (!pml4) return NULL;
-    
+
+    /*
+     * When mapping a USER page, the USER bit must be set at EVERY level of the
+     * walk (PML4E, PDPTE, PDE) — the CPU ANDs the U/S bits along the path, so a
+     * supervisor intermediate entry would deny userspace regardless of the leaf.
+     * The individual leaf PTE still gates real access, so making the upper
+     * levels permissive is safe (this is exactly how Linux lays out its tables).
+     */
+    u64 user_bit = (flags & PAGE_USER) ? PAGE_USER : 0;
+
     /* Allocate/create page tables if needed */
     u64 pml4_entry = pml4->entries[pml4_idx];
     page_table_t* pdpt;
@@ -64,9 +73,12 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
         pdpt = (page_table_t*)pmm_alloc(1);
         if (!pdpt) return NULL;
         memset(pdpt, 0, PAGE_SIZE);
-        pml4->entries[pml4_idx] = (u64)pdpt | PAGE_PRESENT | PAGE_WRITABLE;
+        pml4->entries[pml4_idx] = (u64)pdpt | PAGE_PRESENT | PAGE_WRITABLE | user_bit;
     } else {
         pdpt = (page_table_t*)(pml4_entry & ~0xFFF);
+        if (user_bit && !(pml4_entry & PAGE_USER)) {
+            pml4->entries[pml4_idx] = pml4_entry | PAGE_USER;
+        }
     }
     
     u64 pdpt_entry = pdpt->entries[pdpt_idx];
@@ -76,9 +88,12 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
         pd = (page_table_t*)pmm_alloc(1);
         if (!pd) return NULL;
         memset(pd, 0, PAGE_SIZE);
-        pdpt->entries[pdpt_idx] = (u64)pd | PAGE_PRESENT | PAGE_WRITABLE;
+        pdpt->entries[pdpt_idx] = (u64)pd | PAGE_PRESENT | PAGE_WRITABLE | user_bit;
     } else {
         pd = (page_table_t*)(pdpt_entry & ~0xFFF);
+        if (user_bit && !(pdpt_entry & PAGE_USER)) {
+            pdpt->entries[pdpt_idx] = pdpt_entry | PAGE_USER;
+        }
     }
     
     u64 pd_entry = pd->entries[pd_idx];
@@ -88,19 +103,37 @@ void* vmm_map_page(void* virt, void* phys, u64 flags) {
         pt = (page_table_t*)pmm_alloc(1);
         if (!pt) return NULL;
         memset(pt, 0, PAGE_SIZE);
-        pd->entries[pd_idx] = (u64)pt | PAGE_PRESENT | PAGE_WRITABLE;
+        pd->entries[pd_idx] = (u64)pt | PAGE_PRESENT | PAGE_WRITABLE | user_bit;
     } else if (pd_entry & PAGE_SIZE_2MB_FLAG) {
-        /* Region is already covered by the boot-time 2 MiB identity map;
-         * mapping virt==phys here is a no-op, so leave the huge page intact. */
-        return virt;
+        if (!user_bit) {
+            /* Region is already covered by the boot-time 2 MiB identity map;
+             * a supervisor virt==phys mapping here is a no-op. */
+            return virt;
+        }
+        /*
+         * The user region falls inside a boot-time 2 MiB supervisor huge page.
+         * Split it into 512 4 KiB PTEs that replicate the identity map, so we
+         * can grant USER on individual pages while the rest stays supervisor.
+         */
+        pt = (page_table_t*)pmm_alloc(1);
+        if (!pt) return NULL;
+        u64 base = pd_entry & 0x000FFFFFFFE00000ULL;   /* 2 MiB-aligned physical base */
+        u64 keep = pd_entry & (PAGE_WRITABLE | PAGE_PWT | PAGE_PCD | PAGE_GLOBAL);
+        for (u64 i = 0; i < 512; i++) {
+            pt->entries[i] = (base + (i << 12)) | PAGE_PRESENT | keep;
+        }
+        pd->entries[pd_idx] = (u64)pt | PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER;
     } else {
         pt = (page_table_t*)(pd_entry & ~0xFFF);
+        if (user_bit && !(pd_entry & PAGE_USER)) {
+            pd->entries[pd_idx] = pd_entry | PAGE_USER;
+        }
     }
     
     /* Map page */
     pt->entries[pt_idx] = ((u64)phys & ~0xFFF) | flags | PAGE_PRESENT;
     
-    /* Invalidate TLB */
+    /* Invalidate TLB (also drops any stale 2 MiB entry that covered this page) */
     __asm__ __volatile__("invlpg (%0)" : : "r"(virt) : "memory");
     
     return virt;

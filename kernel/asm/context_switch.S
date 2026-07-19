@@ -50,6 +50,33 @@ kthread_trampoline:
     hlt
     jmp .hang
 
+; First-run trampoline for a fork()ed child. The initial switch frame built by
+; fork_process() leaves r15 pointing at a fork_frame_t (include/trapframe.h).
+; We finish the task switch (enable IRQs), then restore the child's user GP
+; registers and iretq back to ring 3 at the instruction after the parent's
+; SYSCALL, with rax = 0 (the child's fork() return value).
+extern schedule_tail
+global fork_child_trampoline
+fork_child_trampoline:
+    call schedule_tail      ; finish_task_switch: enable interrupts
+    mov rsp, r15            ; r15 = &fork_frame (survives switch_to as callee-saved)
+    pop rax
+    pop rbx
+    pop rcx
+    pop rdx
+    pop rsi
+    pop rdi
+    pop rbp
+    pop r8
+    pop r9
+    pop r10
+    pop r11
+    pop r12
+    pop r13
+    pop r14
+    pop r15
+    iretq                   ; consumes rip, cs, rflags, rsp, ss -> ring 3
+
 ; int reg_integrity_loop(u64 sig /* rdi */, volatile int* stop /* rsi */)
 ; Test helper: keeps `sig` live in every callee-saved register across a loop in
 ; which the timer preempts us. Returns 1 if any register got clobbered by a

@@ -30,6 +30,38 @@ mm_struct_t* mm_create(void) {
     return mm;
 }
 
+mm_struct_t* mm_clone(mm_struct_t* src) {
+    if (!src) {
+        return NULL;
+    }
+    mm_struct_t* dst = mm_create();
+    if (!dst) {
+        return NULL;
+    }
+    dst->brk_start = src->brk_start;
+    dst->brk = src->brk;
+    dst->mmap_base = src->mmap_base;
+
+    /* Copy the VMA list preserving order (append to tail). The physical pages
+     * themselves are shared copy-on-write by vmm_fork_clone(); here we only
+     * duplicate the address-space *description* so the child's faults resolve. */
+    vma_t** tail = &dst->vmas;
+    for (vma_t* v = src->vmas; v; v = v->next) {
+        vma_t* c = (vma_t*)kzalloc(sizeof(vma_t));
+        if (!c) {
+            mm_destroy(dst);
+            return NULL;
+        }
+        c->start = v->start;
+        c->end = v->end;
+        c->vm_flags = v->vm_flags;
+        c->next = NULL;
+        *tail = c;
+        tail = &c->next;
+    }
+    return dst;
+}
+
 void mm_destroy(mm_struct_t* mm) {
     if (!mm) {
         return;

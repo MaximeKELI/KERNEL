@@ -38,6 +38,7 @@ typedef struct mm_struct {
 } mm_struct_t;
 
 mm_struct_t* mm_create(void);
+mm_struct_t* mm_clone(mm_struct_t* src);   /* fork: copy the VMA list + brk/mmap */
 void mm_destroy(mm_struct_t* mm);
 
 vma_t* mm_find_vma(mm_struct_t* mm, u64 addr);

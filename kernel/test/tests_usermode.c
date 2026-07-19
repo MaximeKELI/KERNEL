@@ -47,20 +47,22 @@ static void build_user_blob(u8* code, u64 code_va) {
     code[o++] = 0x48; code[o++] = 0xBE; msg_imm_off = o; o += 8;
     /* mov edx, imm32  (length, patched below) */
     code[o++] = 0xBA; len_off = o; o += 4;
-    /* syscall */
+    /* syscall  (write) -> returns to ring 3 via SYSRET */
     code[o++] = 0x0F; code[o++] = 0x05;
 
-    /* mov ecx, 0x01000000  (delay iterations) */
-    code[o++] = 0xB9; code[o++] = 0x00; code[o++] = 0x00; code[o++] = 0x00; code[o++] = 0x01;
-    /* delay: sub ecx, 1 ; jnz delay   (spin long enough for a timer tick in ring 3) */
-    code[o++] = 0x83; code[o++] = 0xE9; code[o++] = 0x01;   /* sub ecx, 1 */
-    code[o++] = 0x75; code[o++] = 0xFB;                     /* jnz -5      */
+    /* mov ecx, 0x02000000  (busy-loop counter) */
+    code[o++] = 0xB9; code[o++] = 0x00; code[o++] = 0x00; code[o++] = 0x00; code[o++] = 0x02;
+    /* spin: sub ecx, 1 ; jnz spin  -> stays in ring 3 long enough for the PIT to
+     * fire *while CPL=3*, which can only be handled if the TSS.rsp0 stack switch
+     * works (otherwise the ring3->ring0 interrupt triple-faults). */
+    code[o++] = 0x83; code[o++] = 0xE9; code[o++] = 0x01;
+    code[o++] = 0x75; code[o++] = 0xFB;
 
     /* mov eax, SYS_EXIT */
     code[o++] = 0xB8; code[o++] = SYS_EXIT; code[o++] = 0; code[o++] = 0; code[o++] = 0;
     /* mov edi, 42  (exit code) */
     code[o++] = 0xBF; code[o++] = 42; code[o++] = 0; code[o++] = 0; code[o++] = 0;
-    /* syscall */
+    /* syscall  (exit) */
     code[o++] = 0x0F; code[o++] = 0x05;
     /* jmp $  (never reached; guards against a returning exit) */
     code[o++] = 0xEB; code[o++] = 0xFE;
@@ -69,7 +71,6 @@ static void build_user_blob(u8* code, u64 code_va) {
     for (size_t i = 0; i < sizeof(msg) - 1; i++) {
         code[o++] = (u8)msg[i];
     }
-
     *(u64*)(code + msg_imm_off) = code_va + msg_off;
     *(u32*)(code + len_off) = (u32)(sizeof(msg) - 1);
 }

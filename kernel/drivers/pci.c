@@ -27,13 +27,24 @@ void pci_init(void) {
 
 int pci_scan_bus(void) {
     u32 devices_found = 0;
-    
-    for (u8 bus = 0; bus < 256; bus++) {
+
+    /*
+     * Scan bus 0 only. On the QEMU i440fx/q35 default the host bridge does not
+     * decode buses 1..255, so config reads there alias back to bus 0 and every
+     * slot looks populated -> thousands of phantom devices. All real devices
+     * (including virtio-net) live on bus 0. (Devices behind PCI-PCI bridges
+     * would need recursive scanning, which QEMU's default topology doesn't use.)
+     */
+    for (u8 bus = 0; bus < 1; bus++) {
         for (u8 device = 0; device < 32; device++) {
             for (u8 function = 0; function < 8; function++) {
                 u32 vendor_id = pci_read_config(bus, device, function, 0) & 0xFFFF;
                 
-                if (vendor_id == 0xFFFF) continue;
+                /* 0xFFFF = no device; 0x0000 = host bridge not decoding this
+                 * slot (returns all-zeros). Treating the latter as a device
+                 * makes every empty slot look populated and floods the bus with
+                 * thousands of bogus entries. Skip both. */
+                if (vendor_id == 0xFFFF || vendor_id == 0x0000) continue;
                 
                 u32 device_id = (pci_read_config(bus, device, function, 0) >> 16) & 0xFFFF;
                 u32 class_rev = pci_read_config(bus, device, function, 8);
@@ -66,9 +77,16 @@ int pci_scan_bus(void) {
                 
                 devices_found++;
                 
-                DEBUG_INFO("PCI device: %04x:%04x class %02x:%02x at %02x:%02x.%x",
+                DEBUG_INFO("PCI device: %x:%x class %x:%x at %x:%x.%x",
                           vendor_id, device_id, class_code, subclass,
                           bus, device, function);
+
+                /* Safety cap: never let a misbehaving host bridge run the list
+                 * (and the heap) away. */
+                if (devices_found >= 256) {
+                    DEBUG_INFO("PCI scan capped at %u devices", devices_found);
+                    return devices_found;
+                }
                 
                 /* Only check function 0 for multi-function devices */
                 if (function == 0 && !(pci_read_config(bus, device, 0, 0x0E) & 0x80)) {

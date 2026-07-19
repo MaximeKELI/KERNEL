@@ -1,6 +1,7 @@
 #include "exec.h"
 #include "elf.h"
 #include "memory.h"
+#include "mm.h"
 #include "process.h"
 #include "stdio.h"
 #include "string.h"
@@ -67,6 +68,15 @@ int exec_load_elf(const void* elf_data, size_t size, u64* entry_out) {
         if (memsz > filesz) {
             memset(dest + filesz, 0, memsz - filesz);
         }
+
+        /* Describe the segment as a VMA so faults inside it are understood. */
+        process_t* proc = process_current();
+        if (proc && proc->mm) {
+            u64 vm = VM_READ;
+            if (flags & 0x2) vm |= VM_WRITE;
+            if (flags & 0x1) vm |= VM_EXEC;
+            mm_insert_vma(proc->mm, page_start, page_end, vm);
+        }
     }
 
     *entry_out = ehdr->e_entry;
@@ -115,6 +125,13 @@ static int exec_map_user_stack(void) {
             return -1;
         }
     }
+
+    /* Stack VMA marked GROWSDOWN so a fault just below `bottom` grows it. */
+    process_t* proc = process_current();
+    if (proc && proc->mm) {
+        mm_insert_vma(proc->mm, bottom, top,
+                      VM_READ | VM_WRITE | VM_ANON | VM_GROWSDOWN);
+    }
     return 0;
 }
 
@@ -145,6 +162,11 @@ int exec_run_path(const char* path) {
     const void* blob = exec_resolve_path(path, &size);
     if (!blob) {
         return -1;
+    }
+
+    process_t* proc = process_current();
+    if (proc && !proc->mm) {
+        proc->mm = mm_create();
     }
 
     u64 entry = 0;

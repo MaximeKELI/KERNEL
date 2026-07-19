@@ -32,6 +32,9 @@ void vmm_init_user_mm(void);
 u64 vmm_get_cr3(void);
 void vmm_switch_mm(u64 cr3);
 u64 vmm_fork_clone(void);
+u64 vmm_fork_from(u64 parent_cr3);
+u64 vmm_create_user_space(void);
+void vmm_destroy_user_space(u64 cr3);
 int vmm_cow_fault(void* virt, u64 error);
 
 /* Page flags */
@@ -47,6 +50,7 @@ int vmm_cow_fault(void* virt, u64 error);
 
 /* Kernel heap */
 void heap_init(void);
+void heap_get_range(u64* start, u64* end);
 void* kmalloc(size_t size);
 void* kzalloc(size_t size);
 void kfree(void* ptr);

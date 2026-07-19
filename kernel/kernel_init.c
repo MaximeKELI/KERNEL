@@ -107,9 +107,39 @@
 #include "vdso.h"
 
 static bool g_extended_ready = false;
+static bool g_net_ready = false;
 
 bool kernel_extended_ready(void) {
     return g_extended_ready;
+}
+
+bool kernel_net_ready(void) {
+    return g_net_ready || g_extended_ready;
+}
+
+/*
+ * Lightweight bring-up for a networked userland: just PCI + the network stack
+ * (plus the timer/workqueue infrastructure the stack and the main loop rely on).
+ *
+ * This is deliberately NOT kernel_init_extended(): that path initialises several
+ * hundred subsystems (AI, containers, checkpoint/restore, KVM, ...) and exhausts
+ * the 10 MiB kernel heap, after which init can no longer even allocate a kernel
+ * stack for /sh. All we need for a working shell + `nettest` is the net stack;
+ * userland (/sh, /nettest) already runs on the minimal boot path.
+ */
+void kernel_init_network(void) {
+    if (g_net_ready || g_extended_ready) {
+        return;
+    }
+    printk("[init] bringing up network stack...\n");
+
+    hrtimer_init();     /* TCP retransmit / timeouts */
+    workqueue_init();   /* deferred net work (system_wq) */
+    pci_init();         /* enumerate bus 0 so ethernet_init can find the NIC */
+    net_init();         /* L2/L3/L4 + default interface */
+
+    g_net_ready = true;
+    printk("[init] network ready\n");
 }
 
 void kernel_init_minimal(void) {

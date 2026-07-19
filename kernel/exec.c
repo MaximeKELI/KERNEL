@@ -154,8 +154,8 @@ int exec_run_path(const char* path) {
 
     vdso_map_user();
 
-    printk("[exec] %s ring3 entry=0x%llx (%zu bytes)\n",
-           path, (unsigned long long)entry, size);
+    printk("[exec] %s ring3 entry=0x%x (%u bytes)\n",
+           path, (unsigned)entry, (unsigned)size);
     exec_jump_user(entry);
     return 0;
 }

@@ -90,6 +90,16 @@ void interrupt_handler(u64 vector, u64 error_code, interrupt_frame_t* frame) {
         /* This should not be reached if syscall_entry is properly configured */
         DEBUG_ERROR("%s", "System call reached interrupt handler (should use syscall_entry)");
     }
+
+    /*
+     * On the way back to ring 3 from an IRQ, deliver any pending signal so async
+     * signals reach a userspace task even if it never makes a syscall. Skip for
+     * exceptions (handled above) and kernel-mode interrupts.
+     */
+    if (vector >= 32 && vector < 48 && frame && (frame->cs & 3) == 3) {
+        extern void signal_check_on_irq_return(interrupt_frame_t*);
+        signal_check_on_irq_return(frame);
+    }
 }
 
 /* Set IDT entry */

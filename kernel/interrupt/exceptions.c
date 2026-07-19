@@ -1,6 +1,8 @@
 #include "interrupt.h"
 #include "stdio.h"
 #include "kernel.h"
+#include "signal.h"
+#include "process.h"
 
 static const char* exception_names[] = {
     "Divide by Zero",
@@ -38,6 +40,31 @@ void exception_handler(u32 vector, u64 error_code, interrupt_frame_t* frame) {
         extern int cow_handle_page_fault(u64 cr2, u64 error_code);
         if (cow_handle_page_fault(cr2, error_code) == 0) {
             return;
+        }
+    }
+
+    /*
+     * A fault taken in ring 3 that we could not service is the process's fault,
+     * not the kernel's: deliver the appropriate signal (default action = kill)
+     * instead of panicking. signal_check_on_irq_return rewrites `frame` to enter
+     * the handler; with no handler, signal_dispatch performs the default
+     * terminate and never returns.
+     */
+    if (frame && (frame->cs & 3) == 3) {
+        process_t* proc = process_current();
+        if (proc) {
+            int sig = SIGSEGV;
+            if (vector == 6) {
+                sig = SIGILL;            /* invalid opcode */
+            } else if (vector == 0) {
+                sig = SIGFPE;            /* divide error */
+            } else if (vector == 13) {
+                sig = SIGSEGV;           /* GP fault */
+            }
+            signal_force(proc, sig);
+            extern void signal_check_on_irq_return(interrupt_frame_t*);
+            signal_check_on_irq_return(frame);
+            return;   /* resume: either into the handler or (default) terminated */
         }
     }
 

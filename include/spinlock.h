@@ -22,4 +22,10 @@ bool spinlock_is_locked(spinlock_t* lock);
 void spinlock_lock_irq(spinlock_t* lock);
 void spinlock_unlock_irq(spinlock_t* lock);
 
+/* Save/restore variant. Required for any lock also taken by an interrupt
+ * handler: unlock_irq() re-enables interrupts unconditionally, which is wrong
+ * inside a handler and in nested critical sections. */
+u64 spinlock_lock_irqsave(spinlock_t* lock);
+void spinlock_unlock_irqrestore(spinlock_t* lock, u64 flags);
+
 #endif /* SPINLOCK_H */

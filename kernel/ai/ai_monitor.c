@@ -37,8 +37,10 @@ void ai_update_metrics(void) {
         last_tick_time = timer_get_ticks();
     }
     
-    spinlock_lock(&metrics_lock);
-    
+    /* Also called from the timer IRQ, so thread-context callers must mask
+     * interrupts while holding the lock or the handler deadlocks on it. */
+    u64 flags = spinlock_lock_irqsave(&metrics_lock);
+
     tick_count++;
     u64 current_tick = timer_get_ticks();
     
@@ -147,7 +149,7 @@ void ai_update_metrics(void) {
     current_metrics.net_rx_packets = global_net_rx_packets;
     
     last_tick_time = current_tick;
-    spinlock_unlock(&metrics_lock);
+    spinlock_unlock_irqrestore(&metrics_lock, flags);
 }
 
 /* Alias for backward compatibility */
@@ -158,7 +160,7 @@ void ai_monitor_update(void) {
 void ai_monitor_get_metrics(ai_metrics_t* metrics) {
     VALIDATE_PTR_VOID(metrics);
     
-    spinlock_lock(&metrics_lock);
+    u64 flags = spinlock_lock_irqsave(&metrics_lock);
     *metrics = current_metrics;
-    spinlock_unlock(&metrics_lock);
+    spinlock_unlock_irqrestore(&metrics_lock, flags);
 }

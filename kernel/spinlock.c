@@ -36,3 +36,16 @@ void spinlock_unlock_irq(spinlock_t* lock) {
     spinlock_unlock(lock);
     enable_interrupts();
 }
+
+u64 spinlock_lock_irqsave(spinlock_t* lock) {
+    u64 flags;
+    __asm__ __volatile__("pushfq; popq %0" : "=r"(flags) : : "memory");
+    disable_interrupts();
+    spinlock_lock(lock);
+    return flags;
+}
+
+void spinlock_unlock_irqrestore(spinlock_t* lock, u64 flags) {
+    spinlock_unlock(lock);
+    __asm__ __volatile__("pushq %0; popfq" : : "r"(flags) : "memory", "cc");
+}

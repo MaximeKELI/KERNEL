@@ -123,3 +123,8 @@ void kernel_main(u64 magic, u64 mb_info) {
         }
     }
 }
+
+
+
+
+

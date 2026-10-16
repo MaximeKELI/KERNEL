@@ -45,3 +45,4 @@ void appliance_network_boot(void) {
         printk("[appliance] HTTP GET failed (gateway may not run HTTP)\n");
     }
 }
+

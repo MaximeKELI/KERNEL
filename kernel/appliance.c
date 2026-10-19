@@ -47,5 +47,3 @@ void appliance_network_boot(void) {
 }
 
 
-
-
